@@ -1,98 +1,148 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { BusArrival, TaipeiBusAPI } from '../../components/bus-api';
+import stopMapping from '../../databases/stop_to_slid.json';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
-
+// Import your stop mapping JSON
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [arrivals, setArrivals] = useState<BusArrival[]>([]);
+  const [lastUpdate, setLastUpdate] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [busAPI] = useState(() => new TaipeiBusAPI(stopMapping));
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const fetchBusData = async () => {
+    try {
+      const { arrivals, lastUpdate } = await busAPI.getStopEstimates('師大分部');
+      setArrivals(arrivals);
+      setLastUpdate(lastUpdate);
+    } catch (error) {
+      console.error('Failed to fetch bus data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBusData();
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchBusData, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchBusData();
+  };
+
+  const renderBusItem = ({ item }: { item: BusArrival }) => (
+    <View style={styles.busItem}>
+      <View style={styles.busHeader}>
+        <Text style={styles.routeName}>{item.route}</Text>
+        <Text style={styles.estimatedTime}>{item.estimatedTime}</Text>
+      </View>
+      <Text style={styles.direction}>{item.direction}</Text>
+    </View>
   );
-}
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#0066cc" />
+      </View>
+    );
+  }
+
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>師大分部</Text>
+        <Text style={styles.updateTime}>更新時間: {lastUpdate}</Text>
+      </View>
+      
+      <FlatList
+        data={arrivals}
+        renderItem={renderBusItem}
+        keyExtractor={(item, index) => `${item.route}-${index}`}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <View style={styles.centered}>
+            <Text>目前無公車資訊</Text>
+          </View>
+        }
+      />
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
   },
-  stepContainer: {
-    gap: 8,
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  updateTime: {
+    fontSize: 12,
+    color: '#666',
+  },
+  busItem: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginVertical: 4,
+    marginHorizontal: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  busHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  routeName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0066cc',
+  },
+  estimatedTime: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ff6600',
+  },
+  direction: {
+    fontSize: 14,
+    color: '#666',
   },
 });
