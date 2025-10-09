@@ -100,7 +100,7 @@ export class TaipeiBusAPI {
   private async fetchRouteInfo(
     stopId: string
   ): Promise<Record<string, RouteInfo>> {
-    const url = `${TaipeiBusAPI.BASE_URL}/stoplocation.jsp?slid=${stopId}`;
+    const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`${TaipeiBusAPI.BASE_URL}/stoplocation.jsp?slid=${stopId}`)}`;
     const response = await fetch(url);
     
     if (!response.ok) {
@@ -140,7 +140,7 @@ export class TaipeiBusAPI {
    * Fetch dynamic arrival data for a stop
    */
   private async fetchDynamicData(stopId: string): Promise<any> {
-    const url = `${TaipeiBusAPI.BASE_URL}/StopLocationDyna?stoplocationid=${stopId}`;
+    const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`${TaipeiBusAPI.BASE_URL}/StopLocationDyna?stoplocationid=${stopId}`)}`;
     const response = await fetch(url);
     
     if (!response.ok) {
