@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "1e7c0d32-f891-4dd6-a91f-085e6e991816"
+      }
+    },
+    "android": {
+      "package": "com.dillenhub.app22222"
+    }
+  }
+}
