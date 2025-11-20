@@ -1,4 +1,3 @@
-// app/HomeScreen.tsx
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -10,36 +9,66 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { BusArrival, TaipeiBusAPI } from '../components/bus-api';
-import stopMapping from '../databases/stop_to_slid.json';
+// 引入新版 Service
+import { BusPlannerService } from '../components/busPlanner';
 
-export default function HomeScreen() {
+interface UIArrival {
+  route: string;
+  estimatedTime: string;
+  key: string;
+}
+
+export default function StopDetailScreen() {
   const router = useRouter();
-  const { name } = useLocalSearchParams<{ name?: string }>(); // 讀取 ?name=參數
-  const stopName = name || '師大分部'; // 預設值
+  const { name } = useLocalSearchParams<{ name?: string }>();
+  const stopName = name || '捷運公館站';
 
-  const [arrivals, setArrivals] = useState<BusArrival[]>([]);
+  const [arrivals, setArrivals] = useState<UIArrival[]>([]);
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [selectedTab, setSelectedTab] = useState<'去' | '回'>('去');
-  const apiRef = useRef(new TaipeiBusAPI(stopMapping));
+  
+  // 注意：因為 fetchBusesAtSid 不回傳方向，暫時移除 Tabs 的過濾功能
+  // const [selectedTab, setSelectedTab] = useState<'去' | '回'>('去');
+  
+  const plannerRef = useRef(new BusPlannerService());
+  const [serviceReady, setServiceReady] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const initService = async () => {
+      await plannerRef.current.initialize();
+      setServiceReady(true);
+    };
+    initService();
+  }, []);
 
   const fetchBusData = async () => {
     try {
-      // 檢查 stopMapping 是否有該站名
-      if (!stopMapping[stopName]) {
-        console.warn(`❗ 找不到站牌：「${stopName}」於 stop_to_slid.json`);
+      if (!serviceReady) return;
+      
+      const sids = plannerRef.current.getRepresentativeSids(stopName);
+      if (sids.length === 0) {
         setArrivals([]);
         setLastUpdate('無法識別站牌名稱');
         setLoading(false);
         return;
       }
 
-      const { arrivals, lastUpdate } = await apiRef.current.getStopEstimates(stopName);
-      setArrivals(arrivals || []);
-      setLastUpdate(lastUpdate || '');
+      const results = await plannerRef.current.fetchBusesAtSid(sids[0]);
+      const allBuses = results.flat();
+
+      const uiArrivals: UIArrival[] = allBuses
+        .sort((a, b) => a.raw_time - b.raw_time)
+        .map((bus, idx) => ({
+          route: bus.route,
+          estimatedTime: bus.time_text,
+          key: `${bus.rid}-${idx}`
+        }));
+
+      setArrivals(uiArrivals);
+      setLastUpdate(new Date().toLocaleTimeString());
+
     } catch (error) {
       console.error('🚨 Failed to fetch bus data:', error);
     } finally {
@@ -49,29 +78,21 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    fetchBusData();
-    intervalRef.current = setInterval(fetchBusData, 30000);
-    return () => intervalRef.current && clearInterval(intervalRef.current);
-  }, [stopName]);
+    if (serviceReady) {
+      fetchBusData();
+      intervalRef.current = setInterval(fetchBusData, 30000);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [stopName, serviceReady]);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchBusData();
   };
 
-  // 篩選方向（去／回）
-  const filteredArrivals = arrivals.filter(a => {
-    const dir =
-      a.direction === 0 ||
-      a.direction === '去程' ||
-      a.direction === 'Outbound' ||
-      (typeof a.direction === 'string' && a.direction.includes('去'))
-        ? '去'
-        : '回';
-    return dir === selectedTab;
-  });
-
-  const renderBusItem = ({ item }: { item: BusArrival }) => {
+  const renderBusItem = ({ item }: { item: UIArrival }) => {
     const timeText = item.estimatedTime || '未發車';
     let badgeColor = '#7f8686';
     if (timeText.includes('將到') || timeText.includes('進站')) badgeColor = '#E74C3C';
@@ -91,30 +112,17 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* 上方標題 */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/')}>
+        <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{stopName}</Text>
       </View>
 
-      {/* 分頁 */}
-      <View style={styles.tabs}>
-        {['去', '回'].map(tab => (
-          <TouchableOpacity
-            key={tab}
-            onPress={() => setSelectedTab(tab as '去' | '回')}
-            style={[styles.tabItem, selectedTab === tab && styles.tabActive]}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                selectedTab === tab && styles.tabTextActive,
-              ]}
-            >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      {/* NOTE: 因為新 API fetchBusesAtSid 暫時不提供方向資訊，
+        這裡隱藏了原本的「去/回」Tabs，改為顯示所有經過的公車。
+      */}
+      <View style={styles.subHeader}>
+        <Text style={styles.subHeaderText}>所有經過路線</Text>
       </View>
 
       {/* 列表 */}
@@ -125,9 +133,9 @@ export default function HomeScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredArrivals}
+          data={arrivals}
           renderItem={renderBusItem}
-          keyExtractor={(item, idx) => `${item.route}-${idx}`}
+          keyExtractor={(item) => item.key}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <View style={styles.empty}>
@@ -155,23 +163,13 @@ const styles = StyleSheet.create({
   backArrow: { color: '#fff', fontSize: 26, marginRight: 10 },
   title: { color: '#fff', fontSize: 24, fontWeight: '700' },
 
-  tabs: {
-    flexDirection: 'row',
+  subHeader: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
     borderBottomColor: '#2b3435',
     borderBottomWidth: 1,
-    marginBottom: 8,
   },
-  tabItem: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  tabActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#6F73F8',
-  },
-  tabText: { color: '#aaa', fontSize: 18 },
-  tabTextActive: { color: '#fff', fontWeight: '700' },
+  subHeaderText: { color: '#aaa', fontSize: 14 },
 
   row: {
     flexDirection: 'row',

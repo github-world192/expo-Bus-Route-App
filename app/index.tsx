@@ -10,20 +10,39 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { BusArrival, TaipeiBusAPI } from '../components/bus-api';
-import stopMapping from '../databases/stop_to_slid.json';
+// 假設 BusPlannerService 放在 services 資料夾，請依實際位置調整
+import { BusPlannerService } from '../components/busPlanner';
+
+// 定義 UI 用的介面 (配合新 API 的回傳結構進行適配)
+interface UIArrival {
+  route: string;
+  estimatedTime: string;
+  key: string;
+}
 
 export default function StopScreen() {
   const router = useRouter();
   const { name } = useLocalSearchParams<{ name?: string }>();
 
-  const apiRef = useRef(new TaipeiBusAPI(stopMapping as Record<string, string>));
-  const [selectedStop, setSelectedStop] = useState<string>(name || '師大分部');
-  const [arrivals, setArrivals] = useState<BusArrival[]>([]);
+  // 使用新版 Service
+  const plannerRef = useRef(new BusPlannerService());
+  const [serviceReady, setServiceReady] = useState(false);
+
+  const [selectedStop, setSelectedStop] = useState<string>(name || '捷運公館站');
+  const [arrivals, setArrivals] = useState<UIArrival[]>([]);
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 初始化 Service
+  useEffect(() => {
+    const initService = async () => {
+      await plannerRef.current.initialize();
+      setServiceReady(true);
+    };
+    initService();
+  }, []);
 
   // 載入參數站名
   useEffect(() => {
@@ -31,15 +50,53 @@ export default function StopScreen() {
       setSelectedStop(name);
     }
   }, [name]);
+  // 監聽站名或 Service 準備好後開始抓資料
+  useEffect(() => {
+    if (serviceReady) {
+      fetchBusData(selectedStop);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(() => fetchBusData(selectedStop), 30000);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [selectedStop, serviceReady]);
 
-  // 抓資料
+  // 抓資料核心邏輯 (使用新 API)
   const fetchBusData = async (stopName = selectedStop) => {
     try {
-      if (!stopName) return;
+      if (!stopName || !serviceReady) return;
       setLoading(prev => prev && !refreshing);
-      const { arrivals: got, lastUpdate: lu } = await apiRef.current.getStopEstimates(stopName);
-      setArrivals(got || []);
-      setLastUpdate(lu || '');
+
+      // 1. 取得該站名的所有代表性 SID
+      const sids = plannerRef.current.getRepresentativeSids(stopName);
+      
+      if (sids.length === 0) {
+        console.warn(`查無站牌 ID: ${stopName}`);
+        setArrivals([]);
+        setLastUpdate(new Date().toLocaleTimeString());
+        return;
+      }
+
+      // 2. 平行抓取所有 SID 的公車資料
+      console.log('Fetching data for SIDs:', sids[0]);
+      const results = await plannerRef.current.fetchBusesAtSid(sids[0]);
+      
+      // 3. 合併並轉換資料
+      const allBuses = results.flat();
+      
+      // 轉換為 UI 格式並排序 (依據 raw_time，即到站秒數)
+      const uiArrivals: UIArrival[] = allBuses
+        .sort((a, b) => a.raw_time - b.raw_time)
+        .map((bus, idx) => ({
+          route: bus.route,
+          estimatedTime: bus.time_text,
+          key: `${bus.rid}-${idx}`, // 確保 key 唯一
+        }));
+
+      setArrivals(uiArrivals);
+      setLastUpdate(new Date().toLocaleTimeString());
+
     } catch (e) {
       console.error('fetchBusData error', e);
     } finally {
@@ -47,16 +104,6 @@ export default function StopScreen() {
       setRefreshing(false);
     }
   };
-
-  // 自動更新每 30 秒
-  useEffect(() => {
-    fetchBusData(selectedStop);
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => fetchBusData(selectedStop), 30000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [selectedStop]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -67,9 +114,10 @@ export default function StopScreen() {
   const renderBadge = (text: string) => {
     const t = (text || '').toString();
     let style = styles.badgeGray;
-    if (t.includes('將到') || t.includes('進站') || parseInt(t) === 0) style = styles.badgeRed;
+    if (t.includes('將到') || t.includes('進站') || t === '0') style = styles.badgeRed;
     else if (t.includes('分')) style = styles.badgeBlue;
     else if (t.includes('未發') || t.includes('末班') || t.includes('未營運')) style = styles.badgeGray;
+    
     return (
       <View style={[styles.badgeBase, style]}>
         <Text style={styles.badgeText}>{t}</Text>
@@ -77,11 +125,8 @@ export default function StopScreen() {
     );
   };
 
-  const renderItem = ({ item }: { item: BusArrival }) => (
-    <TouchableOpacity
- 
-      
-    >
+  const renderItem = ({ item }: { item: UIArrival }) => (
+    <TouchableOpacity>
       <View style={styles.row}>
         <View style={{ flex: 1 }}>
           <Text style={styles.route}>{item.route}</Text>
@@ -93,7 +138,7 @@ export default function StopScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 搜尋框（點擊導向搜尋頁） */}
+      {/* 搜尋框 */}
       <View style={styles.searchBox}>
         <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/search')}>
           <View pointerEvents="none">
@@ -102,7 +147,7 @@ export default function StopScreen() {
               placeholderTextColor="#bdbdbd"
               style={styles.searchInput}
               editable={false}
-              value={selectedStop}
+              value=""
             />
           </View>
         </TouchableOpacity>
@@ -123,12 +168,12 @@ export default function StopScreen() {
         <FlatList
           data={arrivals}
           renderItem={renderItem}
-          keyExtractor={(item, idx) => `${item.route}-${idx}`}
+          keyExtractor={(item) => item.key}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyText}>目前無公車資訊</Text>
-              <Text style={styles.hintText}>顯示出發站的完整動態</Text>
+              <Text style={styles.hintText}>或查無此站牌資料</Text>
             </View>
           }
           contentContainerStyle={{ paddingBottom: 120 }}
