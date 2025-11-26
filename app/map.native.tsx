@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
@@ -68,13 +68,29 @@ export default function MapNative() {
     })();
   }, []);
 
+  const mapRef = useRef<any>(null);
+
   const recenter = async () => {
     try {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const lat = loc.coords.latitude;
       const lon = loc.coords.longitude;
       setUserLocation({ lat, lon });
-      setRegion((r: any) => ({ ...(r || {}), latitude: lat, longitude: lon }));
+
+      const targetRegion = {
+        latitude: lat,
+        longitude: lon,
+        latitudeDelta: region?.latitudeDelta ?? 0.012,
+        longitudeDelta: region?.longitudeDelta ?? 0.012,
+      };
+
+      // 如果 MapView 有 animateToRegion，使用動畫移動；否則回退為直接 setRegion
+      if (mapRef.current && typeof mapRef.current.animateToRegion === 'function') {
+        // 500ms 平滑過渡
+        mapRef.current.animateToRegion(targetRegion, 500);
+      } else {
+        setRegion((r: any) => ({ ...(r || {}), ...targetRegion }));
+      }
     } catch (e) {
       console.warn('Recenter failed', e);
     }
