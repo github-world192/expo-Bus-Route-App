@@ -2,8 +2,10 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import MapView, { Callout, Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Callout, Marker, Polyline, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 
+import type { BusInfo } from '../components/busPlanner';
+import { BusPlannerService } from '../components/busPlanner';
 import stopsRaw from '../databases/stops.json';
 
 type StopEntry = { name: string; sid: string; lat: number; lon: number; distance?: number };
@@ -28,7 +30,15 @@ export default function MapNative() {
   const [radiusMeters] = useState<number>(DEFAULT_RADIUS_METERS);
   const [showListModal, setShowListModal] = useState<boolean>(false);
   const [currentZoom, setCurrentZoom] = useState<number>(0.012); // 追蹤當前縮放級別
+  const [routeInfo, setRouteInfo] = useState<BusInfo[]>([]); // 路線資訊
+  const [showRoute, setShowRoute] = useState<boolean>(false); // 是否顯示路線
+  const [showRouteMenu, setShowRouteMenu] = useState<boolean>(false); // 是否顯示路線選單
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState<number>(0); // 選中的路線索引
+  const [renderKey, setRenderKey] = useState<number>(0); // 強制重新渲染的 key
   const router = useRouter();
+  const plannerRef = useRef(new BusPlannerService());
+  const isAnimatingRef = useRef(false); // 防止動畫衝突
+  const animationTimeoutRef = useRef<any>(null);
 
   const stopsList: StopEntry[] = useMemo(() => {
     const out: StopEntry[] = [];
@@ -116,6 +126,28 @@ export default function MapNative() {
     return unique.slice(0, 50);
   }, [nearbyStops]);
 
+  // 預處理路線數據，避免在渲染時重複計算
+  const processedRoutes = useMemo(() => {
+    if (routeInfo.length === 0) return [];
+    
+    return routeInfo.map((route, index) => {
+      const coordinates = route.path_stops
+        .filter(stop => stop.geo)
+        .map(stop => ({
+          latitude: stop.geo!.lat,
+          longitude: stop.geo!.lon
+        }));
+      
+      return {
+        route,
+        index,
+        coordinates,
+        isValid: coordinates.length >= 2,
+        routeKey: `route-${route.route_name}-${route.direction_text}-${index}`
+      };
+    }).filter(r => r.isValid);
+  }, [routeInfo]); // 移除 showRoute 依賴，只依賴 routeInfo
+
   useEffect(() => {
     (async () => {
       try {
@@ -134,7 +166,119 @@ export default function MapNative() {
     })();
   }, []);
 
+  // 初始化 BusPlannerService 並查詢測試路線
+  useEffect(() => {
+    (async () => {
+      try {
+        await plannerRef.current.initialize();
+        console.log('BusPlannerService 初始化完成');
+        
+        // 測試：查詢「師大分部」到「師大」的路線
+        const routes = await plannerRef.current.plan('師大分部', '師大');
+        console.log('找到路線數量:', routes.length);
+        if (routes.length > 0) {
+          console.log('第一條路線:', routes[0].route_name, routes[0].direction_text);
+          setRouteInfo(routes);
+        }
+      } catch (error) {
+        console.error('路線規劃初始化錯誤:', error);
+      }
+    })();
+  }, []);
+
+  // 清理函數
+  useEffect(() => {
+    return () => {
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // 確保 selectedRouteIndex 始終有效
+  useEffect(() => {
+    if (routeInfo.length > 0 && selectedRouteIndex >= routeInfo.length) {
+      console.log('修正無效的 selectedRouteIndex:', selectedRouteIndex, '-> 0');
+      setSelectedRouteIndex(0);
+    }
+  }, [routeInfo, selectedRouteIndex]);
+
+  // 調試：追蹤 processedRoutes 的變化
+  useEffect(() => {
+    console.log('processedRoutes 更新:', {
+      count: processedRoutes.length,
+      showRoute,
+      routeInfoLength: routeInfo.length,
+      selectedIndex: selectedRouteIndex
+    });
+  }, [processedRoutes, showRoute, routeInfo.length, selectedRouteIndex]);
+
   const mapRef = useRef<any>(null);
+
+  // 調整地圖視角以顯示選中的路線
+  const fitRouteToMap = (routeIndex: number) => {
+    if (!routeInfo[routeIndex] || !mapRef.current) {
+      console.warn('fitRouteToMap: 無效的路線索引或 mapRef', routeIndex);
+      return;
+    }
+    
+    // 防止動畫衝突
+    if (isAnimatingRef.current) {
+      console.log('fitRouteToMap: 動畫進行中，跳過');
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+      }
+      return;
+    }
+    
+    const route = routeInfo[routeIndex];
+    const coordinates = route.path_stops
+      .filter(stop => stop.geo)
+      .map(stop => ({
+        latitude: stop.geo!.lat,
+        longitude: stop.geo!.lon
+      }));
+    
+    if (coordinates.length === 0) {
+      console.warn('fitRouteToMap: 路線沒有有效座標');
+      return;
+    }
+    
+    // 計算路線的邊界
+    const lats = coordinates.map(c => c.latitude);
+    const lons = coordinates.map(c => c.longitude);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLon = Math.min(...lons);
+    const maxLon = Math.max(...lons);
+    
+    // 計算中心點和範圍，並添加一些邊距
+    const centerLat = (minLat + maxLat) / 2;
+    const centerLon = (minLon + maxLon) / 2;
+    const latDelta = (maxLat - minLat) * 1.3; // 添加 30% 邊距
+    const lonDelta = (maxLon - minLon) * 1.3;
+    
+    const targetRegion = {
+      latitude: centerLat,
+      longitude: centerLon,
+      latitudeDelta: Math.max(latDelta, 0.01), // 最小縮放級別
+      longitudeDelta: Math.max(lonDelta, 0.01),
+    };
+    
+    console.log('fitRouteToMap: 調整視角到路線', routeIndex, route.route_name);
+    
+    // 使用動畫過渡到新視角
+    if (typeof mapRef.current.animateToRegion === 'function') {
+      isAnimatingRef.current = true;
+      mapRef.current.animateToRegion(targetRegion, 800);
+      
+      // 動畫結束後重置標記
+      animationTimeoutRef.current = setTimeout(() => {
+        isAnimatingRef.current = false;
+        console.log('fitRouteToMap: 動畫完成');
+      }, 850);
+    }
+  };
 
   const recenter = async () => {
     try {
@@ -206,7 +350,8 @@ export default function MapNative() {
         showsMyLocationButton={true}
         mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
       >
-        {visibleStops.map((s) => (
+        {/* 只在未顯示路線時顯示附近站牌 */}
+        {!showRoute && visibleStops.map((s) => (
           <Marker 
             key={`${s.sid}-${s.lat}-${s.lon}`} 
             coordinate={{ latitude: s.lat, longitude: s.lon }}
@@ -221,6 +366,107 @@ export default function MapNative() {
             </Callout>
           </Marker>
         ))}
+
+        {/* 繪製路線 - 分兩階段渲染確保選中路線在最上層 */}
+        {showRoute && processedRoutes.length > 0 && (
+          <React.Fragment key={`routes-${renderKey}`}>
+            {/* 第一階段：渲染所有未選中的路線（灰色虛線） */}
+            {processedRoutes.map(({ route, index, coordinates, routeKey }) => {
+              const isSelected = index === selectedRouteIndex;
+              
+              // 只渲染未選中的路線
+              if (isSelected) return null;
+
+              // 確保座標有效
+              if (!coordinates || coordinates.length < 2) {
+                console.warn('跳過無效路線:', routeKey, coordinates?.length);
+                return null;
+              }
+
+              return (
+                <Polyline
+                  key={`unselected-${routeKey}`}
+                  coordinates={coordinates}
+                  strokeColor="#888888"
+                  strokeWidth={3}
+                  lineDashPattern={[10, 5]}
+                  lineDashPhase={0}
+                  tappable={true}
+                  onPress={() => {
+                    if (!isAnimatingRef.current) {
+                      console.log('切換到路線:', index, route.route_name);
+                      setSelectedRouteIndex(index);
+                      setRenderKey(prev => prev + 1); // 強制重新渲染
+                      requestAnimationFrame(() => {
+                        fitRouteToMap(index);
+                      });
+                    }
+                  }}
+                />
+              );
+            })}
+
+            {/* 第二階段：渲染選中的路線（紅色實線）和其站點標記 */}
+            {processedRoutes.map(({ route, index, coordinates, routeKey }) => {
+              const isSelected = index === selectedRouteIndex;
+              
+              // 只渲染選中的路線
+              if (!isSelected) return null;
+
+              // 確保座標有效
+              if (!coordinates || coordinates.length < 2) {
+                console.warn('跳過無效的選中路線:', routeKey, coordinates?.length);
+                return null;
+              }
+
+              return (
+                <React.Fragment key={`selected-${routeKey}`}>
+                  {/* 選中的路線線條 */}
+                  <Polyline
+                    key={`polyline-selected-${routeKey}`}
+                    coordinates={coordinates}
+                    strokeColor="#FF6B6B"
+                    strokeWidth={5}
+                    lineDashPattern={[0]}
+                    tappable={false}
+                  />
+                  
+                  {/* 選中路線的站牌標記 */}
+                  {route.path_stops.filter(stop => stop.geo).map((stop, stopIndex) => {
+                    const markerKey = `route-stop-${routeKey}-${stop.name}-${stopIndex}`;
+                    return (
+                      <Marker
+                        key={markerKey}
+                        coordinate={{
+                          latitude: stop.geo!.lat,
+                          longitude: stop.geo!.lon
+                        }}
+                        pinColor={
+                          stopIndex === 0 ? "green" :
+                          stopIndex === route.path_stops.length - 1 ? "red" :
+                          "orange"
+                        }
+                      >
+                        <Callout onPress={() => navigateToStop(stop.name)}>
+                          <View style={styles.calloutContainer}>
+                            <View style={styles.calloutTitleRow}>
+                              <Text style={styles.calloutTitle}>{stop.name}</Text>
+                            </View>
+                            <Text style={styles.calloutSubtitle}>
+                              {stopIndex === 0 ? "起點" : 
+                               stopIndex === route.path_stops.length - 1 ? "終點" :
+                               `第 ${stopIndex + 1} 站`}
+                            </Text>
+                          </View>
+                        </Callout>
+                      </Marker>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </React.Fragment>
+        )}
       </MapView>
 
       <View style={styles.controlRow}>
@@ -230,15 +476,91 @@ export default function MapNative() {
         <TouchableOpacity style={styles.button} onPress={recenter}>
           <Text style={styles.buttonText}>重新定位</Text>
         </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.button, showRoute && styles.buttonActive]} 
+          onPress={() => {
+            if (routeInfo.length > 0) {
+              if (showRoute) {
+                setShowRoute(false);
+              } else {
+                setShowRoute(true);
+                setShowRouteMenu(true);
+              }
+            }
+          }}
+          disabled={routeInfo.length === 0}
+        >
+          <Text style={styles.buttonText}>
+            {routeInfo.length === 0 ? '無路線' : showRoute ? '隱藏路線' : '選擇路線'}
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.button} onPress={() => setShowListModal(true)}>
           <Text style={styles.buttonText}>附近站牌</Text>
         </TouchableOpacity>
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>半徑：{Math.round(radiusMeters)} m</Text>
-          <Text style={styles.infoText}>縮放級別：{currentZoom.toFixed(3)}</Text>
           <Text style={styles.infoText}>顯示 {visibleStops.length}/{nearbyStops.length} 個站牌</Text>
+          {showRoute && routeInfo.length > 0 && (
+            <Text style={styles.infoText}>路線: {routeInfo[selectedRouteIndex].route_name} ({routeInfo[selectedRouteIndex].direction_text})</Text>
+          )}
         </View>
       </View>
+
+      {/* 路線選單模態 */}
+      <Modal
+        visible={showRouteMenu}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowRouteMenu(false)}
+      >
+        <View style={styles.routeMenuOverlay}>
+          <View style={styles.routeMenuContainer}>
+            <View style={styles.routeMenuHeader}>
+              <Text style={styles.routeMenuTitle}>選擇路線</Text>
+              <TouchableOpacity onPress={() => setShowRouteMenu(false)}>
+                <Text style={styles.routeMenuClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={routeInfo}
+              keyExtractor={(item, index) => `route-option-${index}`}
+              renderItem={({ item, index }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.routeMenuItem,
+                    index === selectedRouteIndex && styles.routeMenuItemSelected
+                  ]}
+                  onPress={() => {
+                    setSelectedRouteIndex(index);
+                    setRenderKey(prev => prev + 1); // 強制重新渲染
+                    setShowRouteMenu(false);
+                    // 延遲一點點讓選單先關閉，視覺效果更好
+                    setTimeout(() => fitRouteToMap(index), 100);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.routeMenuItemContent}>
+                    <View style={styles.routeMenuItemHeader}>
+                      <Text style={styles.routeMenuItemTitle}>{item.route_name}</Text>
+                      <Text style={styles.routeMenuItemDirection}>{item.direction_text}</Text>
+                    </View>
+                    <Text style={styles.routeMenuItemDetail}>
+                      途經 {item.stop_count} 站 · 約 {item.arrival_time_text}
+                    </Text>
+                    <Text style={styles.routeMenuItemStops} numberOfLines={1}>
+                      {item.path_stops[0]?.name} → {item.path_stops[item.path_stops.length - 1]?.name}
+                    </Text>
+                  </View>
+                  {index === selectedRouteIndex && (
+                    <Text style={styles.routeMenuItemCheck}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
 
       {/* 列表模態視圖 */}
       <Modal
@@ -309,6 +631,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   button: { backgroundColor: '#6F73F8', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  buttonActive: { backgroundColor: '#FF6B6B' },
   buttonText: { color: '#fff', fontWeight: '700' },
   infoBox: { backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   infoText: { color: '#fff', fontSize: 12 },
@@ -400,7 +723,7 @@ const styles = StyleSheet.create({
   // Callout 樣式
   calloutContainer: {
     minWidth: 4,
-    padding: 5,
+    padding: 0,
     borderRadius: 12,
   },
   calloutTitleRow: {
@@ -428,8 +751,88 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   calloutSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#6F73F8',
     fontWeight: '500',
+  },
+  // 路線選單樣式
+  routeMenuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  routeMenuContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    paddingBottom: 20,
+  },
+  routeMenuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  routeMenuTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+  },
+  routeMenuClose: {
+    fontSize: 28,
+    color: '#666',
+    fontWeight: '300',
+  },
+  routeMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  routeMenuItemSelected: {
+    backgroundColor: '#f8f8ff',
+  },
+  routeMenuItemContent: {
+    flex: 1,
+  },
+  routeMenuItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  routeMenuItemTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    marginRight: 8,
+  },
+  routeMenuItemDirection: {
+    fontSize: 14,
+    color: '#666',
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  routeMenuItemDetail: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
+  },
+  routeMenuItemStops: {
+    fontSize: 12,
+    color: '#999',
+  },
+  routeMenuItemCheck: {
+    fontSize: 24,
+    color: '#FF6B6B',
+    fontWeight: '700',
+    marginLeft: 12,
   },
 });
