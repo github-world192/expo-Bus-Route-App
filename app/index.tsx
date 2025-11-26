@@ -1,3 +1,4 @@
+import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -34,6 +35,22 @@ export default function StopScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 在應用啟動時請求位置權限
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          console.log('位置權限已授予');
+        } else {
+          console.log('位置權限被拒絕');
+        }
+      } catch (error) {
+        console.error('請求位置權限時發生錯誤:', error);
+      }
+    })();
+  }, []);
 
   // 初始化 Service
   useEffect(() => {

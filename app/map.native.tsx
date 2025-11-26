@@ -1,11 +1,12 @@
 import * as Location from 'expo-location';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 import stopsRaw from '../databases/stops.json';
 
-type StopEntry = { name: string; sid: string; lat: number; lon: number };
+type StopEntry = { name: string; sid: string; lat: number; lon: number; distance?: number };
 const DEFAULT_RADIUS_METERS = 800;
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -25,6 +26,8 @@ export default function MapNative() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<string | null>(null);
   const [radiusMeters] = useState<number>(DEFAULT_RADIUS_METERS);
+  const [showListModal, setShowListModal] = useState<boolean>(false);
+  const router = useRouter();
 
   const stopsList: StopEntry[] = useMemo(() => {
     const out: StopEntry[] = [];
@@ -42,13 +45,33 @@ export default function MapNative() {
 
   const nearbyStops = useMemo(() => {
     if (!userLocation) return [] as StopEntry[];
-    return stopsList
-      .map((s) => ({ s, d: haversineMeters(userLocation.lat, userLocation.lon, s.lat, s.lon) }))
-      .filter((x) => x.d <= radiusMeters)
-      .sort((a, b) => a.d - b.d)
-      .map((x) => x.s)
-      .slice(0, 200);
+    
+    // 計算所有站牌的距離
+    const stopsWithDistance = stopsList
+      .map((s) => ({
+        ...s,
+        distance: haversineMeters(userLocation.lat, userLocation.lon, s.lat, s.lon)
+      }))
+      .filter((x) => x.distance <= radiusMeters)
+      .sort((a, b) => a.distance - b.distance);
+    
+    return stopsWithDistance.slice(0, 200);
   }, [stopsList, userLocation, radiusMeters]);
+
+  // 去重的站牌列表（用於列表視圖）
+  const uniqueNearbyStops = useMemo(() => {
+    const seenNames = new Set<string>();
+    const unique: StopEntry[] = [];
+    
+    for (const stop of nearbyStops) {
+      if (!seenNames.has(stop.name)) {
+        seenNames.add(stop.name);
+        unique.push(stop);
+      }
+    }
+    
+    return unique.slice(0, 50);
+  }, [nearbyStops]);
 
   useEffect(() => {
     (async () => {
@@ -96,6 +119,19 @@ export default function MapNative() {
     }
   };
 
+  const back = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  };
+
+  const navigateToStop = (stopName: string) => {
+    setShowListModal(false);
+    router.push({ pathname: '/stop', params: { name: stopName } });
+  };
+
   if (permissionStatus === 'denied') {
     return (
       <View style={styles.center}>
@@ -116,18 +152,14 @@ export default function MapNative() {
   return (
     <View style={styles.container}>
       <MapView
+        ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
-        region={region}
-        onRegionChangeComplete={(r) => setRegion(r)}
+        initialRegion={region}
         showsUserLocation={true}
         showsMyLocationButton={true}
         mapType='standard'
       >
-        {/* {userLocation && (
-          <Marker coordinate={{ latitude: userLocation.lat, longitude: userLocation.lon }} title="你的位置" pinColor="#6F73F8" />
-        )} */}
-
         {nearbyStops.map((s) => (
           <Marker key={`${s.sid}-${s.lat}-${s.lon}`} coordinate={{ latitude: s.lat, longitude: s.lon }} title={s.name} description={`SID: ${s.sid}`} />
         ))}
@@ -137,11 +169,67 @@ export default function MapNative() {
         <TouchableOpacity style={styles.button} onPress={recenter}>
           <Text style={styles.buttonText}>重新定位</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => setShowListModal(true)}>
+          <Text style={styles.buttonText}>列表</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={back}>
+          <Text style={styles.buttonText}>返回</Text>
+        </TouchableOpacity>
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>半徑：{Math.round(radiusMeters)} m</Text>
           <Text style={styles.infoText}>顯示 {nearbyStops.length} 個站牌</Text>
         </View>
       </View>
+
+      {/* 列表模態視圖 */}
+      <Modal
+        visible={showListModal}
+        animationType="slide"
+        onRequestClose={() => setShowListModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>附近站牌</Text>
+            <Text style={styles.modalSubtitle}>
+              半徑 {radiusMeters}m · {uniqueNearbyStops.length} 個站牌
+            </Text>
+          </View>
+
+          <FlatList
+            data={uniqueNearbyStops}
+            keyExtractor={(item, index) => `${item.sid}-${index}`}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={styles.stopItem}
+                onPress={() => navigateToStop(item.name)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.stopInfo}>
+                  <Text style={styles.stopName}>{item.name}</Text>
+                  <Text style={styles.stopSid}>站牌 ID: {item.sid}</Text>
+                </View>
+                <View style={styles.distanceContainer}>
+                  <Text style={styles.distanceText}>{Math.round(item.distance || 0)}m</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>附近沒有找到站牌</Text>
+              </View>
+            }
+            contentContainerStyle={uniqueNearbyStops.length === 0 ? styles.emptyList : undefined}
+          />
+
+          <TouchableOpacity 
+            onPress={() => setShowListModal(false)} 
+            style={styles.modalCloseButton}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.modalCloseButtonText}>關閉</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -159,9 +247,95 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   button: { backgroundColor: '#6F73F8', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   buttonText: { color: '#fff', fontWeight: '700' },
   infoBox: { backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   infoText: { color: '#fff', fontSize: 12 },
+  // 模態視圖樣式
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  modalHeader: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  stopItem: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginHorizontal: 12,
+    marginTop: 12,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  stopInfo: {
+    flex: 1,
+  },
+  stopName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  stopSid: {
+    fontSize: 13,
+    color: '#999',
+  },
+  distanceContainer: {
+    backgroundColor: '#6F73F8',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  distanceText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyList: {
+    flexGrow: 1,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666',
+  },
+  modalCloseButton: {
+    backgroundColor: '#6F73F8',
+    margin: 16,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalCloseButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '700',
+  },
 });
