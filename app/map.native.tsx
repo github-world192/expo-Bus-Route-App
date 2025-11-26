@@ -196,7 +196,7 @@ export default function MapNative() {
     <View style={styles.container}>
       <MapView
         ref={mapRef}
-        provider={PROVIDER_DEFAULT}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
         style={styles.map}
         initialRegion={region}
         onRegionChangeComplete={(newRegion) => {
