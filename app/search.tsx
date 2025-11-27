@@ -62,6 +62,12 @@ export default function SearchScreen() {
     }
   };
 
+  const onMap = () => {
+    Keyboard.dismiss();
+    // 跳轉到地圖頁面
+    router.push('/map');
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.inputRow}>
@@ -76,6 +82,9 @@ export default function SearchScreen() {
         />
         <TouchableOpacity onPress={onCancel} style={styles.cancelBtn} activeOpacity={0.7}>
           <Text style={styles.cancelText}>取消</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onMap} style={styles.cancelBtn} activeOpacity={0.7}>
+          <Text style={styles.cancelText}>地圖</Text>
         </TouchableOpacity>
       </View>
 
