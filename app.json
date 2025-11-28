@@ -1,7 +1,29 @@
 {
-    "expo": {
-        "name": "stop-togo",
-        "slug": "stop-togo",
-        "orientation": "portrait"
+  "expo": {
+    "name": "thrilled-blue-toffee",
+    "slug": "snack-796eb52f-6be5-48a6-b6fa-4f6a2bae0de6",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     }
+  }
 }
