@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -170,9 +171,20 @@ export default function StopScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 站牌標題 */}
+      {/* 站牌標題與刷新按鈕 */}
       <View style={styles.directionBar}>
         <Text style={styles.directionBarText}>{selectedStop}</Text>
+        {Platform.OS === 'web' && (
+          <TouchableOpacity
+            onPress={onRefresh}
+            disabled={refreshing}
+            style={styles.refreshButton}
+          >
+            <Text style={styles.refreshButtonText}>
+              {refreshing ? '更新中...' : '刷新'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* 公車列表 */}
@@ -186,7 +198,11 @@ export default function StopScreen() {
           data={arrivals}
           renderItem={renderItem}
           keyExtractor={(item) => item.key}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={
+            Platform.OS !== 'web' ? (
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            ) : undefined
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyText}>目前無公車資訊</Text>
@@ -222,8 +238,22 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#2b3435',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   directionBarText: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  refreshButton: {
+    backgroundColor: '#6F73F8',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   row: {
     flexDirection: 'row',
     paddingHorizontal: 20,
