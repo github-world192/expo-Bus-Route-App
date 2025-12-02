@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -25,6 +25,7 @@ const stopData = stopMapRaw as StopMap;
 
 export default function RouteScreen() {
   const router = useRouter();
+  const { from, to } = useLocalSearchParams<{ from?: string; to?: string }>();
   const plannerRef = useRef(new BusPlannerService());
   
   // 站牌選擇狀態
@@ -51,17 +52,48 @@ export default function RouteScreen() {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const allStops = Object.keys(stopData.by_name);
 
-  // 初始化 BusPlannerService
+  // 初始化 BusPlannerService 並處理 URL 參數
   useEffect(() => {
     (async () => {
       try {
         await plannerRef.current.initialize();
         console.log('BusPlannerService 初始化完成');
+        
+        // 如果有傳入起點和終點參數，自動填入並搜尋
+        if (from && to) {
+          const fromStr = Array.isArray(from) ? from[0] : from;
+          const toStr = Array.isArray(to) ? to[0] : to;
+          
+          setFromStop(fromStr);
+          setFromStopDisplay(fromStr);
+          setToStop(toStr);
+          setToStopDisplay(toStr);
+          
+          // 延遲一下確保狀態更新完成
+          setTimeout(async () => {
+            setLoading(true);
+            setHasSearched(true);
+            
+            try {
+              console.log('自動規劃路線:', fromStr, '→', toStr);
+              const routes = await plannerRef.current.plan(fromStr, toStr);
+              console.log('找到路線數量:', routes.length);
+              
+              setRouteInfo(routes);
+              setSelectedRouteIndex(0);
+            } catch (error) {
+              console.error('自動路線規劃錯誤:', error);
+              setRouteInfo([]);
+            } finally {
+              setLoading(false);
+            }
+          }, 100);
+        }
       } catch (error) {
         console.error('路線規劃初始化錯誤:', error);
       }
     })();
-  }, []);
+  }, [from, to]);
 
   // 搜尋建議
   useEffect(() => {
@@ -470,8 +502,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 12,
+    paddingTop: 12,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
@@ -492,9 +524,9 @@ const styles = StyleSheet.create({
     width: 60,
   },
   stopsContainer: {
-    flex: 1.2,
+    flex: 1.5,
     backgroundColor: '#fff',
-    padding: 12,
+    padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
     ...(Platform.OS === 'web' && {
@@ -505,7 +537,7 @@ const styles = StyleSheet.create({
   stopInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   stopIconContainer: {
     width: 32,
@@ -527,14 +559,14 @@ const styles = StyleSheet.create({
   stopInput: {
     flex: 1,
     backgroundColor: '#f8f8f8',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
   stopInputText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#333',
   },
   stopInputPlaceholder: {
@@ -542,20 +574,20 @@ const styles = StyleSheet.create({
   },
   swapButton: {
     alignSelf: 'center',
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 2,
+    marginVertical: 1,
   },
   swapButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#6F73F8',
   },
   actionButtonsRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
+    gap: 6,
+    marginTop: 2,
     ...(Platform.OS === 'web' && {
       position: 'relative',
       zIndex: 1,
@@ -564,7 +596,7 @@ const styles = StyleSheet.create({
   planButton: {
     flex: 1,
     backgroundColor: '#6F73F8',
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -577,14 +609,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
   },
   planButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#fff',
     fontWeight: '700',
   },
   clearButton: {
     backgroundColor: '#f0f0f0',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
     justifyContent: 'center',
     ...(Platform.OS === 'web' && {
@@ -593,7 +625,7 @@ const styles = StyleSheet.create({
     }),
   },
   clearButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#666',
     fontWeight: '600',
   },

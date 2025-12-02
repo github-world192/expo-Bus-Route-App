@@ -2,15 +2,15 @@ import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Platform,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 // 假設 BusPlannerService 放在 services 資料夾，請依實際位置調整
 import { BusPlannerService } from '../components/busPlanner';
@@ -180,6 +180,20 @@ export default function StopScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* 常用路線快捷按鈕 */}
+      <View style={styles.quickRouteContainer}>
+        <Text style={styles.quickRouteTitle}>快速路線</Text>
+        <TouchableOpacity
+          style={styles.quickRouteButton}
+          onPress={() => router.push('/route?from=師大分部&to=師大')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.quickRouteFrom}>師大分部</Text>
+          <Text style={styles.quickRouteArrow}>→</Text>
+          <Text style={styles.quickRouteTo}>師大</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* 站牌標題與刷新按鈕 */}
       <View style={styles.directionBar}>
         <Text style={styles.directionBarText}>{selectedStop}</Text>
@@ -261,6 +275,43 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  quickRouteContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2b3435',
+  },
+  quickRouteTitle: {
+    color: '#888',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  quickRouteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2b3435',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+    gap: 6,
+  },
+  quickRouteFrom: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  quickRouteArrow: {
+    color: '#6F73F8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  quickRouteTo: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
   directionBar: {
     marginTop: 12,
