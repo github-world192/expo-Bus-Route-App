@@ -2,15 +2,15 @@ import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Platform,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Platform,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 // 假設 BusPlannerService 放在 services 資料夾，請依實際位置調整
 import { BusPlannerService } from '../components/busPlanner';
@@ -156,18 +156,27 @@ export default function StopScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 搜尋框 */}
-      <View style={styles.searchBox}>
-        <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/search')}>
-          <View pointerEvents="none">
-            <TextInput
-              placeholder="搜尋站牌"
-              placeholderTextColor="#bdbdbd"
-              style={styles.searchInput}
-              editable={false}
-              value=""
-            />
-          </View>
+      {/* 搜尋框與路線規劃按鈕 */}
+      <View style={styles.topBar}>
+        <View style={styles.searchBox}>
+          <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/search')}>
+            <View style={{ pointerEvents: 'none' }}>
+              <TextInput
+                placeholder="搜尋站牌"
+                placeholderTextColor="#bdbdbd"
+                style={styles.searchInput}
+                editable={false}
+                value=""
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity 
+          style={styles.routeButton}
+          onPress={() => router.push('/route')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.routeButtonText}>🗺️ 路線規劃</Text>
         </TouchableOpacity>
       </View>
 
@@ -223,7 +232,14 @@ export default function StopScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#152021', paddingTop: 28 },
-  searchBox: { paddingHorizontal: 20, paddingBottom: 8 },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  searchBox: { flex: 1 },
   searchInput: {
     height: 46,
     borderRadius: 24,
@@ -231,6 +247,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     color: '#fff',
     fontSize: 16,
+  },
+  routeButton: {
+    backgroundColor: '#6F73F8',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 24,
+    height: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  routeButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   directionBar: {
     marginTop: 12,
