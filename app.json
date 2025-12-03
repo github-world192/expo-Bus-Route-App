@@ -1,12 +1,73 @@
 {
   "expo": {
+    "name": "台北公車動態",
+    "slug": "taipei-bus-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6F73F8"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dillenhub.taipeibus"
+    },
+    "android": {
+      "package": "com.dillenhub.app22222",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#6F73F8"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png",
+      "name": "台北公車動態",
+      "shortName": "台北公車",
+      "description": "即時查看台北公車到站時間與路線規劃",
+      "themeColor": "#6F73F8",
+      "backgroundColor": "#ffffff",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "scope": "/",
+      "lang": "zh-TW",
+      "preferRelatedApplications": false,
+      "splash": {
+        "backgroundColor": "#6F73F8",
+        "resizeMode": "contain",
+        "image": "./assets/images/splash.png"
+      },
+      "ios": {
+        "supportsTablet": true,
+        "config": {
+          "usesNonExemptEncryption": false
+        }
+      },
+      "meta": {
+        "apple-mobile-web-app-capable": "yes",
+        "apple-mobile-web-app-status-bar-style": "black-translucent",
+        "apple-mobile-web-app-title": "台北公車",
+        "mobile-web-app-capable": "yes",
+        "msapplication-tap-highlight": "no",
+        "viewport": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
     "extra": {
       "eas": {
         "projectId": "1e7c0d32-f891-4dd6-a91f-085e6e991816"
       }
-    },
-    "android": {
-      "package": "com.dillenhub.app22222"
     }
   }
 }

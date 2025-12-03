@@ -1,0 +1,47 @@
+{
+  "name": "台北公車即時資訊",
+  "short_name": "台北公車",
+  "description": "查詢台北市公車即時到站資訊與路線規劃",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#152021",
+  "theme_color": "#6F73F8",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/assets/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/android-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "splash_pages": null,
+  "categories": ["transportation", "travel", "utilities"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

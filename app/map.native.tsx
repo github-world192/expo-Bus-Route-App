@@ -39,6 +39,8 @@ export default function MapNative() {
   const plannerRef = useRef(new BusPlannerService());
   const isAnimatingRef = useRef(false); // 防止動畫衝突
   const animationTimeoutRef = useRef<any>(null);
+  const routeUpdateIntervalRef = useRef<any>(null); // 路線更新定時器
+  const [isUpdatingRoute, setIsUpdatingRoute] = useState<boolean>(false); // 是否正在更新路線
 
   const stopsList: StopEntry[] = useMemo(() => {
     const out: StopEntry[] = [];
@@ -186,11 +188,59 @@ export default function MapNative() {
     })();
   }, []);
 
+  // 更新路線動態資訊
+  const updateRouteInfo = async () => {
+    if (routeInfo.length === 0 || isUpdatingRoute) return;
+    
+    try {
+      setIsUpdatingRoute(true);
+      console.log('更新路線動態...');
+      
+      // 重新查詢路線以獲取最新的到站時間
+      const routes = await plannerRef.current.plan('師大分部', '師大');
+      if (routes.length > 0) {
+        setRouteInfo(routes);
+        console.log('路線動態更新完成，找到', routes.length, '條路線');
+      }
+    } catch (error) {
+      console.error('路線動態更新錯誤:', error);
+    } finally {
+      setIsUpdatingRoute(false);
+    }
+  };
+
+  // 當顯示路線時，啟動自動更新
+  useEffect(() => {
+    if (showRoute && routeInfo.length > 0) {
+      console.log('啟動路線自動更新（每30秒）');
+      // 立即更新一次
+      updateRouteInfo();
+      // 設置定時更新
+      routeUpdateIntervalRef.current = setInterval(updateRouteInfo, 30000);
+    } else {
+      // 清除定時器
+      if (routeUpdateIntervalRef.current) {
+        console.log('停止路線自動更新');
+        clearInterval(routeUpdateIntervalRef.current);
+        routeUpdateIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (routeUpdateIntervalRef.current) {
+        clearInterval(routeUpdateIntervalRef.current);
+      }
+    };
+  }, [showRoute, routeInfo.length]);
+
   // 清理函數
   useEffect(() => {
     return () => {
       if (animationTimeoutRef.current) {
         clearTimeout(animationTimeoutRef.current);
+      }
+      if (routeUpdateIntervalRef.current) {
+        clearInterval(routeUpdateIntervalRef.current);
       }
     };
   }, []);
@@ -517,9 +567,20 @@ export default function MapNative() {
           <View style={styles.routeMenuContainer}>
             <View style={styles.routeMenuHeader}>
               <Text style={styles.routeMenuTitle}>選擇路線</Text>
-              <TouchableOpacity onPress={() => setShowRouteMenu(false)}>
-                <Text style={styles.routeMenuClose}>✕</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                {isUpdatingRoute && (
+                  <ActivityIndicator size="small" color="#000" />
+                )}
+                <TouchableOpacity 
+                  onPress={() => updateRouteInfo()}
+                  style={styles.routeMenuRefreshButton}
+                >
+                  <Text style={styles.routeMenuRefresh}>↻</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowRouteMenu(false)}>
+                  <Text style={styles.routeMenuClose}>✕</Text>
+                </TouchableOpacity>
+              </View>
             </View>
             
             <FlatList
@@ -665,10 +726,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   stopInfo: {
@@ -786,6 +844,17 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: '#666',
     fontWeight: '300',
+  },
+  routeMenuRefreshButton: {
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  routeMenuRefresh: {
+    fontSize: 24,
+    color: '#000',
+    fontWeight: '400',
   },
   routeMenuItem: {
     flexDirection: 'row',

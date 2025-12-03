@@ -348,10 +348,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     marginHorizontal: 8,
     borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   busHeader: {

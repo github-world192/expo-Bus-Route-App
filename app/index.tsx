@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -13,6 +14,9 @@ import {
 } from 'react-native';
 // 假設 BusPlannerService 放在 services 資料夾，請依實際位置調整
 import { BusPlannerService } from '../components/busPlanner';
+import InstallPWA from '../components/InstallPWA';
+import NotificationSettings from '../components/NotificationSettings';
+import ServiceWorkerRegister from '../components/ServiceWorkerRegister';
 
 // 定義 UI 用的介面 (配合新 API 的回傳結構進行適配)
 interface UIArrival {
@@ -155,24 +159,61 @@ export default function StopScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 搜尋框 */}
-      <View style={styles.searchBox}>
-        <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/search')}>
-          <View pointerEvents="none">
-            <TextInput
-              placeholder="搜尋站牌"
-              placeholderTextColor="#bdbdbd"
-              style={styles.searchInput}
-              editable={false}
-              value=""
-            />
-          </View>
+      {/* 搜尋框與路線規劃按鈕 */}
+      <View style={styles.topBar}>
+        <View style={styles.searchBox}>
+          <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/search')}>
+            <View style={{ pointerEvents: 'none' }}>
+              <TextInput
+                placeholder="搜尋站牌"
+                placeholderTextColor="#bdbdbd"
+                style={styles.searchInput}
+                editable={false}
+                value=""
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity 
+          style={styles.routeButton}
+          onPress={() => router.push('/route')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.routeButtonText}>🗺️ 路線規劃</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 站牌標題 */}
+      {/* 常用路線快捷按鈕 */}
+      <View style={styles.quickRouteContainer}>
+        <Text style={styles.quickRouteTitle}>快速路線</Text>
+        <TouchableOpacity
+          style={styles.quickRouteButton}
+          onPress={() => router.push('/route?from=師大分部&to=師大')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.quickRouteFrom}>師大分部</Text>
+          <Text style={styles.quickRouteArrow}>→</Text>
+          <Text style={styles.quickRouteTo}>師大</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 通知設定 */}
+      {/* 移到 FlatList 的 ListHeaderComponent */}
+
+      {/* 站牌標題與刷新按鈕 */}
       <View style={styles.directionBar}>
         <Text style={styles.directionBarText}>{selectedStop}</Text>
+        {Platform.OS === 'web' && (
+          <TouchableOpacity
+            onPress={onRefresh}
+            disabled={refreshing}
+            style={styles.refreshButton}
+          >
+            <Text style={styles.refreshButtonText}>
+              {refreshing ? '更新中...' : '刷新'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* 公車列表 */}
@@ -186,7 +227,12 @@ export default function StopScreen() {
           data={arrivals}
           renderItem={renderItem}
           keyExtractor={(item) => item.key}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          ListHeaderComponent={<NotificationSettings />}
+          refreshControl={
+            Platform.OS !== 'web' ? (
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            ) : undefined
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyText}>目前無公車資訊</Text>
@@ -201,13 +247,26 @@ export default function StopScreen() {
       <View style={styles.footer}>
         <Text style={styles.updateText}>更新時間：{lastUpdate || '—'}</Text>
       </View>
+
+      {/* PWA 安裝提示 */}
+      <InstallPWA />
+      
+      {/* Service Worker 註冊 */}
+      <ServiceWorkerRegister />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#152021', paddingTop: 28 },
-  searchBox: { paddingHorizontal: 20, paddingBottom: 8 },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  searchBox: { flex: 1 },
   searchInput: {
     height: 46,
     borderRadius: 24,
@@ -216,14 +275,79 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
   },
+  routeButton: {
+    backgroundColor: '#6F73F8',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 24,
+    height: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  routeButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  quickRouteContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2b3435',
+  },
+  quickRouteTitle: {
+    color: '#888',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  quickRouteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2b3435',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+    gap: 6,
+  },
+  quickRouteFrom: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  quickRouteArrow: {
+    color: '#6F73F8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  quickRouteTo: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   directionBar: {
     marginTop: 12,
     paddingHorizontal: 20,
     paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#2b3435',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   directionBarText: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  refreshButton: {
+    backgroundColor: '#6F73F8',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   row: {
     flexDirection: 'row',
     paddingHorizontal: 20,
