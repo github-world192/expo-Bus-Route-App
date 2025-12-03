@@ -204,14 +204,40 @@ export default function RouteScreen() {
   const swapStops = () => {
     const tempStop = fromStop;
     const tempDisplay = fromStopDisplay;
-    setFromStop(toStop);
+    
+    // 如果兩個站牌都有填寫，記錄交換後的值
+    const willSwap = toStop && tempStop;
+    const newFromStop = toStop;
+    const newToStop = tempStop;
+    
+    setFromStop(newFromStop);
     setFromStopDisplay(toStopDisplay);
-    setToStop(tempStop);
+    setToStop(newToStop);
     setToStopDisplay(tempDisplay);
     
-    // 如果兩個站牌都有填寫，自動重新規劃
-    if (toStop && tempStop) {
-      setTimeout(() => planRoute(), 100);
+    // 如果兩個站牌都有填寫，使用交換後的值立即重新規劃
+    if (willSwap) {
+      // 使用 React 的批次更新後執行
+      setTimeout(async () => {
+        if (!newFromStop || !newToStop) return;
+        
+        setLoading(true);
+        setHasSearched(true);
+        
+        try {
+          console.log('交換後規劃路線:', newFromStop, '→', newToStop);
+          const routes = await plannerRef.current.plan(newFromStop, newToStop);
+          console.log('找到路線數量:', routes.length);
+          
+          setRouteInfo(routes);
+          setSelectedRouteIndex(0);
+        } catch (error) {
+          console.error('交換後路線規劃錯誤:', error);
+          setRouteInfo([]);
+        } finally {
+          setLoading(false);
+        }
+      }, 200);
     }
   };
 

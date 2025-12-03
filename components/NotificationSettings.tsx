@@ -78,7 +78,7 @@ export default function NotificationSettings() {
       body: '這是一則測試通知訊息',
       icon: '/assets/icon.png',
       badge: '/assets/icon.png',
-      vibrate: [200, 100, 200],
+      //vibrate: [200, 100, 200],
     });
   };
 

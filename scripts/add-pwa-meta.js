@@ -16,15 +16,22 @@ const metaTags = `
   <meta name="apple-mobile-web-app-title" content="台北公車">
   <meta name="mobile-web-app-capable" content="yes">
   
-  <!-- iOS Icons -->
+  <!-- iOS Icons - Multiple sizes for better quality -->
   <link rel="apple-touch-icon" href="/assets/icon.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/icon.png">
   <link rel="apple-touch-icon" sizes="152x152" href="/assets/icon.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon.png">
   <link rel="apple-touch-icon" sizes="167x167" href="/assets/icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon.png">
+  <link rel="apple-touch-icon" sizes="1024x1024" href="/assets/icon.png">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+  <link rel="shortcut icon" href="/assets/icon.png">
   
   <!-- Theme Color -->
   <meta name="theme-color" content="#6F73F8">
   <meta name="msapplication-TileColor" content="#6F73F8">
+  <meta name="msapplication-TileImage" content="/assets/icon.png">
 `;
 
 console.log('🔧 Adding PWA meta tags to HTML files...\n');

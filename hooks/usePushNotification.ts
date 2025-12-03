@@ -150,7 +150,7 @@ export default function usePushNotification() {
     const defaultOptions: NotificationOptions = {
       icon: '/assets/icon.png',
       badge: '/assets/icon.png',
-      vibrate: [200, 100, 200],
+      //vibrate: [200, 100, 200],
       ...options,
     };
 

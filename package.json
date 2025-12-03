@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "build:web": "expo export --platform web && node scripts/add-pwa-meta.js",
+    "build:web": "expo export --platform web && node scripts/copy-icons.js && node scripts/add-pwa-meta.js",
     "lint": "expo lint"
   },
   "dependencies": {
