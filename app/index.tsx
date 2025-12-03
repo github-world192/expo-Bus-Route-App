@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 // 假設 BusPlannerService 放在 services 資料夾，請依實際位置調整
 import { BusPlannerService } from '../components/busPlanner';
+import InstallPWA from '../components/InstallPWA';
+import ServiceWorkerRegister from '../components/ServiceWorkerRegister';
 
 // 定義 UI 用的介面 (配合新 API 的回傳結構進行適配)
 interface UIArrival {
@@ -240,6 +242,12 @@ export default function StopScreen() {
       <View style={styles.footer}>
         <Text style={styles.updateText}>更新時間：{lastUpdate || '—'}</Text>
       </View>
+
+      {/* PWA 安裝提示 */}
+      <InstallPWA />
+      
+      {/* Service Worker 註冊 */}
+      <ServiceWorkerRegister />
     </View>
   );
 }

@@ -34,10 +34,29 @@
       "backgroundColor": "#ffffff",
       "display": "standalone",
       "orientation": "portrait",
-      "appleStatusBarStyle": "black-translucent",
-      "scope": "/",
       "startUrl": "/",
-      "lang": "zh-TW"
+      "scope": "/",
+      "lang": "zh-TW",
+      "preferRelatedApplications": false,
+      "splash": {
+        "backgroundColor": "#6F73F8",
+        "resizeMode": "contain",
+        "image": "./assets/images/splash.png"
+      },
+      "ios": {
+        "supportsTablet": true,
+        "config": {
+          "usesNonExemptEncryption": false
+        }
+      },
+      "meta": {
+        "apple-mobile-web-app-capable": "yes",
+        "apple-mobile-web-app-status-bar-style": "black-translucent",
+        "apple-mobile-web-app-title": "台北公車",
+        "mobile-web-app-capable": "yes",
+        "msapplication-tap-highlight": "no",
+        "viewport": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+      }
     },
     "plugins": [
       "expo-router"
