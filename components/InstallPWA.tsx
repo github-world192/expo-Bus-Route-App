@@ -1,4 +1,4 @@
-]]import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface BeforeInstallPromptEvent extends Event {

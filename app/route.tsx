@@ -160,9 +160,15 @@ export default function RouteScreen() {
 
   // 自動更新路線資訊（每30秒）
   useEffect(() => {
-    if (hasSearched && routeInfo.length > 0) {
+    if (hasSearched && routeInfo.length > 0 && fromStop && toStop) {
       console.log('啟動路線自動更新（每30秒）');
+      // 清除舊的定時器
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+      }
+      // 立即更新一次
       updateRouteInfo();
+      // 設定新的定時器
       updateIntervalRef.current = setInterval(updateRouteInfo, 30000);
     } else {
       if (updateIntervalRef.current) {
@@ -177,7 +183,7 @@ export default function RouteScreen() {
         clearInterval(updateIntervalRef.current);
       }
     };
-  }, [hasSearched, routeInfo.length]);
+  }, [hasSearched, routeInfo.length, fromStop, toStop]);
 
   // 選擇站牌
   const selectStop = (stopName: string) => {
@@ -203,8 +209,8 @@ export default function RouteScreen() {
     setToStop(tempStop);
     setToStopDisplay(tempDisplay);
     
-    // 如果已經搜尋過，自動重新規劃
-    if (hasSearched && toStop && tempStop) {
+    // 如果兩個站牌都有填寫，自動重新規劃
+    if (toStop && tempStop) {
       setTimeout(() => planRoute(), 100);
     }
   };

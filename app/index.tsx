@@ -15,6 +15,7 @@ import {
 // 假設 BusPlannerService 放在 services 資料夾，請依實際位置調整
 import { BusPlannerService } from '../components/busPlanner';
 import InstallPWA from '../components/InstallPWA';
+import NotificationSettings from '../components/NotificationSettings';
 import ServiceWorkerRegister from '../components/ServiceWorkerRegister';
 
 // 定義 UI 用的介面 (配合新 API 的回傳結構進行適配)
@@ -196,6 +197,9 @@ export default function StopScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* 通知設定 */}
+      {/* 移到 FlatList 的 ListHeaderComponent */}
+
       {/* 站牌標題與刷新按鈕 */}
       <View style={styles.directionBar}>
         <Text style={styles.directionBarText}>{selectedStop}</Text>
@@ -223,6 +227,7 @@ export default function StopScreen() {
           data={arrivals}
           renderItem={renderItem}
           keyExtractor={(item) => item.key}
+          ListHeaderComponent={<NotificationSettings />}
           refreshControl={
             Platform.OS !== 'web' ? (
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

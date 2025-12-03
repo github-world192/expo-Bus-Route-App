@@ -84,19 +84,47 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// 處理推送通知（未來擴展用）
+// 處理推送通知（iOS 16.4+ 和 Android 支援）
 self.addEventListener('push', (event) => {
   console.log('Push notification received:', event);
   
-  const options = {
-    body: event.data ? event.data.text() : '新的公車資訊',
+  let notificationData = {
+    title: '台北公車',
+    body: '新的公車資訊',
     icon: '/assets/icon.png',
     badge: '/assets/icon.png',
     vibrate: [200, 100, 200],
+    tag: 'bus-notification',
+    requireInteraction: false,
   };
 
+  // 解析推送資料
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      notificationData = {
+        ...notificationData,
+        title: data.title || notificationData.title,
+        body: data.body || notificationData.body,
+        data: data.data || {},
+        actions: data.actions || [],
+      };
+    } catch (e) {
+      notificationData.body = event.data.text();
+    }
+  }
+
   event.waitUntil(
-    self.registration.showNotification('台北公車', options)
+    self.registration.showNotification(notificationData.title, {
+      body: notificationData.body,
+      icon: notificationData.icon,
+      badge: notificationData.badge,
+      vibrate: notificationData.vibrate,
+      tag: notificationData.tag,
+      requireInteraction: notificationData.requireInteraction,
+      data: notificationData.data,
+      actions: notificationData.actions,
+    })
   );
 });
 

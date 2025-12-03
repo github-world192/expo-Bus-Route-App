@@ -124,6 +124,45 @@ databases/               # 資料檔案
 
 公車資料透過 `BusPlannerService` 從台北市公車動態資訊系統抓取，詳見 `components/busPlanner.ts`。
 
+### 推送通知功能
+
+應用程式支援 Web Push Notifications，可在公車即將到站時發送提醒。
+
+**平台支援：**
+- ✅ **Android Chrome 42+**：完整支援
+- ✅ **iOS Safari 16.4+**：支援推送通知
+- ✅ **macOS Safari 16+**：支援推送通知
+- ✅ **Edge, Firefox**：完整支援
+
+**使用方式：**
+
+```typescript
+import usePushNotification from '../hooks/usePushNotification';
+
+const { 
+  isSupported, 
+  permission, 
+  requestPermission, 
+  showLocalNotification 
+} = usePushNotification();
+
+// 請求通知權限
+const granted = await requestPermission();
+
+// 發送本地通知
+if (granted) {
+  showLocalNotification('公車即將到站', {
+    body: '307路公車 3分鐘後到達',
+    icon: '/assets/icon.png',
+  });
+}
+```
+
+**iOS 注意事項：**
+- 必須將網站加入主畫面（安裝 PWA）後才能使用推送通知
+- 需要用戶明確授權通知權限
+- 支援後台推送（透過 Service Worker）
+
 ## Learn more
 
 To learn more about developing your project with Expo, look at the following resources:
