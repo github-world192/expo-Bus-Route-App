@@ -8,7 +8,7 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/splash.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#6F73F8"
     },
@@ -19,7 +19,7 @@
     "android": {
       "package": "com.dillenhub.app22222",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#6F73F8"
       }
     },
@@ -41,7 +41,7 @@
       "splash": {
         "backgroundColor": "#6F73F8",
         "resizeMode": "contain",
-        "image": "./assets/images/splash.png"
+        "image": "./assets/images/splash-icon.png"
       },
       "ios": {
         "supportsTablet": true,

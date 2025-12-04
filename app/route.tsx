@@ -357,10 +357,12 @@ export default function RouteScreen() {
         
         <View style={styles.routeCardInfo}>
           <Text style={styles.routeCardTime}>⏱ {item.arrival_time_text}</Text>
-          <Text style={styles.routeCardStops}>🚏 途經 {item.stop_count} 站</Text>
-          {(item.estimated_duration !== undefined && item.estimated_duration > 0) && (
-            <Text style={styles.routeCardDuration}>🕐 約 {item.estimated_duration} 分鐘</Text>
-          )}
+          <Text style={styles.routeCardStops}>🚏 途經 {item.stop_count} 站
+              {(item.estimated_duration !== undefined && item.estimated_duration > 0) && (
+                <Text style={styles.routeCardStops}> 約 {item.estimated_duration} 分鐘</Text>
+              )}
+          </Text>
+          
         </View>
 
         {isSelected && (
