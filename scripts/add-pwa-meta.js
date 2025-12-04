@@ -16,13 +16,11 @@ const metaTags = `
   <meta name="apple-mobile-web-app-title" content="台北公車">
   <meta name="mobile-web-app-capable" content="yes">
   
-  <!-- iOS Icons - Multiple sizes for better quality -->
-  <link rel="apple-touch-icon" href="/assets/icon.png">
-  <link rel="apple-touch-icon" sizes="120x120" href="/assets/icon.png">
-  <link rel="apple-touch-icon" sizes="152x152" href="/assets/icon.png">
-  <link rel="apple-touch-icon" sizes="167x167" href="/assets/icon.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon.png">
-  <link rel="apple-touch-icon" sizes="1024x1024" href="/assets/icon.png">
+  <!-- iOS Icons - Specific sizes for iOS -->
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon-180x180.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/assets/apple-touch-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/assets/apple-touch-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon-180x180.png">
   
   <!-- Favicon -->
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">

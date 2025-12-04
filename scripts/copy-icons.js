@@ -16,6 +16,10 @@ if (!fs.existsSync(distAssetsDir)) {
 // 需要複製的圖標文件
 const iconFiles = [
   { src: 'icon.png', dest: 'icon.png', desc: 'Main PWA icon' },
+  { src: 'icon.png', dest: 'apple-touch-icon.png', desc: 'Apple Touch Icon' },
+  { src: 'icon.png', dest: 'apple-touch-icon-120x120.png', desc: 'Apple Touch Icon 120x120' },
+  { src: 'icon.png', dest: 'apple-touch-icon-152x152.png', desc: 'Apple Touch Icon 152x152' },
+  { src: 'icon.png', dest: 'apple-touch-icon-180x180.png', desc: 'Apple Touch Icon 180x180' },
   { src: 'favicon.png', dest: 'favicon-32x32.png', desc: 'Favicon 32x32' },
   { src: 'icon.png', dest: 'icon-192x192.png', desc: 'Icon 192x192' },
   { src: 'icon.png', dest: 'icon-512x512.png', desc: 'Icon 512x512' },
