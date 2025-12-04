@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Keyboard,
   StyleSheet,
@@ -12,6 +13,11 @@ import {
 
 // 1. 改為引入包含完整資訊的 stop_id_map.json
 // 請確認檔案名稱與路徑是否正確
+import {
+  formatDistance,
+  getNearbyStopsWithLocation,
+  type StopEntry,
+} from '../components/locationService';
 import stopMapRaw from '../databases/stop_id_map.json';
 
 // 2. 定義我們需要的資料結構
@@ -27,11 +33,37 @@ export default function SearchScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [nearbyStops, setNearbyStops] = useState<StopEntry[]>([]);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const debounceRef = useRef<any>(null);
 
   // 3. 取得所有站名
   // 使用 useMemo 優化：只在組件首次載入時執行一次，避免每次打字 render 都重新提取 keys
   const allStops = useMemo(() => Object.keys(stopData.by_name), []);
+
+  // 載入附近站牌
+  const loadNearbyStops = async () => {
+    try {
+      setLoadingLocation(true);
+      const result = await getNearbyStopsWithLocation(800, 10);
+      
+      if (result.success) {
+        setNearbyStops(result.stops);
+        console.log('已載入附近站牌:', result.stops.length, '個');
+      } else {
+        console.log('載入附近站牌失敗:', result.error);
+      }
+    } catch (error) {
+      console.error('載入附近站牌失敗:', error);
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
+
+  // 組件載入時取得附近站牌
+  useEffect(() => {
+    loadNearbyStops();
+  }, []);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -88,19 +120,42 @@ export default function SearchScreen() {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={suggestions}
-        keyExtractor={(item) => item}
-        // 關鍵：允許在鍵盤開啟時點擊列表項目
-        keyboardShouldPersistTaps="handled"
-        // 關鍵：滑動列表時自動收起鍵盤，體驗更順暢
-        keyboardDismissMode="on-drag"
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.item} onPress={() => onSelect(item)}>
-            <Text style={styles.text}>{item}</Text>
-          </TouchableOpacity>
-        )}
-      />
+      {loadingLocation ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6F73F8" />
+          <Text style={styles.loadingText}>正在取得位置...</Text>
+        </View>
+      ) : query.trim() === '' && nearbyStops.length > 0 ? (
+        <View>
+          <Text style={styles.sectionTitle}>📍 附近站牌</Text>
+          <FlatList
+            data={nearbyStops}
+            keyExtractor={(item) => item.name}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.item} onPress={() => onSelect(item.name)}>
+                <View style={styles.nearbyItem}>
+                  <Text style={styles.text}>{item.name}</Text>
+                  <Text style={styles.distanceText}>{formatDistance(item.distance)}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      ) : (
+        <FlatList
+          data={suggestions}
+          keyExtractor={(item) => item}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          renderItem={({ item }) => (
+            <TouchableOpacity style={styles.item} onPress={() => onSelect(item)}>
+              <Text style={styles.text}>{item}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -140,4 +195,31 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   text: { color: '#fff', fontSize: 18 },
+  sectionTitle: {
+    color: '#888',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  nearbyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  distanceText: {
+    color: '#6F73F8',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    color: '#888',
+    fontSize: 16,
+  },
 });
