@@ -24,7 +24,7 @@ export default function ServiceWorkerRegister() {
 
         console.log('[SW] 註冊成功，Scope:', registration.scope);
 
-        // 3. 檢查更新 (保持你原有的邏輯)
+        // 3. 檢查更新 
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
           if (newWorker) {
@@ -40,7 +40,7 @@ export default function ServiceWorkerRegister() {
       }
     };
 
-    // 3. [關鍵修正] 判斷頁面載入狀態，避免錯過時機
+    // 3. 判斷頁面載入狀態，避免錯過時機
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
       registerSW();
     } else {
