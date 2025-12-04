@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,6 +15,7 @@ import {
 
 import type { BusInfo } from '../components/busPlanner';
 import { BusPlannerService } from '../components/busPlanner';
+import { favoriteRoutesService } from '../components/favoriteRoutes';
 import stopMapRaw from '../databases/stop_id_map.json';
 
 interface StopMap {
@@ -49,7 +50,10 @@ export default function RouteScreen() {
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const updateIntervalRef = useRef<any>(null);
   
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  // 常用路線狀態
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  
+  const debounceRef = useRef<any>(null);
   const allStops = Object.keys(stopData.by_name);
 
   // 初始化 BusPlannerService 並處理 URL 參數
@@ -185,6 +189,22 @@ export default function RouteScreen() {
     };
   }, [hasSearched, routeInfo.length, fromStop, toStop]);
 
+  // 檢查常用路線狀態
+  useEffect(() => {
+    if (hasSearched && fromStop && toStop) {
+      checkFavoriteStatus();
+    }
+  }, [hasSearched, fromStop, toStop]);
+
+  // 當頁面獲得焦點時重新檢查常用狀態（例如從首頁返回）
+  useFocusEffect(
+    React.useCallback(() => {
+      if (hasSearched && fromStop && toStop) {
+        checkFavoriteStatus();
+      }
+    }, [hasSearched, fromStop, toStop])
+  );
+
   // 選擇站牌
   const selectStop = (stopName: string) => {
     if (searchMode === 'from') {
@@ -250,6 +270,38 @@ export default function RouteScreen() {
     setRouteInfo([]);
     setHasSearched(false);
     setSelectedRouteIndex(0);
+    setIsFavorite(false);
+  };
+
+  // 檢查是否已加入常用
+  const checkFavoriteStatus = async () => {
+    if (fromStop && toStop) {
+      const isFav = await favoriteRoutesService.isFavorite(fromStop, toStop);
+      setIsFavorite(isFav);
+    }
+  };
+
+  // 切換常用路線
+  const toggleFavorite = async () => {
+    if (!fromStop || !toStop) return;
+
+    if (isFavorite) {
+      // 移除常用
+      const result = await favoriteRoutesService.removeRoute(fromStop, toStop);
+      if (result.success) {
+        setIsFavorite(false);
+        console.log('已移除常用路線');
+      }
+    } else {
+      // 加入常用
+      const result = await favoriteRoutesService.addRoute(fromStop, toStop);
+      if (result.success) {
+        setIsFavorite(true);
+        console.log('已加入常用路線');
+      } else {
+        console.log('加入失敗:', result.message);
+      }
+    }
   };
 
   // 返回
@@ -486,17 +538,26 @@ export default function RouteScreen() {
                 <Text style={styles.resultsTitle}>
                   找到 {routeInfo.length} 條路線
                 </Text>
-                <TouchableOpacity
-                  onPress={updateRouteInfo}
-                  disabled={isUpdating}
-                  style={styles.refreshButton}
-                >
-                  {isUpdating ? (
-                    <ActivityIndicator size="small" color="#6F73F8" />
-                  ) : (
-                    <Text style={styles.refreshButtonText}>↻ 更新</Text>
-                  )}
-                </TouchableOpacity>
+                <View style={styles.headerActions}>
+                  <TouchableOpacity
+                    onPress={toggleFavorite}
+                    style={styles.favoriteButton}
+                  >
+                    <Text style={styles.favoriteIcon}>
+                      {isFavorite ? '⭐' : '☆'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={updateRouteInfo}
+                    style={styles.refreshButton}
+                  >
+                    {isUpdating ? (
+                      <ActivityIndicator size="small" color="#6F73F8" />
+                    ) : (
+                      <Text style={styles.refreshButtonText}>↻ 更新</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
               
               <FlatList
@@ -688,6 +749,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  favoriteButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  favoriteIcon: {
+    fontSize: 20,
+    color: '#FFD700',
   },
   refreshButton: {
     paddingHorizontal: 12,
