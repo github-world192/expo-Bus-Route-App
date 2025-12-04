@@ -73,12 +73,15 @@ export default function NotificationSettings() {
     }
   };
 
-  const handleTestNotification = () => {
-    showLocalNotification('測試通知 🚌', {
+  // 1. 父函式：建議加上 async，雖然不是必須，但較符合規範
+  const handleTestNotification = async () => {
+    // 加入 await 確保錯誤能被捕捉（若有的話）
+    await showLocalNotification('測試通知 🚌', {
       body: '這是一則測試通知訊息',
       icon: '/assets/icon.png',
       badge: '/assets/icon.png',
-      //vibrate: [200, 100, 200],
+      // vibrate: [200, 100, 200], 
+      // 註：若在 Android PWA 想要震動，建議解開 vibrate 註解
     });
   };
 

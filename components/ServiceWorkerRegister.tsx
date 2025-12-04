@@ -1,43 +1,52 @@
+// components/ServiceWorkerRegister.tsx
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 export default function ServiceWorkerRegister() {
   useEffect(() => {
+    // 1. 環境檢查
     if (Platform.OS !== 'web' || typeof window === 'undefined') {
       return;
     }
 
-    // 檢查瀏覽器是否支援 Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker
-          .register('/service-worker.js')
-          .then((registration) => {
-            console.log('Service Worker 註冊成功:', registration.scope);
+    if (!('serviceWorker' in navigator)) {
+      console.log('[SW] 此瀏覽器不支援 Service Worker');
+      return;
+    }
 
-            // 檢查更新
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
-              if (newWorker) {
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // 新版本可用
-                    console.log('新版本 Service Worker 已安裝，等待啟用');
-                    // 可以在這裡顯示更新提示
-                  }
-                });
+    // 2. 定義註冊函式
+    const registerSW = async () => {
+      try {
+        // 指向 public 資料夾中的 service-worker.js
+        const registration = await navigator.serviceWorker.register('/service-worker.js', {
+          scope: '/',
+        });
+
+        console.log('[SW] 註冊成功，Scope:', registration.scope);
+
+        // 3. 檢查更新 (保持你原有的邏輯)
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('[SW] 發現新版本，建議重整頁面');
               }
             });
-          })
-          .catch((error) => {
-            console.error('Service Worker 註冊失敗:', error);
-          });
-      });
+          }
+        });
+      } catch (error) {
+        console.error('[SW] 註冊失敗:', error);
+      }
+    };
+
+    // 3. [關鍵修正] 判斷頁面載入狀態，避免錯過時機
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      registerSW();
     } else {
-      console.log('此瀏覽器不支援 Service Worker');
+      window.addEventListener('load', registerSW);
     }
   }, []);
 
-  // 這個組件不渲染任何內容
   return null;
 }

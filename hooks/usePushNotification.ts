@@ -141,20 +141,55 @@ export default function usePushNotification() {
     }
   };
 
-  const showLocalNotification = (title: string, options?: NotificationOptions) => {
+  const showLocalNotification = async (title: string, options?: NotificationOptions) => {
+    console.log('[Debug] 1. 進入發送函式'); // 確保函式有被呼叫
+
+    // 基礎檢查
     if (Platform.OS !== 'web' || !isSupported || !permission.granted) {
-      console.log('無法顯示通知');
+      console.log('[Debug] 無法顯示通知：環境不支援或無權限');
       return;
     }
 
     const defaultOptions: NotificationOptions = {
-      icon: '/assets/icon.png',
+      icon: '/assets/icon.png', // 確保路徑正確
       badge: '/assets/icon.png',
-      //vibrate: [200, 100, 200],
+      // vibrate: [200, 100, 200],
       ...options,
     };
 
-    new Notification(title, defaultOptions);
+    try {
+      // 步驟 A: 嘗試獲取「已經存在」的 Service Worker 註冊
+      // getRegistration() 是非阻塞的，不會無限等待
+      let registration = null;
+      if ('serviceWorker' in navigator) {
+        registration = await navigator.serviceWorker.getRegistration();
+      }
+
+      // 步驟 B: 判斷並分流
+      if (registration && registration.active) {
+        // --- 情況 1: SW 已就緒 (Android PWA 完美路徑) ---
+        console.log('[Debug] 2. 發現活躍的 Service Worker，嘗試透過 SW 發送');
+        await registration.showNotification(title, defaultOptions);
+        console.log('[Debug] 3. SW 通知發送成功');
+      } else {
+        // --- 情況 2: SW 未就緒 (Desktop Web 或 SW 註冊失敗) ---
+        console.warn('[Debug] 2. 未發現活躍的 SW (可能在開發模式)，嘗試降級使用 new Notification');
+        
+        // Android 的死穴：如果沒有 SW，new Notification 必死
+        // 但我們這裡做一個最後掙扎，因為如果不跑這行，Android 就是完全沒反應
+        try {
+          const n = new Notification(title, defaultOptions);
+          console.log('[Debug] 3. 傳統 Notification 發送成功');
+        } catch (e) {
+          // 這裡就是你原本遇到的 Illegal constructor 錯誤
+          console.error('[Debug] 3. 傳統 Notification 失敗 (這是預期中的 Android 行為):', e);
+          alert('通知失敗：Android 需要 HTTPS 且 Service Worker 必須註冊成功');
+        }
+      }
+
+    } catch (error) {
+      console.error('[Debug] 未知錯誤:', error);
+    }
   };
 
   return {
