@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, TextInput, ScrollView, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, TextInput, ScrollView, KeyboardAvoidingView, Platform, Modal, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { theme } from '../../../constants/app-theme';
 import SidebarLayout, { useSidebar } from '../components/SidebarLayout';
+import useLocalNotification from '../../../hooks/useLocalNotification';
 
 function SmartNotificationContent() {
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
     const { toggleMenu } = useSidebar();
+
+    // 通知功能
+    const {
+        permission,
+        requestPermission,
+        scheduleNotification,
+        cancelAllNotifications,
+        getAllScheduledNotifications,
+    } = useLocalNotification();
 
     // State
     const [isNotificationEnabled, setIsNotificationEnabled] = useState(false);
@@ -18,8 +28,58 @@ function SmartNotificationContent() {
     const [birthday, setBirthday] = useState<Date | null>(null);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [isLinked, setIsLinked] = useState(false);
+    const [scheduledCount, setScheduledCount] = useState(0);
 
-    const toggleSwitch = () => setIsNotificationEnabled((previousState: boolean) => !previousState);
+    // 檢查通知權限狀態
+    useEffect(() => {
+        setIsNotificationEnabled(permission.granted);
+        updateScheduledCount();
+    }, [permission.granted]);
+
+    const updateScheduledCount = async () => {
+        const notifications = await getAllScheduledNotifications();
+        setScheduledCount(notifications.length);
+    };
+
+    const toggleSwitch = async () => {
+        if (!isNotificationEnabled) {
+            // 開啟通知
+            const granted = await requestPermission();
+            if (granted) {
+                setIsNotificationEnabled(true);
+                // 發送測試通知
+                await scheduleNotification(
+                    '通知已啟用 ✅',
+                    '您將收到公車到站提醒',
+                    2
+                );
+                Alert.alert('成功', '通知功能已啟用！');
+            } else {
+                Alert.alert('權限被拒絕', '請在系統設定中允許通知權限');
+            }
+        } else {
+            // 關閉通知 - 取消所有已排程的通知
+            await cancelAllNotifications();
+            setIsNotificationEnabled(false);
+            setScheduledCount(0);
+            Alert.alert('已關閉', '所有通知已取消');
+        }
+        updateScheduledCount();
+    };
+
+    const handleTestNotification = async () => {
+        if (!permission.granted) {
+            Alert.alert('需要權限', '請先啟用通知功能');
+            return;
+        }
+
+        await scheduleNotification(
+            '測試通知 🚌',
+            '這是一則測試通知訊息',
+            2
+        );
+        Alert.alert('已發送', '測試通知將在 2 秒後顯示');
+    };
 
     const handleLinkCard = () => {
         if (cardNumber && birthday) {
@@ -125,6 +185,11 @@ function SmartNotificationContent() {
                                 <Text style={styles.sectionDescription}>
                                     開啟後，將於通勤時間自動推播公車動態
                                 </Text>
+                                {isNotificationEnabled && scheduledCount > 0 && (
+                                    <Text style={styles.scheduledCountText}>
+                                        已排程 {scheduledCount} 個通知
+                                    </Text>
+                                )}
                             </View>
                             <Switch
                                 trackColor={{ false: '#767577', true: '#34C759' }}
@@ -134,6 +199,21 @@ function SmartNotificationContent() {
                                 value={isNotificationEnabled}
                             />
                         </View>
+                        {isNotificationEnabled && (
+                            <TouchableOpacity
+                                style={styles.testButton}
+                                onPress={handleTestNotification}
+                            >
+                                <Text style={styles.testButtonText}>發送測試通知</Text>
+                            </TouchableOpacity>
+                        )}
+                        {permission.denied && (
+                            <View style={styles.warningContainer}>
+                                <Text style={styles.warningText}>
+                                    ⚠️ 通知權限已被拒絕，請在系統設定中重新啟用
+                                </Text>
+                            </View>
+                        )}
                     </View>
 
                     <View style={styles.divider} />
@@ -321,5 +401,37 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: theme.colors.primary,
         fontWeight: '600',
+    },
+    testButton: {
+        backgroundColor: theme.colors.primary,
+        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        alignItems: 'center',
+        marginTop: 12,
+    },
+    testButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    scheduledCountText: {
+        fontSize: 12,
+        color: theme.colors.primary,
+        marginTop: 4,
+        fontWeight: '500',
+    },
+    warningContainer: {
+        backgroundColor: '#FFF3CD',
+        borderRadius: 8,
+        padding: 12,
+        marginTop: 12,
+        borderWidth: 1,
+        borderColor: '#FFC107',
+    },
+    warningText: {
+        fontSize: 14,
+        color: '#856404',
+        lineHeight: 20,
     },
 });
