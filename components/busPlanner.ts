@@ -164,28 +164,130 @@ export class BusPlannerService {
   // --- 時間處理 ---
 
   /**
-   * 計算預估行程時間（分鐘）
-   * 基於站數和時段的經驗公式
+   * 計算兩個地理座標之間的距離（公里）
+   * 使用 Haversine 公式
    */
-  private calculateEstimatedDuration(stopCount: number): number {
+  private calculateDistance(geo1: GeoLocation, geo2: GeoLocation): number {
+    const R = 6371; // 地球半徑（公里）
+    const dLat = this.toRadians(geo2.lat - geo1.lat);
+    const dLon = this.toRadians(geo2.lon - geo1.lon);
+    
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRadians(geo1.lat)) * Math.cos(this.toRadians(geo2.lat)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  private toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
+  }
+
+  /**
+   * 計算路徑總距離（公里）
+   */
+  private calculatePathDistance(pathStops: StopInfo[]): number {
+    if (pathStops.length < 2) return 0;
+    
+    let totalDistance = 0;
+    for (let i = 0; i < pathStops.length - 1; i++) {
+      const current = pathStops[i];
+      const next = pathStops[i + 1];
+      
+      if (current.geo && next.geo) {
+        totalDistance += this.calculateDistance(current.geo, next.geo);
+      }
+    }
+    
+    return totalDistance;
+  }
+
+  /**
+   * 計算預估行程時間（分鐘）
+   * 優先使用距離計算，降級使用站數估算
+   */
+  private calculateEstimatedDuration(stopCount: number, pathStops?: StopInfo[]): number {
     if (stopCount <= 0) return 0;
     
     const currentHour = new Date().getHours();
+    const currentDay = new Date().getDay(); // 0 = 週日, 6 = 週六
     
-    // 基礎時間：每站 2.5 分鐘（包含行駛 + 停靠）
+    // 嘗試使用距離計算（更精確）
+    if (pathStops && pathStops.length >= 2) {
+      const straightDistance = this.calculatePathDistance(pathStops);
+      
+      if (straightDistance > 0) {
+        // 計算平均站距，判斷路線類型
+        const avgStopDistance = straightDistance / stopCount;
+        
+        // 動態道路修正係數（考慮實際道路彎曲）
+        let roadFactor = 1.3; // 預設：一般市區
+        
+        if (avgStopDistance > 1.5) {
+          roadFactor = 1.15; // 郊區/快速道路（站距大，道路較直）
+        } else if (avgStopDistance < 0.4) {
+          roadFactor = 1.4;  // 密集市區（站距小，道路曲折）
+        } else if (avgStopDistance < 0.8) {
+          roadFactor = 1.35; // 一般市區
+        }
+        
+        // 實際道路距離
+        const actualDistance = straightDistance * roadFactor;
+        
+        // 基於距離的計算
+        let averageSpeed = 20; // 基礎速度：20 km/h（市區公車平均）
+        
+        // 尖峰時段：速度降低（7-9am, 5-7pm 平日）
+        const isWeekday = currentDay >= 1 && currentDay <= 5;
+        const isRushHour = isWeekday && 
+          ((currentHour >= 7 && currentHour < 9) || (currentHour >= 17 && currentHour < 19));
+        
+        if (isRushHour) {
+          averageSpeed = 15; // 尖峰時段速度降至 15 km/h
+        }
+        
+        // 離峰/深夜時段：速度提升（22pm-6am）
+        const isOffPeak = currentHour >= 22 || currentHour < 6;
+        if (isOffPeak) {
+          averageSpeed = 25; // 深夜速度提升至 25 km/h
+        }
+        
+        // 週末：速度微幅提升
+        if (!isWeekday && !isOffPeak) {
+          averageSpeed += 2;
+        }
+        
+        // 計算行駛時間 + 每站停靠時間（每站約 30 秒）
+        const drivingTime = (actualDistance / averageSpeed) * 60; // 轉換為分鐘
+        const stopTime = stopCount * 0.5; // 每站停靠 0.5 分鐘
+        
+        // Debug 日誌
+        console.log(`[時間計算] 直線: ${straightDistance.toFixed(2)}km, 道路係數: ${roadFactor}, 實際: ${actualDistance.toFixed(2)}km, 速度: ${averageSpeed}km/h, 站數: ${stopCount}, 行駛: ${drivingTime.toFixed(1)}分, 停靠: ${stopTime}分, 總計: ${Math.round(drivingTime + stopTime)}分`);
+
+        return Math.round(drivingTime + stopTime);
+      }
+    }
+    
+    // 降級：使用站數估算（當沒有 Geo 資料時）
+    console.log(`[時間計算] 降級模式 - 使用站數估算: ${stopCount} 站`);
+    
     let baseTime = stopCount * 2.5;
     
-    // 尖峰時段加成（7-9am, 5-7pm）
+    // 尖峰時段加成
     const isRushHour = (currentHour >= 7 && currentHour < 9) || (currentHour >= 17 && currentHour < 19);
     if (isRushHour) {
-      baseTime *= 1.3; // 尖峰時段增加 30%
+      baseTime *= 1.3;
     }
     
-    // 離峰或深夜時段（22pm-6am）速度較快
+    // 離峰時段
     const isOffPeak = currentHour >= 22 || currentHour < 6;
     if (isOffPeak) {
-      baseTime *= 0.8; // 離峰時段減少 20%
+      baseTime *= 0.8;
     }
+    
+    console.log(`[時間計算] 站數模式結果: ${Math.round(baseTime)}分`);
     
     return Math.round(baseTime);
   }
@@ -410,7 +512,7 @@ export class BusPlannerService {
             arrival_time_text: rt.time_text,
             raw_time: rt.raw_time,
             // 保留或計算預估行程時間（處理舊快取沒有此欄位的情況）
-            estimated_duration: cachedB.estimated_duration ?? this.calculateEstimatedDuration(cachedB.stop_count),
+            estimated_duration: cachedB.estimated_duration ?? this.calculateEstimatedDuration(cachedB.stop_count, cachedB.path_stops),
             // 重新解析 Geo 物件以防丟失 (若從 JSON 還原)
             start_geo: cachedB.start_geo ? { ...cachedB.start_geo } : undefined,
             end_geo: cachedB.end_geo ? { ...cachedB.end_geo } : undefined,
@@ -513,7 +615,7 @@ export class BusPlannerService {
         const endGeo = this.getGeoBySid(endRefSid);
 
         const stopCount = enhancedPath.length - 1;
-        const estimatedDuration = this.calculateEstimatedDuration(stopCount);
+        const estimatedDuration = this.calculateEstimatedDuration(stopCount, enhancedPath);
 
         validBuses.push({
           route_name: cand.route,
