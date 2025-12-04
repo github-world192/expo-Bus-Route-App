@@ -13,7 +13,8 @@ try {
 if (Notifications) {
     Notifications.setNotificationHandler({
         handleNotification: async () => ({
-            shouldShowAlert: true,
+            shouldShowBanner: true,
+            shouldShowList: true,
             shouldPlaySound: true,
             shouldSetBadge: true,
         }),
@@ -63,11 +64,27 @@ export default function useLocalNotification() {
         checkPermissionStatus();
 
         return () => {
-            if (notificationListener.current) {
-                Notifications.removeNotificationSubscription(notificationListener.current);
+            if (notificationListener.current && Notifications) {
+                try {
+                    if (typeof notificationListener.current.remove === 'function') {
+                        notificationListener.current.remove();
+                    } else if (Notifications.removeNotificationSubscription) {
+                        Notifications.removeNotificationSubscription(notificationListener.current);
+                    }
+                } catch (error) {
+                    console.warn('移除通知監聽器失敗:', error);
+                }
             }
-            if (responseListener.current) {
-                Notifications.removeNotificationSubscription(responseListener.current);
+            if (responseListener.current && Notifications) {
+                try {
+                    if (typeof responseListener.current.remove === 'function') {
+                        responseListener.current.remove();
+                    } else if (Notifications.removeNotificationSubscription) {
+                        Notifications.removeNotificationSubscription(responseListener.current);
+                    }
+                } catch (error) {
+                    console.warn('移除通知回應監聽器失敗:', error);
+                }
             }
         };
     }, []);
