@@ -68,11 +68,26 @@ export class FavoriteRoutesService {
       console.error('讀取常用路線失敗:', error);
     }
 
-    // 返回預設空資料
+    // 首次使用：建立預設資料，包含「師大分部→師大」
+    const now = Date.now();
+    const defaultRoute: FavoriteRoute = {
+      id: this.generateRouteId('師大分部', '師大'),
+      fromStop: '師大分部',
+      toStop: '師大',
+      displayName: undefined,
+      addedAt: now,
+      lastUsed: undefined,
+      useCount: 0,
+      pinned: false,
+    };
+
     const defaultData: FavoriteRoutesData = {
-      routes: [],
+      routes: [defaultRoute],
       maxCount: DEFAULT_MAX_COUNT,
     };
+    
+    // 儲存預設資料
+    await this.saveData(defaultData);
     this.cache = defaultData;
     return defaultData;
   }
