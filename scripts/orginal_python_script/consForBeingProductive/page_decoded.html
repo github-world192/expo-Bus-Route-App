@@ -1,0 +1,2486 @@
+
+
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>查詢公車動態資訊</title>
+    <link rel="stylesheet" type="text/css" href="./css/style.css"/>
+    <link rel="shortcut icon" href="#"/>
+    <script type="text/javascript" src="purify.min.js"></script>
+    <Script language="JavaScript">
+    var routeText="";
+    var divIndex=0;
+
+    	function switchDiv() {
+    		if (document.getElementById("SDIV"+divIndex))
+    			{
+    			if (document.getElementById("IgnoreCheck"+divIndex))
+    				if (document.getElementById("IgnoreCheck"+divIndex).checked)
+    					localStorage.setItem("PDANewsAlertIgnoew"+document.getElementById("IgnoreCheck"+divIndex).value, "Yes");
+    			document.getElementById("SDIV"+divIndex).style.display='none';
+    			};
+    		divIndex++;
+    		while (document.getElementById("IgnoreCheck"+divIndex) 
+    				&& localStorage.getItem("PDANewsAlertIgnoew"+document.getElementById("IgnoreCheck"+divIndex).value)=="Yes")
+    		{
+    			divIndex++;
+    		};
+    		if (document.getElementById("SDIV"+divIndex))
+    			document.getElementById("SDIV"+divIndex).style.display='';
+    	}
+    
+    	function selectRoute(routeId) {
+    		if (routeId.toString().length>0)
+    			{
+    			routeText = "";
+    			document.getElementById("routeTextInput").value="";
+    			document.getElementById('suggestions').style.display = 'none';
+    			document.location.href = 'route.jsp?rid=' + routeId + '';
+    			};
+        }
+
+        function lookup() {
+        	if (routeText == document.getElementById("routeTextInput").value.trim()) return false;
+   		    routeText = document.getElementById("routeTextInput").value.trim();
+        	
+   		    if (routeText.length == 0) {
+        		document.getElementById('suggestions').style.display = 'none';
+        	} else {
+        	   var rHTM = "";
+        	   var ridMap = {};
+        	   
+        	   
+        	   var el = document.getElementsByTagName('select');
+        	   for(var i=0; i<el.length; i++)
+        	      {
+        		   if ((el[i].name=="DGHRouteSelect") && !document.getElementById("checkDGH").checked) continue;
+        		   for (var j=1;j<el[i].options.length;j++)
+        		   		if (el[i].options[j].text.indexOf(routeText)>-1)
+        	          		{
+        		   			if (el[i].options[j].value in ridMap) continue;
+       		   				ridMap[el[i].options[j].value] = "1";
+       		   				rHTM+="<div style=\"width:100%;cursor:pointer;color: darkblue;background-color:lightblue;\" onclick=\"selectRoute("+DOMPurify.sanitize(el[i].options[j].value)+");\">"+DOMPurify.sanitize(el[i].options[j].text.trim())+"</div>";
+        	          		}
+        	      };        	   
+               
+            		   
+        	   if (rHTM.length>0)
+        		   {
+        		    document.getElementById('autoSuggestionsList').innerHTML = rHTM;
+        		    document.getElementById('suggestions').style.display = '';
+        		   }
+        	   else
+        		   {
+        		   	document.getElementById('suggestions').style.display = 'none';
+        		    document.getElementById('autoSuggestionsList').innerHTML = "";
+        		   };
+        	}
+        }
+    	
+        function inputRoute() {
+        	routeText = document.getElementById("routeTextInput").value.trim();
+            if (routeText.length > 0) {
+         	   
+        	   var el = document.getElementsByTagName('select');
+        	   for(var i=0; i<el.length; i++)
+        	      {
+        		   if ((el[i].name=="DGHRouteSelect") && !document.getElementById("checkDGH").checked) continue;
+        		   for (var j=1;j<el[i].options.length;j++)
+        		   		if (routeText==el[i].options[j].text.trim())
+        	          		{
+             	    	   	 selectRoute(el[i].options[j].value);
+            	    	   	 break;
+        	          		};
+        	      };
+               
+            }
+        }
+    </Script>
+</head>
+
+	<body onload="switchDiv();">
+	<center>
+
+<div id="SDIV1" style="display:none;">
+    <table class="formattable1">
+        <tr>
+            <th class="title1"><a href="index.jsp" class="title1">行動查詢系統</a></th>
+        </tr>
+        <tr>
+            <th class="title2">查詢公車動態資訊</th>
+        </tr>
+    </table>
+		<marquee scrollamount="4" class="marqueetd" width="100%">9/4~10/9南港軍人公墓下方道路交管公車改道　　　　　9/25~10/12 國慶大會交管公車改道　　　　　10/4北投區新民路公車改道及站位取消停靠詳公運處網頁</marquee>
+		<table class="formattable1">
+        <tr>
+            <td><input type="text" id="routeTextInput" size="16" onkeyup="lookup();" onchange="lookup();" oninput="lookup();"><input type="button" value="快速查詢" onclick="inputRoute()">
+            <input type="checkbox" id="checkDGH" onclick="lookup();">公路客運
+            <div id="suggestions" style="width: 150px; display:none;">
+                <div id="autoSuggestionsList">
+                </div>
+            </div>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:red;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運紅線接駁公車-></option>
+                    <option value="15312">紅2</option>
+<option value="15331">紅3區</option>
+<option value="17436">紅3</option>
+<option value="10821">紅5</option>
+<option value="11201">紅7</option>
+<option value="11202">紅7區</option>
+<option value="10421">紅9</option>
+<option value="15321">紅10</option>
+<option value="17993">紅10區</option>
+<option value="15531">紅12</option>
+<option value="16673">紅13</option>
+<option value="15541">紅15</option>
+<option value="15341">紅19</option>
+<option value="16674">紅22</option>
+<option value="16732">紅23</option>
+<option value="19298">紅25區</option>
+<option value="10232">紅25</option>
+<option value="16619">紅26</option>
+<option value="16671">紅27</option>
+<option value="16715">紅28直</option>
+<option value="16288">紅28</option>
+<option value="11011">紅29</option>
+<option value="15551">紅30</option>
+<option value="10431">紅31</option>
+<option value="10261">紅33</option>
+<option value="11121">紅35</option>
+<option value="18868">紅35區</option>
+<option value="16430">紅36</option>
+<option value="16431">紅37</option>
+<option value="19088">紅37行經海洋都心社區</option>
+<option value="16282">紅38</option>
+<option value="16432">紅39</option>
+<option value="19068">紅53</option>
+<option value="16166">紅50</option>
+<option value="16397">紅51</option>
+<option value="16749">紅55</option>
+<option value="16750">紅55區</option>
+<option value="17022">紅57</option>
+<option value="17929">紅68</option>
+<option value="19719">紅68預</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:blue;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運藍線接駁公車-></option>
+                    <option value="17360">藍1</option>
+<option value="10281">藍2</option>
+<option value="10831">藍5</option>
+<option value="15361">藍7</option>
+<option value="18044">藍7副</option>
+<option value="10292">藍10</option>
+<option value="16296">藍15</option>
+<option value="16464">藍17</option>
+<option value="17516">藍18</option>
+<option value="16125">藍20區</option>
+<option value="17332">藍21副</option>
+<option value="16498">藍21</option>
+<option value="16294">藍22</option>
+<option value="16632">藍23</option>
+<option value="10941">藍25</option>
+<option value="10432">藍26</option>
+<option value="11111">藍27</option>
+<option value="10721">藍28</option>
+<option value="10722">藍29</option>
+<option value="16191">藍31</option>
+<option value="16599">藍32</option>
+<option value="16471">藍33</option>
+<option value="16463">藍35</option>
+<option value="10241">藍36</option>
+<option value="16486">藍37</option>
+<option value="16487">藍38</option>
+<option value="16544">藍39</option>
+<option value="16601">藍40</option>
+<option value="16735">藍41</option>
+<option value="17311">藍41延和</option>
+<option value="16663">藍43</option>
+<option value="16207">藍44</option>
+<option value="16729">藍44延</option>
+<option value="16602">藍45</option>
+<option value="16586">藍46</option>
+<option value="16440">藍50</option>
+<option value="16506">藍51</option>
+<option value="17700">藍43延南天母</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:brown;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運棕線接駁公車-></option>
+                    <option value="10291">棕1</option>
+<option value="10733">棕2</option>
+<option value="10741">棕3</option>
+<option value="11021">棕5</option>
+<option value="10742">棕6</option>
+<option value="10143">棕7</option>
+<option value="17466">棕7綠野香坡</option>
+<option value="17940">棕7建業路</option>
+<option value="11031">棕10</option>
+<option value="10743">棕11</option>
+<option value="10749">棕11副</option>
+<option value="10751">棕12</option>
+<option value="11251">棕13</option>
+<option value="10744">棕15</option>
+<option value="15730">棕18</option>
+<option value="16153">棕19</option>
+<option value="16174">棕20</option>
+<option value="18508">棕20預</option>
+<option value="16568">棕21</option>
+<option value="16747">棕22</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:green;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運綠線接駁公車-></option>
+                    <option value="10732">綠2右</option>
+<option value="10731">綠2左</option>
+<option value="16612">綠3</option>
+<option value="16610">綠5</option>
+<option value="16611">綠6</option>
+<option value="16420">綠7</option>
+<option value="16613">綠8</option>
+<option value="16491">綠9</option>
+<option value="16493">綠9北新國小</option>
+<option value="16492">綠9耕莘</option>
+<option value="16418">綠10</option>
+<option value="11022">綠11</option>
+<option value="16590">綠12</option>
+<option value="16481">綠13</option>
+<option value="16243">綠15</option>
+<option value="17556">綠17</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:orange;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運橘線接駁公車-></option>
+                    <option value="16265">橘1</option>
+<option value="16407">橘2</option>
+<option value="16466">橘3</option>
+<option value="16405">橘5</option>
+<option value="16274">橘9</option>
+<option value="16620">橘10</option>
+<option value="16667">橘12</option>
+<option value="16668">橘13</option>
+<option value="16490">橘17</option>
+<option value="16593">橘18</option>
+<option value="16748">橘18福隆路</option>
+<option value="16489">橘19</option>
+<option value="18268">橘19副</option>
+<option value="16669">橘20</option>
+<option value="16592">橘21</option>
+<option value="16519">橘22</option>
+<option value="16582">橘25</option>
+<option value="16686">橘26</option>
+
+                </select>
+            </td>
+        </tr>
+        <!-- 
+        <tr>
+            <td style="background-color:yellow;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運黃線接駁公車-></option>
+                    
+                </select>
+            </td>
+        </tr>
+        -->
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇輕軌接駁公車-></option>
+                    <option value="19188">安坑1線</option>
+<option value="19189">安坑3線</option>
+<option value="19190">安坑5線</option>
+<option value="19198">安坑2線</option>
+<option value="19308">安坑6線</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇一般公車(數字開頭路線)-></option>
+                    <option value="10841">0東</option>
+<option value="11811">0南</option>
+<option value="10723">1</option>
+<option value="10262">2</option>
+<option value="11861">5</option>
+<option value="16406">8</option>
+<option value="10882">9</option>
+<option value="10864">12</option>
+<option value="10891">14</option>
+<option value="10726">18</option>
+<option value="10873">20</option>
+<option value="10832">22</option>
+<option value="11203">26</option>
+<option value="15141">28</option>
+<option value="11066">32</option>
+<option value="11821">33</option>
+<option value="11091">37</option>
+<option value="10862">38</option>
+<option value="10863">38區</option>
+<option value="11243">39</option>
+<option value="15664">39夜</option>
+<option value="11871">41</option>
+<option value="15142">42</option>
+<option value="16559">42區</option>
+<option value="10872">46</option>
+<option value="11831">49</option>
+<option value="16467">51</option>
+<option value="10792">52</option>
+<option value="10767">53</option>
+<option value="16468">57</option>
+<option value="11244">62</option>
+<option value="10847">63</option>
+<option value="17944">66</option>
+<option value="11204">68</option>
+<option value="15362">72</option>
+<option value="10971">88</option>
+<option value="17869">88區</option>
+<option value="17517">99</option>
+<option value="10822">108</option>
+<option value="16168">108區</option>
+<option value="11813">109</option>
+<option value="10472">111</option>
+<option value="15724">128</option>
+<option value="15726">129</option>
+<option value="10171">201</option>
+<option value="15111">202</option>
+<option value="15185">202區</option>
+<option value="15314">203</option>
+<option value="11212">204</option>
+<option value="10181">205</option>
+<option value="15372">206</option>
+<option value="15572">207</option>
+<option value="15112">208</option>
+<option value="15113">208區</option>
+<option value="16157">208直</option>
+<option value="11232">211</option>
+<option value="10912">212</option>
+<option value="10911">212直</option>
+<option value="16132">212夜</option>
+<option value="15561">214</option>
+<option value="15562">214直</option>
+<option value="15322">215</option>
+<option value="11141">216</option>
+<option value="11156">218</option>
+<option value="11158">218區</option>
+<option value="11157">218直</option>
+<option value="10415">221</option>
+<option value="10842">222</option>
+<option value="11124">223</option>
+<option value="15375">224</option>
+<option value="10443">225</option>
+<option value="16128">225區</option>
+<option value="11245">226</option>
+<option value="15521">227</option>
+<option value="15522">227區</option>
+<option value="10161">231</option>
+<option value="11151">230</option>
+<option value="10416">232</option>
+<option value="10419">232快</option>
+<option value="10132">234</option>
+<option value="10283">235</option>
+<option value="11763">236區</option>
+<option value="10745">237</option>
+<option value="15355">240直</option>
+<option value="10173">241</option>
+<option value="10116">242</option>
+<option value="10172">243</option>
+<option value="10162">245</option>
+<option value="15381">246</option>
+<option value="19528">246預</option>
+<option value="15353">247</option>
+<option value="15358">247區</option>
+<option value="10772">249</option>
+<option value="15333">250</option>
+<option value="10712">251</option>
+<option value="11764">251區</option>
+<option value="10746">252</option>
+<option value="10735">253</option>
+<option value="10783">254</option>
+<option value="16709">254區</option>
+<option value="11252">255</option>
+<option value="11253">255區</option>
+<option value="15143">256</option>
+<option value="10942">257</option>
+<option value="10823">260</option>
+<option value="10824">260區</option>
+<option value="19178">260區預</option>
+<option value="10414">261</option>
+<option value="19678">261預</option>
+<option value="10961">262</option>
+<option value="10962">262區</option>
+<option value="16588">264</option>
+<option value="10482">265區</option>
+<option value="16131">265夜</option>
+<option value="10481">265經中央路</option>
+<option value="11171">265經明德路</option>
+<option value="15332">267</option>
+<option value="15352">268</option>
+<option value="11841">270</option>
+<option value="11842">270區</option>
+<option value="10893">274</option>
+<option value="16581">275</option>
+<option value="11851">276</option>
+<option value="10874">277</option>
+<option value="10752">278</option>
+<option value="16439">278區</option>
+<option value="15391">279</option>
+<option value="15546">280</option>
+<option value="15657">280直</option>
+<option value="10856">281</option>
+<option value="15162">282</option>
+<option value="11221">284</option>
+<option value="10845">286</option>
+<option value="10846">286副</option>
+<option value="10853">287區</option>
+<option value="11165">288</option>
+<option value="10784">290副</option>
+<option value="17479">290副萬和</option>
+<option value="11246">292</option>
+<option value="16158">292副</option>
+<option value="10747">294</option>
+<option value="10748">295</option>
+<option value="18057">295副</option>
+<option value="11041">297</option>
+<option value="11023">298</option>
+<option value="11411">299</option>
+<option value="15532">300</option>
+<option value="11125">302</option>
+<option value="19717">302區</option>
+<option value="10272">303</option>
+<option value="10273">303區</option>
+<option value="15553">304承德</option>
+<option value="15554">304重慶</option>
+<option value="10473">306</option>
+<option value="11853">306區</option>
+<option value="16111">307</option>
+<option value="19108">307西藏三民</option>
+<option value="15151">308</option>
+<option value="16112">310</option>
+<option value="19688">310區</option>
+<option value="15563">311</option>
+<option value="17512">311區</option>
+<option value="10848">505</option>
+<option value="10441">508</option>
+<option value="10442">508區</option>
+<option value="11421">513</option>
+<option value="10424">520</option>
+<option value="15313">521</option>
+<option value="11161">529</option>
+<option value="15164">530</option>
+<option value="10764">531</option>
+<option value="10263">536</option>
+<option value="19720">536區</option>
+<option value="11242">539</option>
+<option value="19438">539預</option>
+<option value="10277">542</option>
+<option value="18348">542預</option>
+<option value="11123">550</option>
+<option value="11114">551</option>
+<option value="11056">552</option>
+<option value="15172">556</option>
+<option value="17333">557</option>
+<option value="10725">568</option>
+<option value="16897">570</option>
+<option value="16898">571</option>
+<option value="16899">572</option>
+<option value="16900">573</option>
+<option value="16901">574</option>
+<option value="16902">575</option>
+<option value="18041">576</option>
+<option value="17805">559</option>
+<option value="15571">600</option>
+<option value="15735">602</option>
+<option value="16121">604</option>
+<option value="15514">605</option>
+<option value="15517">605副</option>
+<option value="15516">605快</option>
+<option value="15518">605新台五</option>
+<option value="11815">606</option>
+<option value="11742">611</option>
+<option value="11093">612</option>
+<option value="10471">615</option>
+<option value="15581">616</option>
+<option value="10422">617</option>
+<option value="17952">617副</option>
+<option value="10221">618</option>
+<option value="15335">683</option>
+<option value="19458">683預</option>
+<option value="11231">621</option>
+<option value="10423">622</option>
+<option value="10149">624綠野香坡</option>
+<option value="17300">624</option>
+<option value="5415">629</option>
+<option value="19741">629區</option>
+<option value="10861">630</option>
+<option value="15224">631</option>
+<option value="10475">635</option>
+<option value="10474">636</option>
+<option value="10491">637</option>
+<option value="10492">638</option>
+<option value="17868">638副</option>
+<option value="10511">639</option>
+<option value="10453">640</option>
+<option value="19760">640A</option>
+<option value="10452">641</option>
+<option value="10328">643</option>
+<option value="10333">644</option>
+<option value="10461">645</option>
+<option value="10462">645副</option>
+<option value="10765">646</option>
+<option value="10331">647</option>
+<option value="10326">648</option>
+<option value="16122">651</option>
+<option value="10844">652</option>
+<option value="10163">656</option>
+<option value="10164">657</option>
+<option value="16685">657延</option>
+<option value="16113">658</option>
+<option value="15191">660</option>
+<option value="17825">660區</option>
+<option value="11241">662</option>
+<option value="10282">663</option>
+<option value="10753">666華梵大學</option>
+<option value="17483">666烏塗窟</option>
+<option value="17482">666皇帝殿</option>
+<option value="16123">667</option>
+<option value="15515">668</option>
+<option value="10278">669</option>
+<option value="10771">670</option>
+<option value="10736">671</option>
+<option value="10785">672</option>
+<option value="16169">672區</option>
+<option value="10782">673</option>
+<option value="15512">675</option>
+<option value="15161">676</option>
+<option value="15638">677</option>
+<option value="5416">678</option>
+<option value="16127">679</option>
+<option value="16184">680</option>
+<option value="15359">681</option>
+<option value="15221">682</option>
+<option value="10811">685</option>
+<option value="11834">688</option>
+<option value="10151">701</option>
+<option value="10148">702</option>
+<option value="16517">704</option>
+<option value="16521">704區</option>
+<option value="10195">705</option>
+<option value="10196">706</option>
+<option value="16461">707</option>
+<option value="15513">711</option>
+<option value="17945">712</option>
+<option value="18258">712副</option>
+<option value="16504">756</option>
+<option value="16707">757</option>
+<option value="16706">758</option>
+<option value="18738">760</option>
+<option value="17515">778</option>
+<option value="16511">779</option>
+<option value="16637">780</option>
+<option value="16644">781</option>
+<option value="16643">782</option>
+<option value="16692">783</option>
+<option value="16693">785</option>
+<option value="16642">787</option>
+<option value="16694">786</option>
+<option value="17719">786區</option>
+<option value="16681">787經瑞芳工業區</option>
+<option value="16641">788</option>
+<option value="18098">788區</option>
+<option value="17501">788海科館</option>
+<option value="16739">789</option>
+<option value="17865">789區</option>
+<option value="16740">790</option>
+<option value="17500">790漁港</option>
+<option value="16682">791</option>
+<option value="19208">791區</option>
+<option value="17692">791繞貢寮</option>
+<option value="17718">791經貢寮區衛生</option>
+<option value="16689">793</option>
+<option value="16719">795往木柵(台灣好行-木柵平溪線)</option>
+<option value="16758">795往平溪(台灣好行-木柵平溪線)</option>
+<option value="16757">795往十分寮(台灣好行-木柵平溪線)</option>
+<option value="16691">796</option>
+<option value="16571">797</option>
+<option value="16576">799</option>
+<option value="16573">800</option>
+<option value="16594">801</option>
+<option value="16608">802</option>
+<option value="16479">802區</option>
+<option value="16595">803</option>
+<option value="17524">805</option>
+<option value="17523">806</option>
+<option value="16223">807</option>
+<option value="16547">808</option>
+<option value="16670">810</option>
+<option value="16425">811</option>
+<option value="16189">812</option>
+<option value="17526">813</option>
+<option value="17527">813區</option>
+<option value="16500">815</option>
+<option value="16499">816</option>
+<option value="16731">817</option>
+<option value="16258">819</option>
+<option value="17923">819副</option>
+<option value="16584">820</option>
+<option value="16695">821</option>
+<option value="16730">822</option>
+<option value="17525">823</option>
+<option value="17889">824</option>
+<option value="16551">825</option>
+<option value="16554">826</option>
+<option value="16548">827</option>
+<option value="16485">835</option>
+<option value="16269">836</option>
+<option value="16497">837</option>
+<option value="16270">838</option>
+<option value="16427">839</option>
+<option value="16656">839耕莘</option>
+<option value="16609">842</option>
+<option value="16474">843</option>
+<option value="17518">845</option>
+<option value="16734">846</option>
+<option value="16429">847</option>
+<option value="16697">847區</option>
+<option value="16215">848</option>
+<option value="16393">849</option>
+<option value="17696">849屈尺社區</option>
+<option value="16665">851</option>
+<option value="16666">852</option>
+<option value="16552">856(台灣好行-黃金福隆線)</option>
+<option value="16591">857</option>
+<option value="16515">858</option>
+<option value="16518">859</option>
+<option value="16528">860</option>
+<option value="16529">861</option>
+<option value="17530">716(台灣好行-皇冠北海岸線)</option>
+<option value="17528">862</option>
+<option value="16675">863</option>
+<option value="16651">864</option>
+<option value="16530">865</option>
+<option value="16531">866</option>
+<option value="16532">867</option>
+<option value="16710">867區</option>
+<option value="16630">868</option>
+<option value="16526">869</option>
+<option value="16626">870</option>
+<option value="16628">871</option>
+<option value="16577">871經中山北路</option>
+<option value="16627">872</option>
+<option value="16578">872經正德國中、直行中山北路</option>
+<option value="16629">873</option>
+<option value="16579">873經正德國中</option>
+<option value="16535">874</option>
+<option value="16536">875</option>
+<option value="16564">876</option>
+<option value="16538">877</option>
+<option value="16527">878</option>
+<option value="18558">878區</option>
+<option value="16542">879</option>
+<option value="16659">880</option>
+<option value="16522">881</option>
+<option value="16543">882</option>
+<option value="16660">883</option>
+<option value="16513">885</option>
+<option value="16565">886</option>
+<option value="17824">886區</option>
+<option value="16607">889</option>
+<option value="16733">890</option>
+<option value="16580">891</option>
+<option value="17838">894</option>
+<option value="16717">895</option>
+<option value="5413">896</option>
+<option value="17557">897</option>
+<option value="17706">897區</option>
+<option value="17625">898</option>
+<option value="15171">902</option>
+<option value="19718">902區</option>
+<option value="10763">903</option>
+<option value="15183">905</option>
+<option value="15184">905副</option>
+<option value="10329">906</option>
+<option value="10724">907</option>
+<option value="17928">907通勤</option>
+<option value="16585">908</option>
+<option value="10325">909</option>
+<option value="16462">910</option>
+<option value="15173">912</option>
+<option value="15717">913</option>
+<option value="10754">915</option>
+<option value="17519">916</option>
+<option value="16210">917</option>
+<option value="17532">918</option>
+<option value="18318">918區</option>
+<option value="16633">919</option>
+<option value="16603">920</option>
+<option value="18729">920副</option>
+<option value="18764">920A</option>
+<option value="16664">921</option>
+<option value="16224">922</option>
+<option value="16422">923</option>
+<option value="16604">925</option>
+<option value="18766">925A</option>
+<option value="17536">927</option>
+<option value="17545">927經台北港</option>
+<option value="17537">928</option>
+<option value="16423">930</option>
+<option value="16614">930延</option>
+<option value="16560">932</option>
+<option value="17717">932繞國家教育研究院</option>
+<option value="17534">933</option>
+<option value="16562">935</option>
+<option value="16583">936</option>
+<option value="18758">936A</option>
+<option value="16655">937</option>
+<option value="18728">937副</option>
+<option value="18762">937A</option>
+<option value="16672">938</option>
+<option value="16635">939</option>
+<option value="17942">939副</option>
+<option value="16662">948</option>
+<option value="17720">939跳蛙</option>
+<option value="16728">940</option>
+<option value="16726">941</option>
+<option value="16759">943</option>
+<option value="17292">945</option>
+<option value="17293">946</option>
+<option value="17294">946副</option>
+<option value="17570">947</option>
+<option value="17363">949</option>
+<option value="17390">950</option>
+<option value="17548">951</option>
+<option value="17576">952</option>
+<option value="17845">953區</option>
+<option value="17575">953</option>
+<option value="17740">957</option>
+<option value="17916">963</option>
+<option value="17937">965(台灣好行-九份金瓜石線)</option>
+<option value="18118">966</option>
+<option value="18730">966副</option>
+<option value="18760">966A</option>
+<option value="18119">967</option>
+<option value="18731">967副</option>
+<option value="18128">967直</option>
+<option value="16746">1717</option>
+<option value="17971">837副</option>
+<option value="17972">837區</option>
+<option value="16606">981</option>
+<option value="16688">983</option>
+<option value="17668">982</option>
+<option value="17679">982區</option>
+<option value="17680">982直達</option>
+<option value="17687">982直達新埔線</option>
+<option value="16767">594</option>
+<option value="16768">595</option>
+<option value="16772">593</option>
+<option value="16845">578</option>
+<option value="16847">579</option>
+<option value="16849">580</option>
+<option value="16851">581</option>
+<option value="18148">582經工業區</option>
+<option value="19048">582經洲子洋</option>
+<option value="16855">582</option>
+<option value="17513">583</option>
+<option value="17682">596</option>
+<option value="17683">585</option>
+<option value="17672">577</option>
+<option value="16930">592</option>
+<option value="16997">586</option>
+<option value="17001">587</option>
+<option value="17009">589</option>
+<option value="17015">677副</option>
+<option value="17016">590</option>
+<option value="17017">591</option>
+<option value="17775">908延</option>
+<option value="17789">960</option>
+<option value="17790">958</option>
+<option value="17791">959</option>
+<option value="17802">854</option>
+<option value="17806">899</option>
+<option value="19228">731</option>
+<option value="19747">177瑞芳觀光公車</option>
+<option value="19748">179</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇山區路線(小字號)-></option>
+                    <option value="11051">小1</option>
+<option value="11062">小1區</option>
+<option value="11055">小2</option>
+<option value="11057">小2區</option>
+<option value="11058">小3</option>
+<option value="11059">小5</option>
+<option value="11061">小5區</option>
+<option value="11139">小6</option>
+<option value="11145">小7</option>
+<option value="11134">小8</option>
+<option value="19418">小8區</option>
+<option value="11142">小9(台灣好行-北投竹子湖)</option>
+<option value="16133">小9區</option>
+<option value="11071">小10</option>
+<option value="18040">小10區</option>
+<option value="11073">小11</option>
+<option value="11052">小12</option>
+<option value="11135">小14</option>
+<option value="11206">小15</option>
+<option value="19698">小15區預</option>
+<option value="11207">小15區</option>
+<option value="11208">小16</option>
+<option value="11209">小17</option>
+<option value="11211">小18</option>
+<option value="11213">小19</option>
+<option value="11136">小21</option>
+<option value="11137">小22</option>
+<option value="11122">小23</option>
+<option value="11138">小25</option>
+<option value="11143">小26</option>
+<option value="16648">小28</option>
+<option value="17020">小30</option>
+<option value="11064">小36</option>
+<option value="19716">小39</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇幹線公車-></option>
+                    <option value="10149">624綠野香坡</option>
+<option value="10163">656</option>
+<option value="10195">705</option>
+<option value="10196">706</option>
+<option value="10491">637</option>
+<option value="16123">667</option>
+<option value="16258">819</option>
+<option value="16294">藍22</option>
+<option value="16296">藍15</option>
+<option value="16393">849</option>
+<option value="16405">橘5</option>
+<option value="16422">923</option>
+<option value="16468">57</option>
+<option value="16487">藍38</option>
+<option value="16517">704</option>
+<option value="16521">704區</option>
+<option value="16528">860</option>
+<option value="16583">936</option>
+<option value="16588">264</option>
+<option value="16591">857</option>
+<option value="16606">981</option>
+<option value="16641">788</option>
+<option value="16659">880</option>
+<option value="16674">紅22</option>
+<option value="16682">791</option>
+<option value="16719">795往木柵(台灣好行-木柵平溪線)</option>
+<option value="16757">795往十分寮(台灣好行-木柵平溪線)</option>
+<option value="16758">795往平溪(台灣好行-木柵平溪線)</option>
+<option value="17300">624</option>
+<option value="17501">788海科館</option>
+<option value="17517">99</option>
+<option value="17526">813</option>
+<option value="17528">862</option>
+<option value="17668">982</option>
+<option value="17692">791繞貢寮</option>
+<option value="17696">849屈尺社區</option>
+<option value="17718">791經貢寮區衛生</option>
+<option value="18098">788區</option>
+<option value="18758">936A</option>
+<option value="19208">791區</option>
+<option value="810">敦化幹線(公車雙向轉乘優惠)</option>
+<option value="10142">南環幹線(公車雙向轉乘優惠)</option>
+<option value="10231">民權幹線(公車雙向轉乘優惠)</option>
+<option value="10251">南京幹線(公車雙向轉乘優惠)</option>
+<option value="10293">民生幹線(公車雙向轉乘優惠)</option>
+<option value="10332">松江新生幹線(公車雙向轉乘優惠)</option>
+<option value="10334">基隆路幹線(公車雙向轉乘優惠)</option>
+<option value="10417">忠孝幹線(公車雙向轉乘優惠)</option>
+<option value="10711">羅斯福路幹線(公車雙向轉乘優惠)</option>
+<option value="10851">內湖幹線(公車雙向轉乘優惠)</option>
+<option value="10932">仁愛幹線(公車雙向轉乘優惠)</option>
+<option value="11152">承德幹線(公車雙向轉乘優惠)</option>
+<option value="11812">和平幹線(公車雙向轉乘優惠)</option>
+<option value="11833">復興幹線(公車雙向轉乘優惠)</option>
+<option value="11881">重慶幹線(公車雙向轉乘優惠)</option>
+<option value="15334">北環幹線(公車雙向轉乘優惠)</option>
+<option value="15373">中山幹線(公車雙向轉乘優惠)</option>
+<option value="15708">信義幹線(公車雙向轉乘優惠)</option>
+<option value="17555">東環幹線(公車雙向轉乘優惠)</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇低地板-></option>
+                    <option value="17958">藍海2線先導公車</option>
+<option value="10841">0東</option>
+<option value="11811">0南</option>
+<option value="10723">1</option>
+<option value="10262">2</option>
+<option value="11861">5</option>
+<option value="16406">8</option>
+<option value="10882">9</option>
+<option value="10864">12</option>
+<option value="10891">14</option>
+<option value="10726">18</option>
+<option value="10873">20</option>
+<option value="10832">22</option>
+<option value="11203">26</option>
+<option value="15141">28</option>
+<option value="11066">32</option>
+<option value="11821">33</option>
+<option value="11091">37</option>
+<option value="10862">38</option>
+<option value="11243">39</option>
+<option value="15664">39夜</option>
+<option value="11871">41</option>
+<option value="15142">42</option>
+<option value="16559">42區</option>
+<option value="10872">46</option>
+<option value="11831">49</option>
+<option value="16467">51</option>
+<option value="10792">52</option>
+<option value="16468">57</option>
+<option value="11244">62</option>
+<option value="10847">63</option>
+<option value="17944">66</option>
+<option value="15362">72</option>
+<option value="10971">88</option>
+<option value="17869">88區</option>
+<option value="17517">99</option>
+<option value="15111">202</option>
+<option value="15185">202區</option>
+<option value="15314">203</option>
+<option value="11212">204</option>
+<option value="10181">205</option>
+<option value="15372">206</option>
+<option value="15572">207</option>
+<option value="15112">208</option>
+<option value="15113">208區</option>
+<option value="16157">208直</option>
+<option value="10912">212</option>
+<option value="10911">212直</option>
+<option value="16132">212夜</option>
+<option value="15561">214</option>
+<option value="15562">214直</option>
+<option value="15322">215</option>
+<option value="11156">218</option>
+<option value="11158">218區</option>
+<option value="11157">218直</option>
+<option value="10415">221</option>
+<option value="10842">222</option>
+<option value="11124">223</option>
+<option value="15375">224</option>
+<option value="10443">225</option>
+<option value="16128">225區</option>
+<option value="11245">226</option>
+<option value="15521">227</option>
+<option value="15522">227區</option>
+<option value="10161">231</option>
+<option value="10416">232</option>
+<option value="10132">234</option>
+<option value="10283">235</option>
+<option value="11763">236區</option>
+<option value="15355">240直</option>
+<option value="10173">241</option>
+<option value="10172">243</option>
+<option value="10162">245</option>
+<option value="15381">246</option>
+<option value="19528">246預</option>
+<option value="15353">247</option>
+<option value="15358">247區</option>
+<option value="10772">249</option>
+<option value="15333">250</option>
+<option value="10712">251</option>
+<option value="11764">251區</option>
+<option value="10746">252</option>
+<option value="10735">253</option>
+<option value="16709">254區</option>
+<option value="11252">255</option>
+<option value="11253">255區</option>
+<option value="10942">257</option>
+<option value="10823">260</option>
+<option value="10824">260區</option>
+<option value="10414">261</option>
+<option value="10961">262</option>
+<option value="10962">262區</option>
+<option value="16588">264</option>
+<option value="10482">265區</option>
+<option value="16131">265夜</option>
+<option value="10481">265經中央路</option>
+<option value="11171">265經明德路</option>
+<option value="15332">267</option>
+<option value="15352">268</option>
+<option value="11841">270</option>
+<option value="11842">270區</option>
+<option value="10893">274</option>
+<option value="16581">275</option>
+<option value="11851">276</option>
+<option value="10874">277</option>
+<option value="10752">278</option>
+<option value="16439">278區</option>
+<option value="15391">279</option>
+<option value="15546">280</option>
+<option value="15657">280直</option>
+<option value="10856">281</option>
+<option value="15162">282</option>
+<option value="11221">284</option>
+<option value="10846">286副</option>
+<option value="10853">287區</option>
+<option value="11165">288</option>
+<option value="11246">292</option>
+<option value="16158">292副</option>
+<option value="18057">295副</option>
+<option value="11041">297</option>
+<option value="19159">297預</option>
+<option value="11023">298</option>
+<option value="11411">299</option>
+<option value="15532">300</option>
+<option value="11125">302</option>
+<option value="19717">302區</option>
+<option value="10273">303區</option>
+<option value="15553">304承德</option>
+<option value="15554">304重慶</option>
+<option value="10473">306</option>
+<option value="11853">306區</option>
+<option value="16111">307</option>
+<option value="19108">307西藏三民</option>
+<option value="15151">308</option>
+<option value="16112">310</option>
+<option value="19688">310區</option>
+<option value="15563">311</option>
+<option value="17512">311區</option>
+<option value="10848">505</option>
+<option value="10441">508</option>
+<option value="10442">508區</option>
+<option value="11421">513</option>
+<option value="10424">520</option>
+<option value="15313">521</option>
+<option value="15164">530</option>
+<option value="10263">536</option>
+<option value="19720">536區</option>
+<option value="11242">539</option>
+<option value="19438">539預</option>
+<option value="15172">556</option>
+<option value="17333">557</option>
+<option value="10725">568</option>
+<option value="16900">573</option>
+<option value="16901">574</option>
+<option value="16902">575</option>
+<option value="18041">576</option>
+<option value="15571">600</option>
+<option value="15735">602</option>
+<option value="16121">604</option>
+<option value="15514">605</option>
+<option value="15517">605副</option>
+<option value="15518">605新台五</option>
+<option value="11815">606</option>
+<option value="11742">611</option>
+<option value="11093">612</option>
+<option value="10471">615</option>
+<option value="15581">616</option>
+<option value="10422">617</option>
+<option value="17952">617副</option>
+<option value="10221">618</option>
+<option value="15334">北環幹線(公車雙向轉乘優惠)</option>
+<option value="11231">621</option>
+<option value="10423">622</option>
+<option value="10149">624綠野香坡</option>
+<option value="17300">624</option>
+<option value="5415">629</option>
+<option value="19741">629區</option>
+<option value="10861">630</option>
+<option value="10475">635</option>
+<option value="10474">636</option>
+<option value="10491">637</option>
+<option value="10492">638</option>
+<option value="17868">638副</option>
+<option value="10511">639</option>
+<option value="10453">640</option>
+<option value="19760">640A</option>
+<option value="10328">643</option>
+<option value="10333">644</option>
+<option value="10461">645</option>
+<option value="10462">645副</option>
+<option value="10331">647</option>
+<option value="10326">648</option>
+<option value="16122">651</option>
+<option value="10844">652</option>
+<option value="10163">656</option>
+<option value="10164">657</option>
+<option value="16685">657延</option>
+<option value="16113">658</option>
+<option value="15191">660</option>
+<option value="17825">660區</option>
+<option value="11241">662</option>
+<option value="10282">663</option>
+<option value="16123">667</option>
+<option value="15515">668</option>
+<option value="10278">669</option>
+<option value="10771">670</option>
+<option value="10736">671</option>
+<option value="10785">672</option>
+<option value="16169">672區</option>
+<option value="15512">675</option>
+<option value="15161">676</option>
+<option value="15638">677</option>
+<option value="5416">678</option>
+<option value="16127">679</option>
+<option value="16184">680</option>
+<option value="15359">681</option>
+<option value="15221">682</option>
+<option value="10811">685</option>
+<option value="11834">688</option>
+<option value="10151">701</option>
+<option value="10148">702</option>
+<option value="16517">704</option>
+<option value="16521">704區</option>
+<option value="10195">705</option>
+<option value="10196">706</option>
+<option value="16461">707</option>
+<option value="15513">711</option>
+<option value="17945">712</option>
+<option value="18258">712副</option>
+<option value="16504">756</option>
+<option value="16707">757</option>
+<option value="16706">758</option>
+<option value="18738">760</option>
+<option value="17515">778</option>
+<option value="16511">779</option>
+<option value="16692">783</option>
+<option value="16642">787</option>
+<option value="16681">787經瑞芳工業區</option>
+<option value="16641">788</option>
+<option value="18098">788區</option>
+<option value="17501">788海科館</option>
+<option value="16739">789</option>
+<option value="17865">789區</option>
+<option value="16740">790</option>
+<option value="17500">790漁港</option>
+<option value="16682">791</option>
+<option value="19208">791區</option>
+<option value="17692">791繞貢寮</option>
+<option value="17718">791經貢寮區衛生</option>
+<option value="16689">793</option>
+<option value="16719">795往木柵(台灣好行-木柵平溪線)</option>
+<option value="16758">795往平溪(台灣好行-木柵平溪線)</option>
+<option value="16757">795往十分寮(台灣好行-木柵平溪線)</option>
+<option value="16691">796</option>
+<option value="16571">797</option>
+<option value="16576">799</option>
+<option value="16573">800</option>
+<option value="16594">801</option>
+<option value="16608">802</option>
+<option value="16479">802區</option>
+<option value="16595">803</option>
+<option value="17524">805</option>
+<option value="17523">806</option>
+<option value="16670">810</option>
+<option value="16425">811</option>
+<option value="16189">812</option>
+<option value="17526">813</option>
+<option value="17527">813區</option>
+<option value="16500">815</option>
+<option value="16499">816</option>
+<option value="16731">817</option>
+<option value="16258">819</option>
+<option value="17923">819副</option>
+<option value="16584">820</option>
+<option value="16695">821</option>
+<option value="16730">822</option>
+<option value="17525">823</option>
+<option value="17889">824</option>
+<option value="16551">825</option>
+<option value="16554">826</option>
+<option value="16548">827</option>
+<option value="16485">835</option>
+<option value="16269">836</option>
+<option value="16270">838</option>
+<option value="16609">842</option>
+<option value="16474">843</option>
+<option value="17518">845</option>
+<option value="16429">847</option>
+<option value="16697">847區</option>
+<option value="16393">849</option>
+<option value="17696">849屈尺社區</option>
+<option value="17621">853跳蛙</option>
+<option value="16552">856(台灣好行-黃金福隆線)</option>
+<option value="16591">857</option>
+<option value="16518">859</option>
+<option value="16528">860</option>
+<option value="16529">861</option>
+<option value="17528">862</option>
+<option value="16675">863</option>
+<option value="16651">864</option>
+<option value="16710">867區</option>
+<option value="16526">869</option>
+<option value="16536">875</option>
+<option value="16564">876</option>
+<option value="16527">878</option>
+<option value="18558">878區</option>
+<option value="16542">879</option>
+<option value="16659">880</option>
+<option value="16522">881</option>
+<option value="16543">882</option>
+<option value="16660">883</option>
+<option value="16513">885</option>
+<option value="17824">886區</option>
+<option value="16607">889</option>
+<option value="16733">890</option>
+<option value="17838">894</option>
+<option value="16717">895</option>
+<option value="5413">896</option>
+<option value="17557">897</option>
+<option value="17706">897區</option>
+<option value="15171">902</option>
+<option value="19718">902區</option>
+<option value="15183">905</option>
+<option value="15184">905副</option>
+<option value="10329">906</option>
+<option value="10724">907</option>
+<option value="17928">907通勤</option>
+<option value="10325">909</option>
+<option value="15173">912</option>
+<option value="15717">913</option>
+<option value="17532">918</option>
+<option value="18318">918區</option>
+<option value="16633">919</option>
+<option value="17534">933</option>
+<option value="16562">935</option>
+<option value="16672">938</option>
+<option value="17363">949</option>
+<option value="17390">950</option>
+<option value="17709">955</option>
+<option value="17740">957</option>
+<option value="17916">963</option>
+<option value="16746">1717</option>
+<option value="15312">紅2</option>
+<option value="15331">紅3區</option>
+<option value="10821">紅5</option>
+<option value="11201">紅7</option>
+<option value="11202">紅7區</option>
+<option value="15321">紅10</option>
+<option value="17993">紅10區</option>
+<option value="15531">紅12</option>
+<option value="16673">紅13</option>
+<option value="15541">紅15</option>
+<option value="16674">紅22</option>
+<option value="16732">紅23</option>
+<option value="16619">紅26</option>
+<option value="16671">紅27</option>
+<option value="16288">紅28</option>
+<option value="16715">紅28直</option>
+<option value="11011">紅29</option>
+<option value="10431">紅31</option>
+<option value="16430">紅36</option>
+<option value="16431">紅37</option>
+<option value="19088">紅37行經海洋都心社區</option>
+<option value="16282">紅38</option>
+<option value="16432">紅39</option>
+<option value="19068">紅53</option>
+<option value="16166">紅50</option>
+<option value="16397">紅51</option>
+<option value="10733">棕2</option>
+<option value="10742">棕6</option>
+<option value="10143">棕7</option>
+<option value="17466">棕7綠野香坡</option>
+<option value="17940">棕7建業路</option>
+<option value="10142">南環幹線(公車雙向轉乘優惠)</option>
+<option value="10732">綠2右</option>
+<option value="10731">綠2左</option>
+<option value="16610">綠5</option>
+<option value="16611">綠6</option>
+<option value="16420">綠7</option>
+<option value="16613">綠8</option>
+<option value="16418">綠10</option>
+<option value="16481">綠13</option>
+<option value="16243">綠15</option>
+<option value="17555">東環幹線(公車雙向轉乘優惠)</option>
+<option value="16265">橘1</option>
+<option value="16407">橘2</option>
+<option value="16405">橘5</option>
+<option value="16274">橘9</option>
+<option value="16620">橘10</option>
+<option value="16668">橘13</option>
+<option value="16490">橘17</option>
+<option value="16489">橘19</option>
+<option value="18268">橘19副</option>
+<option value="16582">橘25</option>
+<option value="16686">橘26</option>
+<option value="17360">藍1</option>
+<option value="10281">藍2</option>
+<option value="15361">藍7</option>
+<option value="18044">藍7副</option>
+<option value="10292">藍10</option>
+<option value="16296">藍15</option>
+<option value="16464">藍17</option>
+<option value="17516">藍18</option>
+<option value="16125">藍20區</option>
+<option value="16498">藍21</option>
+<option value="17332">藍21副</option>
+<option value="16294">藍22</option>
+<option value="16632">藍23</option>
+<option value="10941">藍25</option>
+<option value="10241">藍36</option>
+<option value="16486">藍37</option>
+<option value="16487">藍38</option>
+<option value="16544">藍39</option>
+<option value="16735">藍41</option>
+<option value="17311">藍41延和</option>
+<option value="16207">藍44</option>
+<option value="16729">藍44延</option>
+<option value="16602">藍45</option>
+<option value="16586">藍46</option>
+<option value="10932">仁愛幹線(公車雙向轉乘優惠)</option>
+<option value="810">敦化幹線(公車雙向轉乘優惠)</option>
+<option value="10851">內湖幹線(公車雙向轉乘優惠)</option>
+<option value="10293">民生幹線(公車雙向轉乘優惠)</option>
+<option value="10332">松江新生幹線(公車雙向轉乘優惠)</option>
+<option value="15373">中山幹線(公車雙向轉乘優惠)</option>
+<option value="11812">和平幹線(公車雙向轉乘優惠)</option>
+<option value="11833">復興幹線(公車雙向轉乘優惠)</option>
+<option value="11881">重慶幹線(公車雙向轉乘優惠)</option>
+<option value="10417">忠孝幹線(公車雙向轉乘優惠)</option>
+<option value="11152">承德幹線(公車雙向轉乘優惠)</option>
+<option value="10231">民權幹線(公車雙向轉乘優惠)</option>
+<option value="10251">南京幹線(公車雙向轉乘優惠)</option>
+<option value="15708">信義幹線(公車雙向轉乘優惠)</option>
+<option value="10334">基隆路幹線(公車雙向轉乘優惠)</option>
+<option value="10711">羅斯福路幹線(公車雙向轉乘優惠)</option>
+<option value="16606">981</option>
+<option value="16688">983</option>
+<option value="17304">985萬大樹林先導公車</option>
+<option value="17668">982</option>
+<option value="17679">982區</option>
+<option value="17680">982直達</option>
+<option value="17687">982直達新埔線</option>
+<option value="16845">578</option>
+<option value="16847">579</option>
+<option value="16849">580</option>
+<option value="16851">581</option>
+<option value="18148">582經工業區</option>
+<option value="19048">582經洲子洋</option>
+<option value="16855">582</option>
+<option value="17513">583</option>
+<option value="17683">585</option>
+<option value="16997">586</option>
+<option value="17009">589</option>
+<option value="17015">677副</option>
+<option value="17017">591</option>
+<option value="18198">通勤11</option>
+<option value="18199">通勤12</option>
+<option value="18228">通勤13</option>
+<option value="18428">通勤16</option>
+<option value="18648">通勤22</option>
+<option value="18658">通勤21</option>
+<option value="18708">通勤24</option>
+<option value="18878">通勤25</option>
+<option value="19028">通勤26</option>
+<option value="19408">通勤27</option>
+<option value="19488">通勤28</option>
+<option value="19539">通勤29</option>
+<option value="19721">雙園巴士</option>
+<option value="19759">通勤30</option>
+<option value="17789">960</option>
+<option value="17802">854</option>
+<option value="17806">899</option>
+<option value="17941">湯泉-大坪林-湯泉</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運先導公車-></option>
+                    <option value="17958">藍海2線先導公車</option>
+<option value="17304">985萬大樹林先導公車</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇通勤公車-></option>
+                    <option value="17928">907通勤</option>
+<option value="17967">通勤7</option>
+<option value="18039">通勤9</option>
+<option value="18198">通勤11</option>
+<option value="18199">通勤12</option>
+<option value="18228">通勤13</option>
+<option value="18428">通勤16</option>
+<option value="18648">通勤22</option>
+<option value="18658">通勤21</option>
+<option value="18708">通勤24</option>
+<option value="18878">通勤25</option>
+<option value="19028">通勤26</option>
+<option value="19408">通勤27</option>
+<option value="19488">通勤28</option>
+<option value="19539">通勤29</option>
+<option value="19759">通勤30</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇內科專車-></option>
+                    <option value="10253">內科通勤專車22</option>
+<option value="15685">內科通勤專車2</option>
+<option value="15687">內科通勤專車3</option>
+<option value="15688">內科通勤專車5</option>
+<option value="15689">內科通勤專車6</option>
+<option value="15690">內科通勤專車7</option>
+<option value="15691">內科通勤專車8</option>
+<option value="15676">內科通勤專車10</option>
+<option value="15677">內科通勤專車11</option>
+<option value="15678">內科通勤專車12</option>
+<option value="15679">內科通勤專車13</option>
+<option value="15680">內科通勤專車15</option>
+<option value="15681">內科通勤專車16</option>
+<option value="15682">內科通勤專車17</option>
+<option value="15683">內科通勤專車18</option>
+<option value="15684">內科通勤專車19</option>
+<option value="15686">內科通勤專車20</option>
+<option value="18015">內科通勤專車21</option>
+<option value="15693">內科快線2</option>
+<option value="15702">內科快線1</option>
+<option value="19721">雙園巴士</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇南軟專車-></option>
+                    <option value="15694">南軟通勤專車中和線</option>
+<option value="15695">南軟通勤專車天母線</option>
+<option value="15696">南軟通勤專車北投線</option>
+<option value="15698">南軟通勤專車雙和線</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇市民小巴-></option>
+                    <option value="11217">市民小巴1</option>
+<option value="11146">市民小巴2</option>
+<option value="10791">市民小巴5</option>
+<option value="11854">市民小巴6</option>
+<option value="10883">市民小巴7</option>
+<option value="15573">市民小巴8</option>
+<option value="15711">市民小巴9</option>
+<option value="15734">市民小巴10</option>
+<option value="15731">市民小巴11</option>
+<option value="16164">市民小巴12</option>
+<option value="16649">市民小巴15</option>
+<option value="17908">市民小巴16</option>
+<option value="19448">市民小巴17</option>
+<option value="19618">市民小巴18</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇新巴士-></option>
+                    <option value="16752">F101坪頂</option>
+<option value="16760">F101樹興</option>
+<option value="16775">F102</option>
+<option value="16777">F103</option>
+<option value="16761">F105</option>
+<option value="16773">F105反</option>
+<option value="16764">F106</option>
+<option value="16774">F109</option>
+<option value="16792">F121</option>
+<option value="16793">F122</option>
+<option value="16794">F123-0640、0700</option>
+<option value="16795">F123-1205</option>
+<option value="16796">F123-1550</option>
+<option value="16800">F126</option>
+<option value="19658">F126經里中</option>
+<option value="16802">F126江厝</option>
+<option value="16786">F131</option>
+<option value="16787">F132</option>
+<option value="16782">F133平日</option>
+<option value="16784">F133末班</option>
+<option value="16785">F133假日</option>
+<option value="16778">F135</option>
+<option value="16788">F136</option>
+<option value="16789">F137</option>
+<option value="16781">F138內橫山</option>
+<option value="16780">F138新古庄</option>
+<option value="16790">F139行經台2線</option>
+<option value="17694">F139行經101線</option>
+<option value="16815">F151-0605</option>
+<option value="16816">F151-0620</option>
+<option value="16817">F151-0730</option>
+<option value="16818">F151-0930</option>
+<option value="16819">F151-1000</option>
+<option value="16804">F151-0800</option>
+<option value="16805">F151-1605</option>
+<option value="16806">F151-1625</option>
+<option value="16807">F151-0830、1655</option>
+<option value="16820">F151-1800</option>
+<option value="19258">F151-0655、1030</option>
+<option value="19259">F151-1730</option>
+<option value="16823">F152-0600</option>
+<option value="16824">F152-0620、0745</option>
+<option value="16825">F152-0635</option>
+<option value="16826">F152-0700</option>
+<option value="16827">F152-0810</option>
+<option value="16828">F152-0845</option>
+<option value="16829">F152-0925</option>
+<option value="16830">F152-1545</option>
+<option value="16831">F152-1655</option>
+<option value="16832">F152-1720</option>
+<option value="16834">F152-1800</option>
+<option value="19269">F152-0950</option>
+<option value="19270">F152-1630</option>
+<option value="19271">F152-1740</option>
+<option value="16808">F153-0620</option>
+<option value="16809">F153-0730、0945</option>
+<option value="16810">F153-0820</option>
+<option value="16811">F153-1030</option>
+<option value="16812">F153-1605</option>
+<option value="16814">F153-1730</option>
+<option value="16821">F161</option>
+<option value="16835">F201</option>
+<option value="16837">F202</option>
+<option value="17663">F205</option>
+<option value="17664">F206</option>
+<option value="17665">F207</option>
+<option value="16840">F211</option>
+<option value="16841">F212</option>
+<option value="16842">F212楓江</option>
+<option value="17559">F212副</option>
+<option value="16843">F213</option>
+<option value="16844">F213黎明</option>
+<option value="16838">F217</option>
+<option value="16839">F218</option>
+<option value="16861">F233</option>
+<option value="16863">F235</option>
+<option value="16865">F236</option>
+<option value="16867">F237</option>
+<option value="16869">F238</option>
+<option value="16871">F239</option>
+<option value="16873">F250</option>
+<option value="17631">F301</option>
+<option value="16876">F302</option>
+<option value="16877">F303</option>
+<option value="16878">F312</option>
+<option value="16887">F317</option>
+<option value="17990">F319</option>
+<option value="17991">F320</option>
+<option value="16890">F512</option>
+<option value="17914">F512副</option>
+<option value="16891">F513</option>
+<option value="16892">F521</option>
+<option value="16893">F522</option>
+<option value="16894">F523</option>
+<option value="16895">F525</option>
+<option value="16896">F526</option>
+<option value="16903">F611</option>
+<option value="16906">F623</option>
+<option value="16907">F625</option>
+<option value="16908">F626</option>
+<option value="18518">F626-0815</option>
+<option value="16909">F627</option>
+<option value="16910">F628</option>
+<option value="16912">F629</option>
+<option value="16914">F630</option>
+<option value="16922">F653A</option>
+<option value="16923">F653B</option>
+<option value="16919">F651</option>
+<option value="16920">F652</option>
+<option value="19640">幸福巴士F652延伸線</option>
+<option value="16924">F655</option>
+<option value="16926">F656</option>
+<option value="17714">F657</option>
+<option value="16929">F703前三班</option>
+<option value="17624">F703</option>
+<option value="16937">F711</option>
+<option value="16940">F712</option>
+<option value="16939">F713</option>
+<option value="16941">F721</option>
+<option value="16942">F722</option>
+<option value="16943">F723</option>
+<option value="17623">F723下石嘈</option>
+<option value="19598">F723上石嘈</option>
+<option value="18042">F724</option>
+<option value="16944">F801</option>
+<option value="16946">F802</option>
+<option value="16948">F803</option>
+<option value="16950">F805</option>
+<option value="16952">F806</option>
+<option value="16954">F807</option>
+<option value="16956">F808</option>
+<option value="16958">F811</option>
+<option value="16960">F815</option>
+<option value="17693">F815嶺頭觀目</option>
+<option value="17565">F812</option>
+<option value="17567">F813</option>
+<option value="18068">F816</option>
+<option value="16962">F821</option>
+<option value="16963">F822</option>
+<option value="16964">F823</option>
+<option value="17699">F823區</option>
+<option value="18108">F825</option>
+<option value="16969">F835</option>
+<option value="16970">F836</option>
+<option value="16971">F837</option>
+<option value="16972">貢寮區學生專車</option>
+<option value="16973">F838</option>
+<option value="16974">F839</option>
+<option value="18808">吉林線</option>
+<option value="18809">龍崗線</option>
+<option value="19348">福連線</option>
+<option value="19713">塗潭平日線</option>
+<option value="19714">塗潭假日線</option>
+<option value="16988">F901</option>
+<option value="16990">F902</option>
+<option value="16993">F903</option>
+<option value="16995">F905</option>
+<option value="16999">F907</option>
+<option value="17003">F919八連</option>
+<option value="19659">F909伯爵</option>
+<option value="17005">F910</option>
+<option value="17007">F911</option>
+<option value="17568">F913</option>
+<option value="17013">F915</option>
+<option value="17433">F920</option>
+<option value="16677">F921</option>
+<option value="16678">F921假日</option>
+<option value="16976">F922內崁</option>
+<option value="16975">F922烏塗炭</option>
+<option value="18052">F922北基</option>
+<option value="16676">F923</option>
+<option value="16679">F923假日</option>
+<option value="16980">F931-0600</option>
+<option value="16981">F931-0700</option>
+<option value="16982">F931-0800</option>
+<option value="16983">F931-0910</option>
+<option value="16984">F931-1030</option>
+<option value="16985">F931-1255</option>
+<option value="16986">F931-1630</option>
+<option value="16987">F931-1730</option>
+<option value="17391">F932-0600</option>
+<option value="17465">F932-0630</option>
+<option value="17392">F932-1630</option>
+<option value="17393">F932-0820</option>
+<option value="17394">F932-0950</option>
+<option value="17395">F932-1110</option>
+<option value="17733">F932-0715</option>
+<option value="16977">F933-0620學生專車</option>
+<option value="16978">F933-0800</option>
+<option value="16979">F933-0710</option>
+<option value="17836">F933-0635</option>
+<option value="17837">F933-0920</option>
+<option value="17839">F933-1030</option>
+<option value="17840">F933-1130</option>
+<option value="17841">F933-1330</option>
+<option value="17842">F933-1430</option>
+<option value="17843">F933-1530</option>
+<option value="17832">直潭里線</option>
+<option value="17809">F132經青山</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇特定路線專車-></option>
+                    <option value="17560">兒樂1號線</option>
+<option value="17561">兒樂2號線</option>
+<option value="11741">貓空右線</option>
+<option value="16140">貓空左線(指南宮)</option>
+<option value="16163">貓空左線(動物園)</option>
+<option value="16172">懷恩專車S31</option>
+<option value="17018">懷恩專車S32</option>
+<option value="16508">懷恩專車S33</option>
+<option value="19648">懷恩專車S34</option>
+<option value="19649">懷恩專車S35</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇觀光巴士-></option>
+                    <option value="17800">臺北觀光巴士紅線</option>
+<option value="17801">臺北觀光巴士藍線</option>
+<option value="19747">177瑞芳觀光公車</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇跳蛙專車-></option>
+                    <option value="17621">853跳蛙</option>
+<option value="17720">939跳蛙</option>
+<option value="17835">林口-板橋</option>
+<option value="19755">新莊-臺北車站</option>
+<option value="19721">雙園巴士</option>
+<option value="17846">鶯歌火車站-中正紀念堂</option>
+<option value="17847">鶯歌火車站-松山機場</option>
+<option value="18288">中和自立路-新店</option>
+<option value="17994">萬里-內湖科技園區</option>
+<option value="18248">捷運七張站-全球工業區</option>
+<option value="18209">林口-捷運忠孝敦化站</option>
+<option value="18208">林口-臺北車站(承德)</option>
+<option value="18168">蘆洲-中正高中</option>
+<option value="18078">湯泉-十四張-大坪林</option>
+<option value="18054">新店(綠中海)-捷運新店站</option>
+<option value="18028">蘆洲-內湖</option>
+<option value="17992">三重-內科</option>
+<option value="18017">湯泉-崇光中學</option>
+<option value="18014">泰山-內湖(直達)</option>
+<option value="17996">蘆洲-南港</option>
+<option value="17968">蘆洲中正路-士林中正路</option>
+<option value="18368">中和左岸社區-捷運頂溪站</option>
+<option value="18478">中和環河西路-永和仁愛路</option>
+<option value="18538">捷運頂溪站-捷運頂埔站</option>
+<option value="18568">林口(文化北路)-捷運圓山站</option>
+<option value="18778">土城-南天母廣場</option>
+<option value="18779">瑞芳-南港</option>
+<option value="18798">捷運中和站-政大附中</option>
+<option value="18888">政大附中-捷運景美站</option>
+<option value="19078">瑞芳(經東碇路)-松山車站</option>
+<option value="19148">捷運新店站-坪林</option>
+<option value="19238">北大社區-捷運頂埔站</option>
+<option value="19538">捷運忠孝復興站-三峽</option>
+<option value="19729">石碇高中-捷運忠孝復興站</option>
+<option value="19733">三峽-中和高中</option>
+<option value="19744">合宜住宅-捷運亞東醫院站</option>
+<option value="17911">瑞芳-內科(基客)</option>
+<option value="17671">林口-捷運圓山站</option>
+<option value="17689">三峽-捷運永寧站</option>
+<option value="17711">三峽-捷運台大醫院站</option>
+<option value="17811">林口-內湖科技園區</option>
+<option value="17812">新店-汐止</option>
+<option value="17813">泰山-內湖</option>
+<option value="17814">淡水-內湖科技園區</option>
+<option value="17815">淡水-國道1號-南港車站</option>
+<option value="17866">林口(文化三路)-捷運圓山站</option>
+<option value="17871">淡水新市鎮-板橋</option>
+<option value="17873">新店高中-三峽</option>
+<option value="17902">瑞芳-松山車站(北客)</option>
+<option value="17903">瑞芳-松山車站(基客)</option>
+<option value="17904">瑞芳-內科(北客)</option>
+<option value="17905">三峽-內科</option>
+<option value="17977">台北小城-大坪林</option>
+<option value="17915">汐止-台北101</option>
+<option value="17917">五股-內湖科技園區</option>
+<option value="17918">林口-臺北長庚醫院</option>
+<option value="17919">捷運景安站-三峽臺北大學</option>
+<option value="17922">捷運蘆洲站-內湖科技園區</option>
+<option value="17930">新店北新路-政大一街</option>
+<option value="17931">土城金城路-樹林大安路</option>
+<option value="17941">湯泉-大坪林-湯泉</option>
+<option value="17948">三峽-捷運府中站</option>
+<option value="17961">樹林後火車站-海洋公園</option>
+<option value="17962">三峽-臺北市信義區</option>
+<option value="17963">中和-新北板橋公車站</option>
+<option value="17970">林口-捷運府中站</option>
+<option value="17975">石門-捷運紅樹林站</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇快速公車-></option>
+                    <option value="10419">232快</option>
+<option value="15516">605快</option>
+<option value="15171">902</option>
+<option value="19718">902區</option>
+<option value="10763">903</option>
+<option value="15183">905</option>
+<option value="15184">905副</option>
+<option value="10329">906</option>
+<option value="10724">907</option>
+<option value="17928">907通勤</option>
+<option value="16585">908</option>
+<option value="10325">909</option>
+<option value="16462">910</option>
+<option value="15173">912</option>
+<option value="15717">913</option>
+<option value="10754">915</option>
+<option value="17519">916</option>
+<option value="16210">917</option>
+<option value="17532">918</option>
+<option value="16633">919</option>
+<option value="16603">920</option>
+<option value="18729">920副</option>
+<option value="18764">920A</option>
+<option value="16664">921</option>
+<option value="16224">922</option>
+<option value="16422">923</option>
+<option value="16604">925</option>
+<option value="18766">925A</option>
+<option value="17536">927</option>
+<option value="17545">927經台北港</option>
+<option value="17537">928</option>
+<option value="16423">930</option>
+<option value="16614">930延</option>
+<option value="16560">932</option>
+<option value="17717">932繞國家教育研究院</option>
+<option value="17534">933</option>
+<option value="16562">935</option>
+<option value="16583">936</option>
+<option value="18758">936A</option>
+<option value="16655">937</option>
+<option value="18728">937副</option>
+<option value="18762">937A</option>
+<option value="16672">938</option>
+<option value="16635">939</option>
+<option value="17942">939副</option>
+<option value="16662">948</option>
+<option value="16728">940</option>
+<option value="16726">941</option>
+<option value="16759">943</option>
+<option value="17292">945</option>
+<option value="17293">946</option>
+<option value="17294">946副</option>
+<option value="17570">947</option>
+<option value="17363">949</option>
+<option value="17390">950</option>
+<option value="17548">951</option>
+<option value="17576">952</option>
+<option value="17845">953區</option>
+<option value="17575">953</option>
+<option value="17709">955</option>
+<option value="17740">957</option>
+<option value="17916">963</option>
+<option value="17937">965(台灣好行-九份金瓜石線)</option>
+<option value="18118">966</option>
+<option value="18730">966副</option>
+<option value="18760">966A</option>
+<option value="18119">967</option>
+<option value="18731">967副</option>
+<option value="18128">967直</option>
+<option value="10734">景美-榮總(快)</option>
+<option value="17775">908延</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇夜間公車-></option>
+                    <option value="15664">39夜</option>
+<option value="16132">212夜</option>
+<option value="16131">265夜</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇活動專案專車-></option>
+                    <option value="19628">新九號停車場-九份老街</option>
+<option value="19629">新九號停車場-水湳洞停車場</option>
+<option value="19754">新九號停車場-黃金博物館</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select name="DGHRouteSelect" onchange="selectRoute(this.value);" style="width:100%">
+                    <option value="">選擇公路客運路線-></option>
+                    <option value="17758">1031 國家新城→汐止樟樹灣</option>
+<option value="17757">1031 汐止樟樹灣→國家新城</option>
+<option value="17144">1032 南港轉運站→基隆</option>
+<option value="17143">1032 基隆→南港轉運站</option>
+<option value="17148">1061 新北市瑞芳區→中山高速公路→臺北市[不經暖暖區公所]</option>
+<option value="17147">1061 臺北市→中山高速公路→新北市瑞芳區[不經暖暖區公所]</option>
+<option value="17146">1061A 新北市瑞芳區→中山高速公路→臺北市[經暖暖區公所]</option>
+<option value="17145">1061A 臺北市→中山高速公路→新北市瑞芳區[經暖暖區公所]</option>
+<option value="17149">1062 臺北市→中山高速公路→新北市瑞芳區→金瓜石</option>
+<option value="17150">1062 金瓜石→新北市瑞芳區→中山高速公路→臺北市</option>
+<option value="17697">1068 新北市金山區→國道3號→臺灣大學</option>
+<option value="17698">1068 臺灣大學→國道3號→新北市金山區</option>
+<option value="18173">1071 南港→國道5號→花蓮市</option>
+<option value="18174">1071 花蓮市→國道5號→南港</option>
+<option value="18289">1071A 南港→國道5號→花蓮市</option>
+<option value="17796">1088 基隆市(暖暖區)→國道1號→臺北市松山區</option>
+<option value="17797">1088 臺北市松山區→國道1號→基隆市(暖暖區)</option>
+<option value="17290">1191 中崙→台五線→基隆</option>
+<option value="17291">1191 基隆→台五線→中崙</option>
+<option value="17933">1356 南崁→國道1號→圓山轉運站[經桃園市蘆竹區中正路]</option>
+<option value="17934">1356 圓山轉運站→國道1號→南崁[經桃園市蘆竹區中正路]</option>
+<option value="17935">1356A 南崁→國道1號→圓山轉運站[經桃園市蘆竹區中山路]</option>
+<option value="17936">1356A 圓山轉運站→國道1號→南崁[經桃園市蘆竹區中山路]</option>
+<option value="17123">1550 基隆→臺北(單迴路線)</option>
+<option value="18229">1550A 基隆→臺北 [經建國北路、行天宮 ]</option>
+<option value="19049">1550B 基隆中山區→臺北 [經建國北路、行天宮]</option>
+<option value="19050">1550B 臺北→基隆中山區 [經建國北路、行天宮]</option>
+<option value="19109">1550C 基隆中山區→臺北 [經國道3號、建國北路]</option>
+<option value="19110">1550C 臺北→基隆中山區  [經國道3號、建國北路]</option>
+<option value="17124">1551 基隆→國道1號→新店</option>
+<option value="17125">1551 新店→國道1號→基隆</option>
+<option value="17859">1558 基隆→國道3號→木柵動物園</option>
+<option value="17861">1558A 基隆→國道3號→木柵動物園[經深坑]</option>
+<option value="17862">1558A 木柵動物園→國道3號→基隆[經深坑]</option>
+<option value="18230">1558C 基隆→國道3號→木柵動物園[經深坑、政大 ]</option>
+<option value="18231">1558C 木柵動物園→國道3號→基隆[經深坑、政大 ]</option>
+<option value="17112">1570 羅東鎮→國道5號高速公路→臺北市信義區</option>
+<option value="17111">1570 臺北市信義區→國道5號高速公路→羅東鎮</option>
+<option value="17110">1570A 臺北市信義區→國道5號高速公路→羅東鎮[假日路線]</option>
+<option value="17113">1571 宜蘭市→國道5號高速公路→臺北市信義區</option>
+<option value="17114">1571 臺北市信義區→國道5號高速公路→宜蘭市</option>
+<option value="17710">1571A 宜蘭市→國道5號高速公路→臺北市信義區[假日路線]</option>
+<option value="17115">1571A 臺北市信義區→國道5號高速公路→宜蘭市[假日路線]</option>
+<option value="17117">1572 羅東鎮→宜蘭市→礁溪鄉→國道5號高速公路→臺北市信義區</option>
+<option value="17118">1572 臺北市信義區→國道5號高速公路→礁溪鄉→宜蘭市→羅東鎮</option>
+<option value="17116">1572A 臺北市信義區→國道5號高速公路→礁溪鄉→宜蘭市→羅東鎮[假日路線]</option>
+<option value="17357">1572B 礁溪鄉→臺北市信義區</option>
+<option value="17358">1572B 臺北市信義區→礁溪鄉</option>
+<option value="17429">1572C 臺北市信義區→礁溪鄉[假日路線]</option>
+<option value="17120">1573 內湖科技園區→國道1號→基隆</option>
+<option value="17119">1573 基隆→國道1號→內湖科技園區</option>
+<option value="17551">1573A 內湖科技園區→國道1號→基隆[繞駛麗山高中]</option>
+<option value="17550">1573A 基隆→國道1號→內湖科技園區[繞駛麗山高中]</option>
+<option value="19758">1573B 內湖科技園區—國道一號—基隆[港西街下客站]</option>
+<option value="18010">1579 基隆市中正區→臺北市區</option>
+<option value="18011">1579 臺北市區→基隆市中正區</option>
+<option value="18012">1579A 基隆市中正區→臺北市區(經中正路)</option>
+<option value="18013">1579A 臺北市區→基隆市中正區(經中正路)</option>
+<option value="18479">1579B 基隆市中正區→松山高中(基隆路)</option>
+<option value="18480">1579B 市府轉運站→基隆市中正區</option>
+<option value="19561">1579C 基隆市中正區→捷運忠孝復興站(經中正路)</option>
+<option value="19562">1579C 懷生國中→基隆市中正區(經中正路)</option>
+<option value="18171">1580 板橋→國道5號→花蓮市</option>
+<option value="18172">1580 花蓮市→國道5號→板橋</option>
+<option value="17052">1610 臺北→高雄[經環北交流道]</option>
+<option value="17053">1610 高雄→臺北[經臺北交流道]</option>
+<option value="17050">1610A 臺北→高雄[經三重交流道]</option>
+<option value="17051">1610A 高雄→臺北[經三重交流道]</option>
+<option value="17401">1610B 臺北→高雄[經三重交流道，不停經國轉運站、岡山站]</option>
+<option value="17402">1610B 高雄→臺北[經三重交流道，不停岡山站、經國轉運站]</option>
+<option value="17403">1610C 臺北→高雄[經三重交流道，不停經國轉運站、中港轉運站、岡山站]</option>
+<option value="17404">1610C 高雄→臺北[經三重交流道，不停岡山站、中港轉運站、經國轉運站]</option>
+<option value="17657">1610D 臺北→高雄[經三重交流道，不停經國轉運站、中港轉運站、岡山站、楠梓站]</option>
+<option value="17658">1610D 高雄→臺北[經三重交流道，不停楠梓站、岡山站、中港轉運站、經國轉運站]</option>
+<option value="17989">1610E 高雄→臺北[經三重交流道，不停岡山站]</option>
+<option value="18889">1610F 臺北→高雄[經三重交流道，不停中港轉運站、岡山站]</option>
+<option value="19722">1610G 臺北→高雄[經三重交流道，不停經國轉運站、岡山站、楠梓站]</option>
+<option value="19723">1610G 高雄→臺北[經三重交流道，不停楠梓站、岡山站、經國轉運站]</option>
+<option value="17056">1611 臺北→臺南[經環北交流道]</option>
+<option value="17057">1611 臺南→臺北[經臺北交流道]</option>
+<option value="17054">1611A 臺北→臺南[經三重交流道]</option>
+<option value="17055">1611A 臺南→臺北[經三重交流道]</option>
+<option value="17370">1611C 臺北→臺南[經三重交流道、不停經國轉運站、中港轉運站、新營站]</option>
+<option value="17371">1611C 臺南→臺北[經三重交流道、不停新營站、中港轉運站、經國轉運站]</option>
+<option value="17659">1611D 臺北→臺南[經三重交流道、不停經國轉運站、中港轉運站]</option>
+<option value="18891">1611D 臺南→臺北[經三重交流道，不停中港轉運站、經國轉運站]</option>
+<option value="17885">1611E 臺南→臺北[經三重交流道、不停新營站、經國轉運站]</option>
+<option value="18890">1611F 臺北→臺南[經三重交流道，不停中港轉運站]</option>
+<option value="18939">1611F 臺南→臺北[經三重交流道，不停中港轉運站]</option>
+<option value="17058">1612 臺北→國道3號→臺南[經安坑交流道]</option>
+<option value="17059">1612 臺南→國道3號→臺北[經安坑交流道]</option>
+<option value="17060">1612A 臺北→國道3號→臺南[經萬芳交流道]</option>
+<option value="17061">1612A 臺南→國道3號→臺北[經萬芳交流道]</option>
+<option value="17405">1612B 臺北→國道3號→臺南[經安坑交流道，不停三峽站、嘉義交流道]</option>
+<option value="17406">1612C 臺北→國道3號→臺南[經安坑交流道，景美至臺南班次、不停嘉義交流道]</option>
+<option value="17863">1612D 臺北→國道3號→臺南[經安坑交流道，不停嘉義交流道]</option>
+<option value="17864">1612D 臺南→國道3號→臺北[經安坑交流道，不停嘉義交流道]</option>
+<option value="17062">1613 台北→屏東[經環北交流道]</option>
+<option value="17063">1613 屏東→台北[經臺北交流道]</option>
+<option value="17064">1613A 台北→屏東[經三重交流道]</option>
+<option value="17065">1613A 屏東→台北[經三重交流道]</option>
+<option value="17407">1613B 台北→屏東[經三重交流道，不停仁德]</option>
+<option value="17408">1613B 屏東→台北[經三重交流道，不停仁德]</option>
+<option value="17066">1615 台北→彰化</option>
+<option value="17067">1615 彰化→台北</option>
+<option value="17410">1615A 台北→彰化[不停朝馬站]</option>
+<option value="17411">1615A 彰化→台北[不停朝馬站]</option>
+<option value="17070">1616 台北→員林[經蓮花池]</option>
+<option value="17071">1616 員林→台北[經蓮花池]</option>
+<option value="17068">1616B 台北→員林[經台76線]</option>
+<option value="17069">1616B 員林→台北[經台76線]</option>
+<option value="17372">1616C 台北→員林[經台76線、不停中港轉運站]</option>
+<option value="17373">1616C 員林→台北[經台76線、不停中港轉運站]</option>
+<option value="17072">1617 台北→豐原→東勢</option>
+<option value="17073">1617 東勢→豐原→台北</option>
+<option value="17412">1617A 台北→豐原→東勢[不停林口站、麗寶樂園(月眉)站]</option>
+<option value="17413">1617A 東勢→豐原→台北[不停麗寶樂園(月眉)站、林口站]</option>
+<option value="17414">1617B 台北→豐原→東勢[臺北至豐原班次，不停林口站、麗寶樂園(月眉)站]</option>
+<option value="17415">1617B 東勢→豐原→台北[豐原至臺北班次，不停麗寶樂園(月眉)站、林口站]</option>
+<option value="17883">1617C 台北→豐原→東勢[不停麗寶樂園(月眉)站]</option>
+<option value="17884">1617C 東勢→豐原→台北[不停麗寶樂園(月眉)站]</option>
+<option value="17075">1618 台北→嘉義</option>
+<option value="17074">1618 嘉義→台北</option>
+<option value="17374">1618A 台北→嘉義[不停林口、中港轉運站]</option>
+<option value="17375">1618A 嘉義→台北[不停中港轉運站、林口、重陽站]</option>
+<option value="17741">1618B 台北→嘉義[直達車，不停林口、中港轉運站、大林站]</option>
+<option value="17742">1618C 嘉義→台北[不停大林站]</option>
+<option value="17979">1618D 台北→嘉義[不停林口站]</option>
+<option value="17980">1618E 嘉義→台北[直達車，不停大林站、中港轉運站、林口、重陽站]</option>
+<option value="18893">1618F 台北→嘉義(不停中港轉運站)</option>
+<option value="18894">1618F 嘉義→台北(不停中港轉運站)</option>
+<option value="17077">1619 臺中→臺灣大道→臺北</option>
+<option value="17076">1619 臺北→臺灣大道→臺中</option>
+<option value="17377">1619A 臺中→臺灣大道→臺北[朝馬至臺北班次、不停科技生活館]</option>
+<option value="17376">1619A 臺北→臺灣大道→臺中[臺北至朝馬班次、不停科技生活館]</option>
+<option value="17417">1619B 臺中→臺灣大道→臺北[不停科技生活館]</option>
+<option value="17416">1619B 臺北→臺灣大道→臺中[不停科技生活館]</option>
+<option value="17079">1620 台中→中清路→台北</option>
+<option value="17078">1620 台北→中清路→台中</option>
+<option value="17419">1620A 台中→中清路→台北[不停陽明交大光復路]</option>
+<option value="17418">1620A 台北→中清路→台中[不停陽明交大光復路]</option>
+<option value="17421">1620B 台中→中清路→台北[不停林口站、陽明交大光復路]</option>
+<option value="17420">1620B 台北→中清路→台中[不停林口站、陽明交大光復路]</option>
+<option value="17082">1628 台北→麻豆、佳里→漚汪</option>
+<option value="17083">1628 漚汪→佳里、麻豆→台北</option>
+<option value="17743">1628A 台北→麻豆、佳里→漚汪[不停中壢祐民醫院]</option>
+<option value="17744">1628A 漚汪→佳里、麻豆→台北[不停中壢祐民醫院]</option>
+<option value="18210">1628B 台北→麻豆、佳里→漚汪[延駛苓子寮、學甲]</option>
+<option value="18211">1628B 漚汪→佳里、麻豆→台北[延駛苓子寮、學甲]</option>
+<option value="17086">1630 臺北→西港</option>
+<option value="17087">1630 西港→臺北</option>
+<option value="17378">1630A 臺北→西港[不停中港轉運站]</option>
+<option value="17379">1630A 西港→臺北[不停中港轉運站]</option>
+<option value="18109">1630C 臺北→西港[經竹塘]</option>
+<option value="18120">1630C 西港→臺北[經竹塘]</option>
+<option value="17090">1632 台北→草屯→竹山</option>
+<option value="17091">1632 竹山→草屯→台北</option>
+<option value="17092">1633 台北→北港→四湖鄉[經尖山]</option>
+<option value="17093">1633 四湖鄉→北港→台北[經尖山]</option>
+<option value="17094">1633A 台北→北港→四湖鄉[經宜梧村]</option>
+<option value="17095">1633A 四湖鄉→北港→台北[經宜梧村]</option>
+<option value="17382">1633B 台北→北港→四湖鄉[台北至北港班次]</option>
+<option value="17383">1633B 四湖鄉→北港→台北[北港至台北班次]</option>
+<option value="17384">1633C 台北→北港→四湖鄉[台北至北港班次，不停中港轉運站]</option>
+<option value="17385">1633C 四湖鄉→北港→台北[北港至台北班次，不停中港轉運站]</option>
+<option value="17096">1635 台北→虎尾→四湖鄉</option>
+<option value="17097">1635 四湖鄉→虎尾→台北</option>
+<option value="17386">1635A 台北→虎尾→四湖鄉[不停中港轉運站]</option>
+<option value="17387">1635A 四湖鄉→虎尾→台北[不停中港轉運站]</option>
+<option value="17098">1636 台北→西螺→四湖鄉</option>
+<option value="17099">1636 四湖鄉→西螺→台北</option>
+<option value="19752">1636B 台北→西螺→四湖鄉[臺北至四湖站班次]</option>
+<option value="19750">1636B 四湖鄉→西螺→台北[臺北至四湖站班次]</option>
+<option value="19753">1636C 四湖鄉→西螺→臺北(經橋頭)</option>
+<option value="19751">1636C 臺北→西螺→四湖鄉(經橋頭)</option>
+<option value="17100">1637 台北→西螺→林厝寮→四湖鄉</option>
+<option value="17101">1637 四湖鄉→林厝寮→西螺→台北</option>
+<option value="17102">1638 台北→朴子→東石</option>
+<option value="17103">1638 東石→朴子→台北</option>
+<option value="18135">1638A 嘉義交流道→朴子→東石 [於嘉義交流道轉乘【1618】往返臺北，不單獨售票]</option>
+<option value="18136">1638A 東石→朴子→嘉義交流道 [於嘉義交流道轉乘【1618】往返臺北，不單獨售票]</option>
+<option value="17104">1639 台北→布袋</option>
+<option value="17105">1639 布袋→台北</option>
+<option value="18137">1639A 嘉義交流道→布袋 [於嘉義交流道轉乘【1618】往返臺北，不單獨售票]</option>
+<option value="18138">1639A 布袋→嘉義交流道 [於嘉義交流道轉乘【1618】往返臺北，不單獨售票]</option>
+<option value="17106">1652 臺北→彰化→鹿港→芳苑</option>
+<option value="17107">1652 芳苑→鹿港→彰化→臺北</option>
+<option value="17108">1652A 臺北→彰化→鹿港→芳苑[台北至鹿港班次]</option>
+<option value="17109">1652A 芳苑→鹿港→彰化→臺北[鹿港至臺北班次]</option>
+<option value="17660">1652B 臺北→彰化→鹿港→芳苑[臺北至鹿港班次、不停中港轉運站]</option>
+<option value="17661">1652B 芳苑→鹿港→彰化→臺北[鹿港至臺北班次、不停中港轉運站]</option>
+<option value="17981">1662 桃園市桃園區→臺北市松山區(松山機場)</option>
+<option value="17982">1662 臺北市松山區(松山機場)→桃園市桃園區</option>
+<option value="18169">1663 南港→國道5號→花蓮市</option>
+<option value="18170">1663 花蓮市→國道5號→南港</option>
+<option value="19599">1663A 南港→國道5號→花蓮市</option>
+<option value="19091">1665 宜蘭市→新北市新店區[全程車]</option>
+<option value="19089">1665 新北市新店區→宜蘭市[全程車]</option>
+<option value="19092">1665A 宜蘭市→新北市新店區[直達車]</option>
+<option value="19090">1665A 新北市新店區→宜蘭市[直達車]</option>
+<option value="17154">1728 新竹市→國道3號、1號→臺北市</option>
+<option value="17153">1728 臺北市→國道3號、1號→新竹市</option>
+<option value="17156">1800 中崙→基隆</option>
+<option value="17155">1800 基隆→中崙</option>
+<option value="17490">1800A 中崙→基隆[市府轉運站至基隆]</option>
+<option value="17491">1800A 基隆→中崙[基隆至聯合報]</option>
+<option value="17157">1801 基隆→石牌→臺北護理健康大學</option>
+<option value="17158">1801 臺北護理健康大學→石牌→基隆</option>
+<option value="17492">1801A 基隆→石牌→臺北護理健康大學[基隆至德明財經科技大學]</option>
+<option value="17493">1801A 臺北護理健康大學→石牌→基隆[德明財經科技大學至基隆]</option>
+<option value="17159">1802 三重→基隆</option>
+<option value="17160">1802 基隆→三重</option>
+<option value="17164">1803 中壢→基隆</option>
+<option value="17163">1803 基隆→中壢</option>
+<option value="17165">1813 基隆→臺北</option>
+<option value="17173">1813 臺北→基隆</option>
+<option value="17166">1813A 基隆→臺北[百福社區]</option>
+<option value="17167">1813B 基隆→臺北[東信路]</option>
+<option value="17168">1813C 基隆→臺北[八斗子]</option>
+<option value="17169">1813D 基隆[經中山區]→臺北</option>
+<option value="18892">1813D 臺北→基隆[經中山區]</option>
+<option value="17170">1813E 基隆→臺北[大武崙]</option>
+<option value="19363">1813E 臺北→基隆[大武崙]</option>
+<option value="17171">1813F 基隆→臺北[暖暖]</option>
+<option value="17172">1813G 基隆→臺北[新豐里]</option>
+<option value="17174">1813H 基隆→臺北[國家新城]</option>
+<option value="19600">1813I 臺北→基隆</option>
+<option value="19540">1813J 基隆→臺北[東信路][經南京東路]</option>
+<option value="19541">1813K 基隆→臺北[新豐里][經南京東路]</option>
+<option value="17175">1814 基隆→安樂社區→臺北</option>
+<option value="17176">1815 臺北→金山青年活動中心</option>
+<option value="17177">1815 金山青年活動中心→臺北</option>
+<option value="17178">1815A 臺北→金山青年活動中心[法鼓山]</option>
+<option value="17179">1815A 金山青年活動中心→臺北[法鼓山]</option>
+<option value="17180">1815B 臺北→金山青年活動中心[經南京東路]</option>
+<option value="17181">1815B 金山青年活動中心→臺北[經南京東路]</option>
+<option value="19738">1815C 臺北→金山青年活動中心[經基金交流道]</option>
+<option value="17182">1815C 金山青年活動中心→臺北[經基金交流道]</option>
+<option value="17494">1815D 臺北→金山青年活動中心[臺北至萬里]</option>
+<option value="17495">1815D 金山青年活動中心→臺北[萬里至臺北]</option>
+<option value="18895">1815E 臺北→金山青年活動中心[法鼓文理學院]</option>
+<option value="18896">1815E 金山青年活動中心→臺北[法鼓文理學院]</option>
+<option value="19364">1815F 國家新城→臺北[經南京東路]</option>
+<option value="17185">1816 桃園→臺北</option>
+<option value="17184">1816 臺北→桃園</option>
+<option value="17187">1816A 桃園→臺北[經國路]</option>
+<option value="17186">1816A 臺北→桃園[經國路]</option>
+<option value="17183">1816B 桃園→臺北[大有路]</option>
+<option value="19542">1816B 臺北→桃園[大有路]</option>
+<option value="17191">1818 中壢→臺北</option>
+<option value="17190">1818 臺北→中壢</option>
+<option value="17705">1818A 中壢→臺北[繞駛中原大學站]</option>
+<option value="17704">1818A 臺北→中壢[繞駛中原大學站]</option>
+<option value="17192">1819 臺北→臺灣桃園國際機場</option>
+<option value="17193">1819 臺灣桃園國際機場→臺北</option>
+<option value="19724">1819B 臺北→南崁→臺灣桃園國際機場</option>
+<option value="19725">1819B 臺灣桃園國際機場→南崁→臺北</option>
+<option value="17195">1820 竹東→臺北</option>
+<option value="17194">1820 臺北→竹東</option>
+<option value="17197">1820A 竹東→臺北[繞駛關西市區]</option>
+<option value="17196">1820A 臺北→竹東[繞駛關西市區]</option>
+<option value="17881">1820B 竹東→臺北[繞駛中華科大]</option>
+<option value="17880">1820B 臺北→竹東[繞駛中華科大]</option>
+<option value="17199">1821 竹東→員樹林→臺北</option>
+<option value="17198">1821 臺北→員樹林→竹東</option>
+<option value="16368">1822 新竹→臺北</option>
+<option value="16367">1822 臺北→新竹</option>
+<option value="16370">1822A 新竹→臺北[經中華大學]</option>
+<option value="16369">1822A 臺北→新竹[經中華大學]</option>
+<option value="17201">1823 竹南→臺北</option>
+<option value="17200">1823 臺北→竹南</option>
+<option value="17203">1823A 竹南→臺北[繞駛林口長庚醫院]</option>
+<option value="17202">1823A 臺北→竹南[繞駛林口長庚醫院]</option>
+<option value="17204">1824 臺北→苗栗</option>
+<option value="17205">1824 苗栗→臺北</option>
+<option value="17206">1824A 臺北→苗栗[經林口長庚醫院]</option>
+<option value="17207">1824A 苗栗→臺北[經林口長庚醫院]</option>
+<option value="17211">1826 臺中→中清路→臺北</option>
+<option value="17210">1826 臺北→中清路→臺中</option>
+<option value="17213">1827 臺中→臺灣大道→臺北</option>
+<option value="17212">1827 臺北→臺灣大道→臺中</option>
+<option value="17504">1827A 臺中→臺灣大道→臺北[朝馬至台北]</option>
+<option value="17215">1828 彰化→臺北</option>
+<option value="17214">1828 臺北→彰化</option>
+<option value="17217">1829 員林→臺北</option>
+<option value="17216">1829 臺北→員林</option>
+<option value="17219">1830 北斗→臺北</option>
+<option value="17218">1830 臺北→北斗</option>
+<option value="17221">1831 南投→臺北</option>
+<option value="17220">1831 臺北→南投</option>
+<option value="17986">1831A 南投→臺北[經霧峰]</option>
+<option value="17985">1831A 臺北→南投[經霧峰]</option>
+<option value="17223">1832 埔里→臺北</option>
+<option value="17222">1832 臺北→埔里</option>
+<option value="17225">1832A 埔里→國道1號→臺北[經國道6號]</option>
+<option value="17224">1832A 臺北→國道1號→埔里[經國道6號]</option>
+<option value="17875">1832B 普台高中→國道1號→臺北[經國道6號]</option>
+<option value="17874">1832B 臺北→國道1號→普台高中[經國道6號]</option>
+<option value="18982">1832C 埔里→國道1號→臺北[經台63線]</option>
+<option value="18983">1832D 普台高中→國道1號→臺北[經台63線]</option>
+<option value="19731">1832E 暨南大學→國道1號→臺北[經國道6號]</option>
+<option value="19730">1832E 臺北→國道1號→暨南大學[經國道6號]</option>
+<option value="17227">1833 日月潭→臺北</option>
+<option value="17226">1833 臺北→日月潭</option>
+<option value="18984">1833A 日月潭→臺北[經台63線]</option>
+<option value="17229">1834 嘉義→臺北</option>
+<option value="17228">1834 臺北→嘉義</option>
+<option value="17230">1835 臺北→阿里山</option>
+<option value="17231">1835 阿里山→臺北</option>
+<option value="17233">1836 新營→臺北</option>
+<option value="17232">1836 臺北→新營</option>
+<option value="17234">1837 臺北→臺南</option>
+<option value="17235">1837 臺南→臺北</option>
+<option value="18349">1837A 臺北→臺南[不經林口站]</option>
+<option value="18350">1837A 臺南→臺北[不經林口站]</option>
+<option value="17236">1838 臺北→高雄(林口交流道)</option>
+<option value="17237">1838 高雄→臺北(林口交流道)</option>
+<option value="17238">1838A 臺北→高雄[西螺交流道]</option>
+<option value="17239">1838A 高雄→臺北[西螺交流道]</option>
+<option value="18841">1838B 臺北→高雄(不經林口站)</option>
+<option value="18842">1838B 高雄→臺北(不經林口站)</option>
+<option value="17243">1839 屏東→臺北</option>
+<option value="17242">1839 臺北→屏東</option>
+<option value="17241">1839A 屏東→臺北[經西螺]</option>
+<option value="17240">1839A 臺北→屏東[經西螺]</option>
+<option value="17244">1840 松山機場→臺灣桃園國際機場</option>
+<option value="17245">1840 臺灣桃園國際機場→松山機場</option>
+<option value="17246">1841 松山機場→南崁→臺灣桃園國際機場</option>
+<option value="17247">1841 臺灣桃園國際機場→南崁→松山機場</option>
+<option value="17248">1841A 松山機場→南崁→臺灣桃園國際機場[桃園航空貨運園區]</option>
+<option value="17249">1841A 臺灣桃園國際機場→南崁→松山機場[桃園航空貨運園區]</option>
+<option value="19630">1841B 臺灣桃園國際機場→南崁→松山機場[臺茂至松山機場]</option>
+<option value="17250">1842 大園→松山機場</option>
+<option value="17252">1842 松山機場→大園</option>
+<option value="17251">1842A 大園→松山機場[經林口長庚醫院]</option>
+<option value="17253">1842A 松山機場→大園[經林口長庚醫院]</option>
+<option value="17254">1843 南港轉運站→桃園國際機場</option>
+<option value="17255">1843 桃園國際機場→南港轉運站</option>
+<option value="17912">1851 板橋→臺中</option>
+<option value="17913">1851 臺中→板橋</option>
+<option value="17256">1877 圓山轉運站→臺北交流道→國道1號→南港轉運站→南港交流道→國道3號→國道5號→頭城交流道→宜蘭縣頭城鎮</option>
+<option value="17257">1877 宜蘭縣頭城鎮→頭城交流道→國道5號→國道3號→南港交流道→南港轉運站→國道1號→臺北交流道→圓山轉運站</option>
+<option value="18739">1877B 圓山轉運站→臺北交流道→國道1號→南港轉運站→南港交流道→國道3號→國道5號→頭城交流道→宜蘭縣頭城鎮[假日動線]</option>
+<option value="19365">1877B 宜蘭縣頭城鎮→頭城交流道→國道5號→國道3號→南港交流道→南港轉運站→國道1號→臺北交流道→圓山轉運站[假日動線]</option>
+<option value="17258">1878 圓山轉運站→臺北交流道→國道1號→南港轉運站→南港交流道→國道3號→國道5號→宜蘭交流道→宜蘭縣宜蘭市</option>
+<option value="17259">1878 宜蘭縣宜蘭市→宜蘭交流道→國道5號→國道3號→南港交流道→南港轉運站→國道1號→臺北交流道→圓山轉運站</option>
+<option value="18740">1878A 圓山轉運站→臺北交流道→國道1號→南港轉運站→南港交流道→國道3號→國道5號→宜蘭交流道→宜蘭縣宜蘭市[假日動線]</option>
+<option value="19366">1878A 宜蘭縣宜蘭市→宜蘭交流道→國道5號→國道3號→南港交流道→南港轉運站→國道1號→臺北交流道→圓山轉運站[假日動線]</option>
+<option value="18999">1878B 南港轉運站→南港交流道→國道3號→國道5號→宜蘭交流道→宜蘭縣宜蘭市</option>
+<option value="19000">1878B 宜蘭縣宜蘭市→宜蘭交流道→國道5號→國道3號→南港交流道→南港轉運站</option>
+<option value="19001">1878C 南港轉運站→南港交流道→國道3號→國道5號→宜蘭交流道→宜蘭縣宜蘭市[假日動線]</option>
+<option value="19367">1878C 宜蘭縣宜蘭市→宜蘭交流道→國道5號→國道3號→南港交流道→南港轉運站[假日動線]</option>
+<option value="17260">1879 圓山轉運站→臺北交流道→國道1號→南港轉運站→南港交流道→國道3號→國道5號→羅東交流道→宜蘭縣羅東鎮→台9線→宜蘭縣蘇澳鎮</option>
+<option value="17261">1879 宜蘭縣蘇澳鎮→台9線→宜蘭縣羅東鎮→羅東交流道→國道5號→國道3號→南港交流道→南港轉運站→國道1號→臺北交流道→圓山轉運站</option>
+<option value="17676">1879A 圓山轉運站→臺北交流道→國道1號→南港轉運站→南港交流道→國道3號→國道5號→羅東交流道→宜蘭縣羅東鎮</option>
+<option value="17677">1879A 宜蘭縣羅東鎮→羅東交流道→國道5號→國道3號→南港交流道→南港轉運站→國道1號→臺北交流道→圓山轉運站</option>
+<option value="18741">1879C 圓山轉運站→臺北交流道→國道1號→南港轉運站→南港交流道→國道3號→國道5號→羅東交流道→宜蘭縣羅東鎮→台9線→宜蘭縣蘇澳鎮[假日動線]</option>
+<option value="19368">1879C 宜蘭縣蘇澳鎮→台9線→宜蘭縣羅東鎮→羅東交流道→國道5號→國道3號→南港交流道→南港轉運站→國道1號→臺北交流道→圓山轉運站[假日動線]</option>
+<option value="18742">1879D 圓山轉運站→臺北交流道→國道1號→南港轉運站→南港交流道→國道3號→國道5號→羅東交流道→宜蘭縣羅東鎮[假日動線]</option>
+<option value="19369">1879D 宜蘭縣羅東鎮→羅東交流道→國道5號→國道3號→南港交流道→南港轉運站→國道1號→臺北交流道→圓山轉運站[假日動線]</option>
+<option value="19757">1880 基隆火車站→國道1號基隆端→國道3號→國道5號→頭城交流道→宜蘭</option>
+<option value="19756">1880 宜蘭→頭城交流道→國道5號→國道3號→國道1號基隆端→基隆火車站</option>
+<option value="17319">1915 板橋客運站→國道3號→國道5號→礁溪→宜蘭→羅東</option>
+<option value="17318">1915 羅東→宜蘭→礁溪→國道5號→國道3號→板橋客運站</option>
+<option value="17317">1915A 板橋→羅東全程車[經環東大道]</option>
+<option value="17316">1915A 羅東→板橋全程車[經環東大道]</option>
+<option value="17365">1915B 板橋→礁溪全程車</option>
+<option value="17364">1915B 礁溪→板橋全程車</option>
+<option value="17627">1915C 板橋→羅東全程車[經石碇深坑]</option>
+<option value="17626">1915C 羅東→板橋全程車[經石碇深坑]</option>
+<option value="17778">1915D 板橋客運站→國道3號→國道5號→礁溪[連續假期疏運路線]</option>
+<option value="17777">1915D 礁溪→國道5號→國道3號→板橋客運站[連續假期疏運路線]</option>
+<option value="17320">1916 宜蘭→國道5號→國道3號→板橋客運站</option>
+<option value="17321">1916 板橋客運站→國道3號→國道5號→宜蘭</option>
+<option value="18329">1916A 宜蘭→國道5號→國道3號→臺北轉運站</option>
+<option value="18330">1916A 臺北轉運站→國道3號→國道5號→宜蘭</option>
+<option value="17323">1917 板橋客運站→國道3號→國道5號→羅東</option>
+<option value="17322">1917 羅東→國道5號→國道3號→板橋客運站</option>
+<option value="17325">1917A 板橋客運站→國道3號→國道5號→羅東[行經環東大道]</option>
+<option value="17324">1917A 羅東→國道5號→國道3號→板橋客運站[行經環東大道]</option>
+<option value="18331">1917B 羅東→國道5號→國道3號→臺北轉運站</option>
+<option value="18332">1917B 臺北轉運站→國道3號→國道5號→羅東</option>
+<option value="17270">1960 臺北市→臺灣桃園國際機場</option>
+<option value="17271">1960 臺灣桃園國際機場→臺北市</option>
+<option value="17273">1961 大園區→臺北市</option>
+<option value="17272">1961 臺北市→大園區</option>
+<option value="17275">1961A 大園區→臺北市[通勤線經南崁]</option>
+<option value="17274">1961A 臺北市→大園區[通勤線經南崁]</option>
+<option value="17764">1962 板橋→臺灣桃園國際機場</option>
+<option value="17763">1962 臺灣桃園國際機場→板橋</option>
+<option value="17765">1968 新店→中和→三峽→臺灣桃園國際機場</option>
+<option value="17766">1968 臺灣桃園國際機場→三峽→中和→新店</option>
+<option value="17767">1968A 新店→中和→三峽→臺灣桃園國際機場[不下三鶯交流道]</option>
+<option value="17768">1968A 臺灣桃園國際機場→三峽→中和→新店[不下三鶯交流道]</option>
+<option value="17276">2000 桃園龜山→臺北長庚醫院</option>
+<option value="17277">2000 臺北長庚醫院→桃園龜山</option>
+<option value="17263">2011 新竹轉運站→臺北市</option>
+<option value="17262">2011 臺北市→新竹轉運站</option>
+<option value="17428">2011B 新竹香山牧場→臺北市[經茄苳交流道]</option>
+<option value="19601">2011C 新竹香山牧場→臺北市[經茄苳交流道]</option>
+<option value="19309">2011C 臺北市→新竹香山牧場[經茄苳交流道]</option>
+<option value="17267">2022 中壢區→臺北市</option>
+<option value="17266">2022 臺北市→中壢區</option>
+<option value="17818">2088 基隆市(中正區、信義區)→國道1號→臺北市信義區</option>
+<option value="17819">2088 臺北市信義區→國道1號→基隆市(中正區、信義區)</option>
+<option value="17820">2088A 基隆市(中正區、信義區)→國道1號→臺北市信義區[延駛八斗子站]</option>
+<option value="17821">2088A 臺北市信義區→國道1號→基隆市(中正區、信義區)[延駛八斗子站]</option>
+<option value="19559">2088B 基隆市(中正區、信義區)→國道1號→臺北市信義區[經基隆市深澳坑路]</option>
+<option value="19560">2088B 臺北市信義區→國道1號→基隆市(中正區、信義區)[經基隆市深澳坑路]</option>
+<option value="19745">2088C 基隆市(中正區、信義區)→國道1號→臺北市信義區[台62線]</option>
+<option value="16309">5116 桃園→臺北長庚醫院</option>
+<option value="16310">5116 臺北長庚醫院→桃園</option>
+<option value="17362">5203A 桃園市蘆竹區六福路口→臺北市</option>
+<option value="17361">5203A 臺北市→桃園市蘆竹區六福路口</option>
+<option value="17287">5250 桃園市大園區→南崁→國道1號→臺北市</option>
+<option value="17286">5250 臺北市→國道1號→南崁→桃園市大園區</option>
+<option value="17289">5250A 桃園市大園區→南崁→國道1號→臺北市[經奉化路、南福街]</option>
+<option value="17288">5250A 臺北市→國道1號→南崁→桃園市大園區[經奉化路、南福街]</option>
+<option value="17399">5250B 南竹中正北路口→南崁→國道1號→臺北市[經奉化路、南福街]</option>
+<option value="17398">5250B 臺北市→國道1號→南崁→南竹中正北路口[經奉化路、南福街]</option>
+<option value="19740">5250C 南竹中正北路口→經國轉運站→國道1號→臺北市[經奉化路、南福街]</option>
+<option value="19739">5250C 臺北市→國道1號→經國轉運站→南竹中正北路口[經奉化路、南福街]</option>
+<option value="16330">5350 六福村→小人國→臺北市</option>
+<option value="16329">5350 臺北市→小人國→六福村</option>
+<option value="16389">6606 臺北→豐原</option>
+<option value="16388">6606 豐原→臺北</option>
+<option value="18290">7000D 斗六→臺北</option>
+<option value="18291">7000D 臺北→斗六</option>
+<option value="17037">7005 民雄鄉→國道1號高速公路→臺北市</option>
+<option value="17036">7005 臺北市→國道1號高速公路→民雄鄉</option>
+<option value="18005">7005B 民雄→西螺(併班轉乘臺北)</option>
+<option value="18006">7005B 西螺→民雄(併班轉乘民雄)</option>
+<option value="17315">7500 臺北市→國道1號→臺南市(經三重交流道)</option>
+<option value="17314">7500 臺南市→國道1號→臺北市(經三重交流道)</option>
+<option value="17440">7500D 台北→新竹→新營→台南</option>
+<option value="17439">7500D 台南→新營→新竹→台北</option>
+<option value="17442">7500E 台北→桃園→新營→台南</option>
+<option value="17441">7500E 台南→新營→桃園→台北</option>
+<option value="17444">7500F 台北→新竹→麻豆→台南</option>
+<option value="17443">7500F 台南→麻豆→新竹→台北</option>
+<option value="17446">7500G 台北→桃園→麻豆→台南</option>
+<option value="17445">7500G 台南→麻豆→桃園→台北</option>
+<option value="17456">7500L 台北→麻豆→台南</option>
+<option value="17455">7500L 台南→麻豆→台北</option>
+<option value="17458">7500M 台北→新營→台南</option>
+<option value="17457">7500M 台南→新營→台北</option>
+<option value="17460">7500N 台北→桃園→新營→麻豆→台南</option>
+<option value="17459">7500N 台南→麻豆→新營→桃園→台北</option>
+<option value="17462">7500O 台北→新竹→新營→麻豆→台南</option>
+<option value="17461">7500O 台南→麻豆→新營→新竹→台北</option>
+<option value="17640">7500Q 台北→台南</option>
+<option value="17632">7500Q 台南→台北</option>
+<option value="17641">7500R 台北→台中→台南</option>
+<option value="17633">7500R 台南→台中→台北</option>
+<option value="17642">7500S 台北→桃園→台南</option>
+<option value="17634">7500S 台南→桃園→台北</option>
+<option value="17643">7500T 台北→新竹→台南</option>
+<option value="17635">7500T 台南→新竹→台北</option>
+<option value="17644">7500U 台北→台中→麻豆→台南</option>
+<option value="17636">7500U 台南→麻豆→台中→台北</option>
+<option value="17645">7500V 台北→桃園→台中→麻豆→台南</option>
+<option value="17637">7500V 台南→麻豆→台中→桃園→台北</option>
+<option value="17646">7500W 台北→台中→新營→台南</option>
+<option value="17638">7500W 台南→新營→台中→台北</option>
+<option value="17708">9001 桃園市中壢區→國道3號→臺北市東南區</option>
+<option value="17907">9001 臺北市東南區→國道3號→桃園市中壢區</option>
+<option value="16326">9003 新竹市→國道1號高速公路→臺北市</option>
+<option value="16325">9003 臺北市→國道1號高速公路→新竹市</option>
+<option value="16311">9005 桃園市西北區→國道1號→臺北市東南區</option>
+<option value="16312">9005 臺北市東南區→國道1號→桃園市西北區</option>
+<option value="17738">9005A 桃園市西北區→國道1號→臺北市東南區(繞駛永安路)</option>
+<option value="17739">9005A 臺北市東南區→國道1號→桃園市西北區(繞駛永安路)</option>
+<option value="17152">9006 基隆市→臺北市</option>
+<option value="17151">9006 臺北市→基隆市</option>
+<option value="16323">9009 桃園市西北區→國道3號→臺北市東南區</option>
+<option value="16324">9009 臺北市東南區→國道3號→桃園市西北區</option>
+<option value="16401">9023 桃園→國道1號→臺北市士林區</option>
+<option value="17629">9023 臺北市士林區→國道1號→桃園</option>
+<option value="17685">9023A 桃園→國道1號→臺北市士林區[中正藝文特區發車]</option>
+<option value="16319">9025 中壢→國道1號→臺北市松山區</option>
+<option value="17298">9025 臺北市松山區→國道1號→中壢</option>
+<option value="17488">9025A 中壢→國道1號→臺北市松山區[繞駛中央大學]</option>
+<option value="17489">9025A 臺北市松山區→國道1號→中壢[繞駛中央大學]</option>
+<option value="17121">9026 基隆市安樂區→汐止→臺北市南港展覽館[南港轉運站]</option>
+<option value="19310">9026 臺北市南港展覽館→汐止→基隆市安樂區[南港轉運站]</option>
+<option value="19272">9026A 基隆市安樂區→汐止→臺北市南港展覽館[南港轉運站]</option>
+<option value="19273">9026A 臺北市南港展覽館→汐止→基隆市安樂區[南港轉運站]</option>
+<option value="19359">9026B 基隆市安樂區→汐止→臺北市南港展覽館[南港轉運站]</option>
+<option value="19360">9026B 臺北市南港展覽館→汐止→基隆市安樂區[南港轉運站]</option>
+<option value="19361">9026C 基隆市安樂區→汐止→臺北市南港展覽館[南港轉運站]</option>
+<option value="19362">9026C 臺北市南港展覽館→汐止→基隆市安樂區[南港轉運站]</option>
+<option value="19118">9028 宜蘭縣蘇澳鎮→台9線→羅東鎮→宜蘭縣→羅東交流道→國道5號→國道3號→新店交流道→新北市新店區</option>
+<option value="19117">9028 新北市新店區→新店交流道→國道3號→國道5號→羅東交流道→宜蘭縣→羅東鎮→台9線→宜蘭縣蘇澳鎮</option>
+<option value="19112">9028B 宜蘭縣羅東鎮→新北市新店區</option>
+<option value="19111">9028B 新北市新店區→宜蘭縣羅東鎮</option>
+<option value="19116">9028D 宜蘭縣羅東鎮→羅東交流道→國道5號→坪林→國道5號→國道3號→新店交流道→新北市新店區[經坪林]</option>
+<option value="19115">9028D 新北市新店區→新店交流道→國道3號→國道5號→坪林→國道5號→羅東交流道→宜蘭縣羅東鎮[經坪林]</option>
+<option value="17879">9069 南港轉運站→國道1號→桃園市大有特區</option>
+<option value="17878">9069 桃園市大有特區→國道1號→南港轉運站</option>
+<option value="18051">9069A 捷運南京復興站→國道1號→桃園市大有特區</option>
+<option value="18050">9069A 桃園市大有特區→國道1號→捷運南京復興站</option>
+
+                </select>
+            </td>
+        </tr>
+    </table>
+    <table border=0 width="100%">
+        <tr>
+            <td colspan=3 align=center>
+                <img src="bus0.gif" border=0>:一般公車
+            </td>
+            <td colspan=3 align=center>
+                <img src="bus1.gif" border=0>:低地板公車
+            </td>
+            <td colspan=3 align=center>
+                <img src="bus2.gif" border=0>:大復康巴士
+            </td>
+            </td>
+            <td colspan=3 align=center>
+                <img src="bus6.gif" border=0>:無障礙中巴
+            </td>
+			<!--             
+            <td>
+                <img src="bus3.gif" border=0>:狗狗友善專車
+            </td>
+
+            <td>
+                <img src="bus3.gif" border=0>:圓仔專車
+            </td>
+             -->
+        </tr>
+    
+        
+	        
+        <tr>
+            <td colspan=4 align=center>
+                <img src="crowd0.gif" border=0>:舒適
+            </td>
+            <td colspan=4 align=center>
+                <img src="crowd1.gif" border=0>:中等
+            </td>
+            <td colspan=4 align=center>
+                <img src="crowd2.gif" border=0>:擁擠
+            </td>
+        </tr>
+        
+　　</table>
+</div>
+
+</body>
+</html>

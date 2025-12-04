@@ -1,0 +1,2486 @@
+
+
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>查詢公車動態資訊</title>
+    <link rel="stylesheet" type="text/css" href="./css/style.css"/>
+    <link rel="shortcut icon" href="#"/>
+    <script type="text/javascript" src="purify.min.js"></script>
+    <Script language="JavaScript">
+    var routeText="";
+    var divIndex=0;
+
+    	function switchDiv() {
+    		if (document.getElementById("SDIV"+divIndex))
+    			{
+    			if (document.getElementById("IgnoreCheck"+divIndex))
+    				if (document.getElementById("IgnoreCheck"+divIndex).checked)
+    					localStorage.setItem("PDANewsAlertIgnoew"+document.getElementById("IgnoreCheck"+divIndex).value, "Yes");
+    			document.getElementById("SDIV"+divIndex).style.display='none';
+    			};
+    		divIndex++;
+    		while (document.getElementById("IgnoreCheck"+divIndex) 
+    				&& localStorage.getItem("PDANewsAlertIgnoew"+document.getElementById("IgnoreCheck"+divIndex).value)=="Yes")
+    		{
+    			divIndex++;
+    		};
+    		if (document.getElementById("SDIV"+divIndex))
+    			document.getElementById("SDIV"+divIndex).style.display='';
+    	}
+    
+    	function selectRoute(routeId) {
+    		if (routeId.toString().length>0)
+    			{
+    			routeText = "";
+    			document.getElementById("routeTextInput").value="";
+    			document.getElementById('suggestions').style.display = 'none';
+    			document.location.href = 'route.jsp?rid=' + routeId + '';
+    			};
+        }
+
+        function lookup() {
+        	if (routeText == document.getElementById("routeTextInput").value.trim()) return false;
+   		    routeText = document.getElementById("routeTextInput").value.trim();
+        	
+   		    if (routeText.length == 0) {
+        		document.getElementById('suggestions').style.display = 'none';
+        	} else {
+        	   var rHTM = "";
+        	   var ridMap = {};
+        	   
+        	   
+        	   var el = document.getElementsByTagName('select');
+        	   for(var i=0; i<el.length; i++)
+        	      {
+        		   if ((el[i].name=="DGHRouteSelect") && !document.getElementById("checkDGH").checked) continue;
+        		   for (var j=1;j<el[i].options.length;j++)
+        		   		if (el[i].options[j].text.indexOf(routeText)>-1)
+        	          		{
+        		   			if (el[i].options[j].value in ridMap) continue;
+       		   				ridMap[el[i].options[j].value] = "1";
+       		   				rHTM+="<div style=\"width:100%;cursor:pointer;color: darkblue;background-color:lightblue;\" onclick=\"selectRoute("+DOMPurify.sanitize(el[i].options[j].value)+");\">"+DOMPurify.sanitize(el[i].options[j].text.trim())+"</div>";
+        	          		}
+        	      };        	   
+               
+            		   
+        	   if (rHTM.length>0)
+        		   {
+        		    document.getElementById('autoSuggestionsList').innerHTML = rHTM;
+        		    document.getElementById('suggestions').style.display = '';
+        		   }
+        	   else
+        		   {
+        		   	document.getElementById('suggestions').style.display = 'none';
+        		    document.getElementById('autoSuggestionsList').innerHTML = "";
+        		   };
+        	}
+        }
+    	
+        function inputRoute() {
+        	routeText = document.getElementById("routeTextInput").value.trim();
+            if (routeText.length > 0) {
+         	   
+        	   var el = document.getElementsByTagName('select');
+        	   for(var i=0; i<el.length; i++)
+        	      {
+        		   if ((el[i].name=="DGHRouteSelect") && !document.getElementById("checkDGH").checked) continue;
+        		   for (var j=1;j<el[i].options.length;j++)
+        		   		if (routeText==el[i].options[j].text.trim())
+        	          		{
+             	    	   	 selectRoute(el[i].options[j].value);
+            	    	   	 break;
+        	          		};
+        	      };
+               
+            }
+        }
+    </Script>
+</head>
+
+	<body onload="switchDiv();">
+	<center>
+
+<div id="SDIV1" style="display:none;">
+    <table class="formattable1">
+        <tr>
+            <th class="title1"><a href="index.jsp" class="title1">行動查詢系統</a></th>
+        </tr>
+        <tr>
+            <th class="title2">查詢公車動態資訊</th>
+        </tr>
+    </table>
+		<marquee scrollamount="4" class="marqueetd" width="100%">9&#x2f;4&#x7e;10&#x2f;9&#x5357;&#x6e2f;&#x8ecd;&#x4eba;&#x516c;&#x5893;&#x4e0b;&#x65b9;&#x9053;&#x8def;&#x4ea4;&#x7ba1;&#x516c;&#x8eca;&#x6539;&#x9053;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;9&#x2f;25&#x7e;10&#x2f;12 &#x570b;&#x6176;&#x5927;&#x6703;&#x4ea4;&#x7ba1;&#x516c;&#x8eca;&#x6539;&#x9053;&#x3000;&#x3000;&#x3000;&#x3000;&#x3000;10&#x2f;4&#x5317;&#x6295;&#x5340;&#x65b0;&#x6c11;&#x8def;&#x516c;&#x8eca;&#x6539;&#x9053;&#x53ca;&#x7ad9;&#x4f4d;&#x53d6;&#x6d88;&#x505c;&#x9760;&#x8a73;&#x516c;&#x904b;&#x8655;&#x7db2;&#x9801;</marquee>
+		<table class="formattable1">
+        <tr>
+            <td><input type="text" id="routeTextInput" size="16" onkeyup="lookup();" onchange="lookup();" oninput="lookup();"><input type="button" value="快速查詢" onclick="inputRoute()">
+            <input type="checkbox" id="checkDGH" onclick="lookup();">公路客運
+            <div id="suggestions" style="width: 150px; display:none;">
+                <div id="autoSuggestionsList">
+                </div>
+            </div>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:red;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運紅線接駁公車-></option>
+                    <option value="15312">&#x7d05;2</option>
+<option value="15331">&#x7d05;3&#x5340;</option>
+<option value="17436">&#x7d05;3</option>
+<option value="10821">&#x7d05;5</option>
+<option value="11201">&#x7d05;7</option>
+<option value="11202">&#x7d05;7&#x5340;</option>
+<option value="10421">&#x7d05;9</option>
+<option value="15321">&#x7d05;10</option>
+<option value="17993">&#x7d05;10&#x5340;</option>
+<option value="15531">&#x7d05;12</option>
+<option value="16673">&#x7d05;13</option>
+<option value="15541">&#x7d05;15</option>
+<option value="15341">&#x7d05;19</option>
+<option value="16674">&#x7d05;22</option>
+<option value="16732">&#x7d05;23</option>
+<option value="19298">&#x7d05;25&#x5340;</option>
+<option value="10232">&#x7d05;25</option>
+<option value="16619">&#x7d05;26</option>
+<option value="16671">&#x7d05;27</option>
+<option value="16715">&#x7d05;28&#x76f4;</option>
+<option value="16288">&#x7d05;28</option>
+<option value="11011">&#x7d05;29</option>
+<option value="15551">&#x7d05;30</option>
+<option value="10431">&#x7d05;31</option>
+<option value="10261">&#x7d05;33</option>
+<option value="11121">&#x7d05;35</option>
+<option value="18868">&#x7d05;35&#x5340;</option>
+<option value="16430">&#x7d05;36</option>
+<option value="16431">&#x7d05;37</option>
+<option value="19088">&#x7d05;37&#x884c;&#x7d93;&#x6d77;&#x6d0b;&#x90fd;&#x5fc3;&#x793e;&#x5340;</option>
+<option value="16282">&#x7d05;38</option>
+<option value="16432">&#x7d05;39</option>
+<option value="19068">&#x7d05;53</option>
+<option value="16166">&#x7d05;50</option>
+<option value="16397">&#x7d05;51</option>
+<option value="16749">&#x7d05;55</option>
+<option value="16750">&#x7d05;55&#x5340;</option>
+<option value="17022">&#x7d05;57</option>
+<option value="17929">&#x7d05;68</option>
+<option value="19719">&#x7d05;68&#x9810;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:blue;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運藍線接駁公車-></option>
+                    <option value="17360">&#x85cd;1</option>
+<option value="10281">&#x85cd;2</option>
+<option value="10831">&#x85cd;5</option>
+<option value="15361">&#x85cd;7</option>
+<option value="18044">&#x85cd;7&#x526f;</option>
+<option value="10292">&#x85cd;10</option>
+<option value="16296">&#x85cd;15</option>
+<option value="16464">&#x85cd;17</option>
+<option value="17516">&#x85cd;18</option>
+<option value="16125">&#x85cd;20&#x5340;</option>
+<option value="17332">&#x85cd;21&#x526f;</option>
+<option value="16498">&#x85cd;21</option>
+<option value="16294">&#x85cd;22</option>
+<option value="16632">&#x85cd;23</option>
+<option value="10941">&#x85cd;25</option>
+<option value="10432">&#x85cd;26</option>
+<option value="11111">&#x85cd;27</option>
+<option value="10721">&#x85cd;28</option>
+<option value="10722">&#x85cd;29</option>
+<option value="16191">&#x85cd;31</option>
+<option value="16599">&#x85cd;32</option>
+<option value="16471">&#x85cd;33</option>
+<option value="16463">&#x85cd;35</option>
+<option value="10241">&#x85cd;36</option>
+<option value="16486">&#x85cd;37</option>
+<option value="16487">&#x85cd;38</option>
+<option value="16544">&#x85cd;39</option>
+<option value="16601">&#x85cd;40</option>
+<option value="16735">&#x85cd;41</option>
+<option value="17311">&#x85cd;41&#x5ef6;&#x548c;</option>
+<option value="16663">&#x85cd;43</option>
+<option value="16207">&#x85cd;44</option>
+<option value="16729">&#x85cd;44&#x5ef6;</option>
+<option value="16602">&#x85cd;45</option>
+<option value="16586">&#x85cd;46</option>
+<option value="16440">&#x85cd;50</option>
+<option value="16506">&#x85cd;51</option>
+<option value="17700">&#x85cd;43&#x5ef6;&#x5357;&#x5929;&#x6bcd;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:brown;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運棕線接駁公車-></option>
+                    <option value="10291">&#x68d5;1</option>
+<option value="10733">&#x68d5;2</option>
+<option value="10741">&#x68d5;3</option>
+<option value="11021">&#x68d5;5</option>
+<option value="10742">&#x68d5;6</option>
+<option value="10143">&#x68d5;7</option>
+<option value="17466">&#x68d5;7&#x7da0;&#x91ce;&#x9999;&#x5761;</option>
+<option value="17940">&#x68d5;7&#x5efa;&#x696d;&#x8def;</option>
+<option value="11031">&#x68d5;10</option>
+<option value="10743">&#x68d5;11</option>
+<option value="10749">&#x68d5;11&#x526f;</option>
+<option value="10751">&#x68d5;12</option>
+<option value="11251">&#x68d5;13</option>
+<option value="10744">&#x68d5;15</option>
+<option value="15730">&#x68d5;18</option>
+<option value="16153">&#x68d5;19</option>
+<option value="16174">&#x68d5;20</option>
+<option value="18508">&#x68d5;20&#x9810;</option>
+<option value="16568">&#x68d5;21</option>
+<option value="16747">&#x68d5;22</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:green;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運綠線接駁公車-></option>
+                    <option value="10732">&#x7da0;2&#x53f3;</option>
+<option value="10731">&#x7da0;2&#x5de6;</option>
+<option value="16612">&#x7da0;3</option>
+<option value="16610">&#x7da0;5</option>
+<option value="16611">&#x7da0;6</option>
+<option value="16420">&#x7da0;7</option>
+<option value="16613">&#x7da0;8</option>
+<option value="16491">&#x7da0;9</option>
+<option value="16493">&#x7da0;9&#x5317;&#x65b0;&#x570b;&#x5c0f;</option>
+<option value="16492">&#x7da0;9&#x8015;&#x8398;</option>
+<option value="16418">&#x7da0;10</option>
+<option value="11022">&#x7da0;11</option>
+<option value="16590">&#x7da0;12</option>
+<option value="16481">&#x7da0;13</option>
+<option value="16243">&#x7da0;15</option>
+<option value="17556">&#x7da0;17</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:orange;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運橘線接駁公車-></option>
+                    <option value="16265">&#x6a58;1</option>
+<option value="16407">&#x6a58;2</option>
+<option value="16466">&#x6a58;3</option>
+<option value="16405">&#x6a58;5</option>
+<option value="16274">&#x6a58;9</option>
+<option value="16620">&#x6a58;10</option>
+<option value="16667">&#x6a58;12</option>
+<option value="16668">&#x6a58;13</option>
+<option value="16490">&#x6a58;17</option>
+<option value="16593">&#x6a58;18</option>
+<option value="16748">&#x6a58;18&#x798f;&#x9686;&#x8def;</option>
+<option value="16489">&#x6a58;19</option>
+<option value="18268">&#x6a58;19&#x526f;</option>
+<option value="16669">&#x6a58;20</option>
+<option value="16592">&#x6a58;21</option>
+<option value="16519">&#x6a58;22</option>
+<option value="16582">&#x6a58;25</option>
+<option value="16686">&#x6a58;26</option>
+
+                </select>
+            </td>
+        </tr>
+        <!-- 
+        <tr>
+            <td style="background-color:yellow;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運黃線接駁公車-></option>
+                    
+                </select>
+            </td>
+        </tr>
+        -->
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇輕軌接駁公車-></option>
+                    <option value="19188">&#x5b89;&#x5751;1&#x7dda;</option>
+<option value="19189">&#x5b89;&#x5751;3&#x7dda;</option>
+<option value="19190">&#x5b89;&#x5751;5&#x7dda;</option>
+<option value="19198">&#x5b89;&#x5751;2&#x7dda;</option>
+<option value="19308">&#x5b89;&#x5751;6&#x7dda;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇一般公車(數字開頭路線)-></option>
+                    <option value="10841">0&#x6771;</option>
+<option value="11811">0&#x5357;</option>
+<option value="10723">1</option>
+<option value="10262">2</option>
+<option value="11861">5</option>
+<option value="16406">8</option>
+<option value="10882">9</option>
+<option value="10864">12</option>
+<option value="10891">14</option>
+<option value="10726">18</option>
+<option value="10873">20</option>
+<option value="10832">22</option>
+<option value="11203">26</option>
+<option value="15141">28</option>
+<option value="11066">32</option>
+<option value="11821">33</option>
+<option value="11091">37</option>
+<option value="10862">38</option>
+<option value="10863">38&#x5340;</option>
+<option value="11243">39</option>
+<option value="15664">39&#x591c;</option>
+<option value="11871">41</option>
+<option value="15142">42</option>
+<option value="16559">42&#x5340;</option>
+<option value="10872">46</option>
+<option value="11831">49</option>
+<option value="16467">51</option>
+<option value="10792">52</option>
+<option value="10767">53</option>
+<option value="16468">57</option>
+<option value="11244">62</option>
+<option value="10847">63</option>
+<option value="17944">66</option>
+<option value="11204">68</option>
+<option value="15362">72</option>
+<option value="10971">88</option>
+<option value="17869">88&#x5340;</option>
+<option value="17517">99</option>
+<option value="10822">108</option>
+<option value="16168">108&#x5340;</option>
+<option value="11813">109</option>
+<option value="10472">111</option>
+<option value="15724">128</option>
+<option value="15726">129</option>
+<option value="10171">201</option>
+<option value="15111">202</option>
+<option value="15185">202&#x5340;</option>
+<option value="15314">203</option>
+<option value="11212">204</option>
+<option value="10181">205</option>
+<option value="15372">206</option>
+<option value="15572">207</option>
+<option value="15112">208</option>
+<option value="15113">208&#x5340;</option>
+<option value="16157">208&#x76f4;</option>
+<option value="11232">211</option>
+<option value="10912">212</option>
+<option value="10911">212&#x76f4;</option>
+<option value="16132">212&#x591c;</option>
+<option value="15561">214</option>
+<option value="15562">214&#x76f4;</option>
+<option value="15322">215</option>
+<option value="11141">216</option>
+<option value="11156">218</option>
+<option value="11158">218&#x5340;</option>
+<option value="11157">218&#x76f4;</option>
+<option value="10415">221</option>
+<option value="10842">222</option>
+<option value="11124">223</option>
+<option value="15375">224</option>
+<option value="10443">225</option>
+<option value="16128">225&#x5340;</option>
+<option value="11245">226</option>
+<option value="15521">227</option>
+<option value="15522">227&#x5340;</option>
+<option value="10161">231</option>
+<option value="11151">230</option>
+<option value="10416">232</option>
+<option value="10419">232&#x5feb;</option>
+<option value="10132">234</option>
+<option value="10283">235</option>
+<option value="11763">236&#x5340;</option>
+<option value="10745">237</option>
+<option value="15355">240&#x76f4;</option>
+<option value="10173">241</option>
+<option value="10116">242</option>
+<option value="10172">243</option>
+<option value="10162">245</option>
+<option value="15381">246</option>
+<option value="19528">246&#x9810;</option>
+<option value="15353">247</option>
+<option value="15358">247&#x5340;</option>
+<option value="10772">249</option>
+<option value="15333">250</option>
+<option value="10712">251</option>
+<option value="11764">251&#x5340;</option>
+<option value="10746">252</option>
+<option value="10735">253</option>
+<option value="10783">254</option>
+<option value="16709">254&#x5340;</option>
+<option value="11252">255</option>
+<option value="11253">255&#x5340;</option>
+<option value="15143">256</option>
+<option value="10942">257</option>
+<option value="10823">260</option>
+<option value="10824">260&#x5340;</option>
+<option value="19178">260&#x5340;&#x9810;</option>
+<option value="10414">261</option>
+<option value="19678">261&#x9810;</option>
+<option value="10961">262</option>
+<option value="10962">262&#x5340;</option>
+<option value="16588">264</option>
+<option value="10482">265&#x5340;</option>
+<option value="16131">265&#x591c;</option>
+<option value="10481">265&#x7d93;&#x4e2d;&#x592e;&#x8def;</option>
+<option value="11171">265&#x7d93;&#x660e;&#x5fb7;&#x8def;</option>
+<option value="15332">267</option>
+<option value="15352">268</option>
+<option value="11841">270</option>
+<option value="11842">270&#x5340;</option>
+<option value="10893">274</option>
+<option value="16581">275</option>
+<option value="11851">276</option>
+<option value="10874">277</option>
+<option value="10752">278</option>
+<option value="16439">278&#x5340;</option>
+<option value="15391">279</option>
+<option value="15546">280</option>
+<option value="15657">280&#x76f4;</option>
+<option value="10856">281</option>
+<option value="15162">282</option>
+<option value="11221">284</option>
+<option value="10845">286</option>
+<option value="10846">286&#x526f;</option>
+<option value="10853">287&#x5340;</option>
+<option value="11165">288</option>
+<option value="10784">290&#x526f;</option>
+<option value="17479">290&#x526f;&#x842c;&#x548c;</option>
+<option value="11246">292</option>
+<option value="16158">292&#x526f;</option>
+<option value="10747">294</option>
+<option value="10748">295</option>
+<option value="18057">295&#x526f;</option>
+<option value="11041">297</option>
+<option value="11023">298</option>
+<option value="11411">299</option>
+<option value="15532">300</option>
+<option value="11125">302</option>
+<option value="19717">302&#x5340;</option>
+<option value="10272">303</option>
+<option value="10273">303&#x5340;</option>
+<option value="15553">304&#x627f;&#x5fb7;</option>
+<option value="15554">304&#x91cd;&#x6176;</option>
+<option value="10473">306</option>
+<option value="11853">306&#x5340;</option>
+<option value="16111">307</option>
+<option value="19108">307&#x897f;&#x85cf;&#x4e09;&#x6c11;</option>
+<option value="15151">308</option>
+<option value="16112">310</option>
+<option value="19688">310&#x5340;</option>
+<option value="15563">311</option>
+<option value="17512">311&#x5340;</option>
+<option value="10848">505</option>
+<option value="10441">508</option>
+<option value="10442">508&#x5340;</option>
+<option value="11421">513</option>
+<option value="10424">520</option>
+<option value="15313">521</option>
+<option value="11161">529</option>
+<option value="15164">530</option>
+<option value="10764">531</option>
+<option value="10263">536</option>
+<option value="19720">536&#x5340;</option>
+<option value="11242">539</option>
+<option value="19438">539&#x9810;</option>
+<option value="10277">542</option>
+<option value="18348">542&#x9810;</option>
+<option value="11123">550</option>
+<option value="11114">551</option>
+<option value="11056">552</option>
+<option value="15172">556</option>
+<option value="17333">557</option>
+<option value="10725">568</option>
+<option value="16897">570</option>
+<option value="16898">571</option>
+<option value="16899">572</option>
+<option value="16900">573</option>
+<option value="16901">574</option>
+<option value="16902">575</option>
+<option value="18041">576</option>
+<option value="17805">559</option>
+<option value="15571">600</option>
+<option value="15735">602</option>
+<option value="16121">604</option>
+<option value="15514">605</option>
+<option value="15517">605&#x526f;</option>
+<option value="15516">605&#x5feb;</option>
+<option value="15518">605&#x65b0;&#x53f0;&#x4e94;</option>
+<option value="11815">606</option>
+<option value="11742">611</option>
+<option value="11093">612</option>
+<option value="10471">615</option>
+<option value="15581">616</option>
+<option value="10422">617</option>
+<option value="17952">617&#x526f;</option>
+<option value="10221">618</option>
+<option value="15335">683</option>
+<option value="19458">683&#x9810;</option>
+<option value="11231">621</option>
+<option value="10423">622</option>
+<option value="10149">624&#x7da0;&#x91ce;&#x9999;&#x5761;</option>
+<option value="17300">624</option>
+<option value="5415">629</option>
+<option value="19741">629&#x5340;</option>
+<option value="10861">630</option>
+<option value="15224">631</option>
+<option value="10475">635</option>
+<option value="10474">636</option>
+<option value="10491">637</option>
+<option value="10492">638</option>
+<option value="17868">638&#x526f;</option>
+<option value="10511">639</option>
+<option value="10453">640</option>
+<option value="19760">640A</option>
+<option value="10452">641</option>
+<option value="10328">643</option>
+<option value="10333">644</option>
+<option value="10461">645</option>
+<option value="10462">645&#x526f;</option>
+<option value="10765">646</option>
+<option value="10331">647</option>
+<option value="10326">648</option>
+<option value="16122">651</option>
+<option value="10844">652</option>
+<option value="10163">656</option>
+<option value="10164">657</option>
+<option value="16685">657&#x5ef6;</option>
+<option value="16113">658</option>
+<option value="15191">660</option>
+<option value="17825">660&#x5340;</option>
+<option value="11241">662</option>
+<option value="10282">663</option>
+<option value="10753">666&#x83ef;&#x68b5;&#x5927;&#x5b78;</option>
+<option value="17483">666&#x70cf;&#x5857;&#x7a9f;</option>
+<option value="17482">666&#x7687;&#x5e1d;&#x6bbf;</option>
+<option value="16123">667</option>
+<option value="15515">668</option>
+<option value="10278">669</option>
+<option value="10771">670</option>
+<option value="10736">671</option>
+<option value="10785">672</option>
+<option value="16169">672&#x5340;</option>
+<option value="10782">673</option>
+<option value="15512">675</option>
+<option value="15161">676</option>
+<option value="15638">677</option>
+<option value="5416">678</option>
+<option value="16127">679</option>
+<option value="16184">680</option>
+<option value="15359">681</option>
+<option value="15221">682</option>
+<option value="10811">685</option>
+<option value="11834">688</option>
+<option value="10151">701</option>
+<option value="10148">702</option>
+<option value="16517">704</option>
+<option value="16521">704&#x5340;</option>
+<option value="10195">705</option>
+<option value="10196">706</option>
+<option value="16461">707</option>
+<option value="15513">711</option>
+<option value="17945">712</option>
+<option value="18258">712&#x526f;</option>
+<option value="16504">756</option>
+<option value="16707">757</option>
+<option value="16706">758</option>
+<option value="18738">760</option>
+<option value="17515">778</option>
+<option value="16511">779</option>
+<option value="16637">780</option>
+<option value="16644">781</option>
+<option value="16643">782</option>
+<option value="16692">783</option>
+<option value="16693">785</option>
+<option value="16642">787</option>
+<option value="16694">786</option>
+<option value="17719">786&#x5340;</option>
+<option value="16681">787&#x7d93;&#x745e;&#x82b3;&#x5de5;&#x696d;&#x5340;</option>
+<option value="16641">788</option>
+<option value="18098">788&#x5340;</option>
+<option value="17501">788&#x6d77;&#x79d1;&#x9928;</option>
+<option value="16739">789</option>
+<option value="17865">789&#x5340;</option>
+<option value="16740">790</option>
+<option value="17500">790&#x6f01;&#x6e2f;</option>
+<option value="16682">791</option>
+<option value="19208">791&#x5340;</option>
+<option value="17692">791&#x7e5e;&#x8ca2;&#x5bee;</option>
+<option value="17718">791&#x7d93;&#x8ca2;&#x5bee;&#x5340;&#x885b;&#x751f;</option>
+<option value="16689">793</option>
+<option value="16719">795&#x5f80;&#x6728;&#x67f5;&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x6728;&#x67f5;&#x5e73;&#x6eaa;&#x7dda;&#x29;</option>
+<option value="16758">795&#x5f80;&#x5e73;&#x6eaa;&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x6728;&#x67f5;&#x5e73;&#x6eaa;&#x7dda;&#x29;</option>
+<option value="16757">795&#x5f80;&#x5341;&#x5206;&#x5bee;&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x6728;&#x67f5;&#x5e73;&#x6eaa;&#x7dda;&#x29;</option>
+<option value="16691">796</option>
+<option value="16571">797</option>
+<option value="16576">799</option>
+<option value="16573">800</option>
+<option value="16594">801</option>
+<option value="16608">802</option>
+<option value="16479">802&#x5340;</option>
+<option value="16595">803</option>
+<option value="17524">805</option>
+<option value="17523">806</option>
+<option value="16223">807</option>
+<option value="16547">808</option>
+<option value="16670">810</option>
+<option value="16425">811</option>
+<option value="16189">812</option>
+<option value="17526">813</option>
+<option value="17527">813&#x5340;</option>
+<option value="16500">815</option>
+<option value="16499">816</option>
+<option value="16731">817</option>
+<option value="16258">819</option>
+<option value="17923">819&#x526f;</option>
+<option value="16584">820</option>
+<option value="16695">821</option>
+<option value="16730">822</option>
+<option value="17525">823</option>
+<option value="17889">824</option>
+<option value="16551">825</option>
+<option value="16554">826</option>
+<option value="16548">827</option>
+<option value="16485">835</option>
+<option value="16269">836</option>
+<option value="16497">837</option>
+<option value="16270">838</option>
+<option value="16427">839</option>
+<option value="16656">839&#x8015;&#x8398;</option>
+<option value="16609">842</option>
+<option value="16474">843</option>
+<option value="17518">845</option>
+<option value="16734">846</option>
+<option value="16429">847</option>
+<option value="16697">847&#x5340;</option>
+<option value="16215">848</option>
+<option value="16393">849</option>
+<option value="17696">849&#x5c48;&#x5c3a;&#x793e;&#x5340;</option>
+<option value="16665">851</option>
+<option value="16666">852</option>
+<option value="16552">856&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x9ec3;&#x91d1;&#x798f;&#x9686;&#x7dda;&#x29;</option>
+<option value="16591">857</option>
+<option value="16515">858</option>
+<option value="16518">859</option>
+<option value="16528">860</option>
+<option value="16529">861</option>
+<option value="17530">716&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x7687;&#x51a0;&#x5317;&#x6d77;&#x5cb8;&#x7dda;&#x29;</option>
+<option value="17528">862</option>
+<option value="16675">863</option>
+<option value="16651">864</option>
+<option value="16530">865</option>
+<option value="16531">866</option>
+<option value="16532">867</option>
+<option value="16710">867&#x5340;</option>
+<option value="16630">868</option>
+<option value="16526">869</option>
+<option value="16626">870</option>
+<option value="16628">871</option>
+<option value="16577">871&#x7d93;&#x4e2d;&#x5c71;&#x5317;&#x8def;</option>
+<option value="16627">872</option>
+<option value="16578">872&#x7d93;&#x6b63;&#x5fb7;&#x570b;&#x4e2d;&#x3001;&#x76f4;&#x884c;&#x4e2d;&#x5c71;&#x5317;&#x8def;</option>
+<option value="16629">873</option>
+<option value="16579">873&#x7d93;&#x6b63;&#x5fb7;&#x570b;&#x4e2d;</option>
+<option value="16535">874</option>
+<option value="16536">875</option>
+<option value="16564">876</option>
+<option value="16538">877</option>
+<option value="16527">878</option>
+<option value="18558">878&#x5340;</option>
+<option value="16542">879</option>
+<option value="16659">880</option>
+<option value="16522">881</option>
+<option value="16543">882</option>
+<option value="16660">883</option>
+<option value="16513">885</option>
+<option value="16565">886</option>
+<option value="17824">886&#x5340;</option>
+<option value="16607">889</option>
+<option value="16733">890</option>
+<option value="16580">891</option>
+<option value="17838">894</option>
+<option value="16717">895</option>
+<option value="5413">896</option>
+<option value="17557">897</option>
+<option value="17706">897&#x5340;</option>
+<option value="17625">898</option>
+<option value="15171">902</option>
+<option value="19718">902&#x5340;</option>
+<option value="10763">903</option>
+<option value="15183">905</option>
+<option value="15184">905&#x526f;</option>
+<option value="10329">906</option>
+<option value="10724">907</option>
+<option value="17928">907&#x901a;&#x52e4;</option>
+<option value="16585">908</option>
+<option value="10325">909</option>
+<option value="16462">910</option>
+<option value="15173">912</option>
+<option value="15717">913</option>
+<option value="10754">915</option>
+<option value="17519">916</option>
+<option value="16210">917</option>
+<option value="17532">918</option>
+<option value="18318">918&#x5340;</option>
+<option value="16633">919</option>
+<option value="16603">920</option>
+<option value="18729">920&#x526f;</option>
+<option value="18764">920A</option>
+<option value="16664">921</option>
+<option value="16224">922</option>
+<option value="16422">923</option>
+<option value="16604">925</option>
+<option value="18766">925A</option>
+<option value="17536">927</option>
+<option value="17545">927&#x7d93;&#x53f0;&#x5317;&#x6e2f;</option>
+<option value="17537">928</option>
+<option value="16423">930</option>
+<option value="16614">930&#x5ef6;</option>
+<option value="16560">932</option>
+<option value="17717">932&#x7e5e;&#x570b;&#x5bb6;&#x6559;&#x80b2;&#x7814;&#x7a76;&#x9662;</option>
+<option value="17534">933</option>
+<option value="16562">935</option>
+<option value="16583">936</option>
+<option value="18758">936A</option>
+<option value="16655">937</option>
+<option value="18728">937&#x526f;</option>
+<option value="18762">937A</option>
+<option value="16672">938</option>
+<option value="16635">939</option>
+<option value="17942">939&#x526f;</option>
+<option value="16662">948</option>
+<option value="17720">939&#x8df3;&#x86d9;</option>
+<option value="16728">940</option>
+<option value="16726">941</option>
+<option value="16759">943</option>
+<option value="17292">945</option>
+<option value="17293">946</option>
+<option value="17294">946&#x526f;</option>
+<option value="17570">947</option>
+<option value="17363">949</option>
+<option value="17390">950</option>
+<option value="17548">951</option>
+<option value="17576">952</option>
+<option value="17845">953&#x5340;</option>
+<option value="17575">953</option>
+<option value="17740">957</option>
+<option value="17916">963</option>
+<option value="17937">965&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x4e5d;&#x4efd;&#x91d1;&#x74dc;&#x77f3;&#x7dda;&#x29;</option>
+<option value="18118">966</option>
+<option value="18730">966&#x526f;</option>
+<option value="18760">966A</option>
+<option value="18119">967</option>
+<option value="18731">967&#x526f;</option>
+<option value="18128">967&#x76f4;</option>
+<option value="16746">1717</option>
+<option value="17971">837&#x526f;</option>
+<option value="17972">837&#x5340;</option>
+<option value="16606">981</option>
+<option value="16688">983</option>
+<option value="17668">982</option>
+<option value="17679">982&#x5340;</option>
+<option value="17680">982&#x76f4;&#x9054;</option>
+<option value="17687">982&#x76f4;&#x9054;&#x65b0;&#x57d4;&#x7dda;</option>
+<option value="16767">594</option>
+<option value="16768">595</option>
+<option value="16772">593</option>
+<option value="16845">578</option>
+<option value="16847">579</option>
+<option value="16849">580</option>
+<option value="16851">581</option>
+<option value="18148">582&#x7d93;&#x5de5;&#x696d;&#x5340;</option>
+<option value="19048">582&#x7d93;&#x6d32;&#x5b50;&#x6d0b;</option>
+<option value="16855">582</option>
+<option value="17513">583</option>
+<option value="17682">596</option>
+<option value="17683">585</option>
+<option value="17672">577</option>
+<option value="16930">592</option>
+<option value="16997">586</option>
+<option value="17001">587</option>
+<option value="17009">589</option>
+<option value="17015">677&#x526f;</option>
+<option value="17016">590</option>
+<option value="17017">591</option>
+<option value="17775">908&#x5ef6;</option>
+<option value="17789">960</option>
+<option value="17790">958</option>
+<option value="17791">959</option>
+<option value="17802">854</option>
+<option value="17806">899</option>
+<option value="19228">731</option>
+<option value="19747">177&#x745e;&#x82b3;&#x89c0;&#x5149;&#x516c;&#x8eca;</option>
+<option value="19748">179</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇山區路線(小字號)-></option>
+                    <option value="11051">&#x5c0f;1</option>
+<option value="11062">&#x5c0f;1&#x5340;</option>
+<option value="11055">&#x5c0f;2</option>
+<option value="11057">&#x5c0f;2&#x5340;</option>
+<option value="11058">&#x5c0f;3</option>
+<option value="11059">&#x5c0f;5</option>
+<option value="11061">&#x5c0f;5&#x5340;</option>
+<option value="11139">&#x5c0f;6</option>
+<option value="11145">&#x5c0f;7</option>
+<option value="11134">&#x5c0f;8</option>
+<option value="19418">&#x5c0f;8&#x5340;</option>
+<option value="11142">&#x5c0f;9&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x5317;&#x6295;&#x7af9;&#x5b50;&#x6e56;&#x29;</option>
+<option value="16133">&#x5c0f;9&#x5340;</option>
+<option value="11071">&#x5c0f;10</option>
+<option value="18040">&#x5c0f;10&#x5340;</option>
+<option value="11073">&#x5c0f;11</option>
+<option value="11052">&#x5c0f;12</option>
+<option value="11135">&#x5c0f;14</option>
+<option value="11206">&#x5c0f;15</option>
+<option value="19698">&#x5c0f;15&#x5340;&#x9810;</option>
+<option value="11207">&#x5c0f;15&#x5340;</option>
+<option value="11208">&#x5c0f;16</option>
+<option value="11209">&#x5c0f;17</option>
+<option value="11211">&#x5c0f;18</option>
+<option value="11213">&#x5c0f;19</option>
+<option value="11136">&#x5c0f;21</option>
+<option value="11137">&#x5c0f;22</option>
+<option value="11122">&#x5c0f;23</option>
+<option value="11138">&#x5c0f;25</option>
+<option value="11143">&#x5c0f;26</option>
+<option value="16648">&#x5c0f;28</option>
+<option value="17020">&#x5c0f;30</option>
+<option value="11064">&#x5c0f;36</option>
+<option value="19716">&#x5c0f;39</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇幹線公車-></option>
+                    <option value="10149">624&#x7da0;&#x91ce;&#x9999;&#x5761;</option>
+<option value="10163">656</option>
+<option value="10195">705</option>
+<option value="10196">706</option>
+<option value="10491">637</option>
+<option value="16123">667</option>
+<option value="16258">819</option>
+<option value="16294">&#x85cd;22</option>
+<option value="16296">&#x85cd;15</option>
+<option value="16393">849</option>
+<option value="16405">&#x6a58;5</option>
+<option value="16422">923</option>
+<option value="16468">57</option>
+<option value="16487">&#x85cd;38</option>
+<option value="16517">704</option>
+<option value="16521">704&#x5340;</option>
+<option value="16528">860</option>
+<option value="16583">936</option>
+<option value="16588">264</option>
+<option value="16591">857</option>
+<option value="16606">981</option>
+<option value="16641">788</option>
+<option value="16659">880</option>
+<option value="16674">&#x7d05;22</option>
+<option value="16682">791</option>
+<option value="16719">795&#x5f80;&#x6728;&#x67f5;&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x6728;&#x67f5;&#x5e73;&#x6eaa;&#x7dda;&#x29;</option>
+<option value="16757">795&#x5f80;&#x5341;&#x5206;&#x5bee;&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x6728;&#x67f5;&#x5e73;&#x6eaa;&#x7dda;&#x29;</option>
+<option value="16758">795&#x5f80;&#x5e73;&#x6eaa;&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x6728;&#x67f5;&#x5e73;&#x6eaa;&#x7dda;&#x29;</option>
+<option value="17300">624</option>
+<option value="17501">788&#x6d77;&#x79d1;&#x9928;</option>
+<option value="17517">99</option>
+<option value="17526">813</option>
+<option value="17528">862</option>
+<option value="17668">982</option>
+<option value="17692">791&#x7e5e;&#x8ca2;&#x5bee;</option>
+<option value="17696">849&#x5c48;&#x5c3a;&#x793e;&#x5340;</option>
+<option value="17718">791&#x7d93;&#x8ca2;&#x5bee;&#x5340;&#x885b;&#x751f;</option>
+<option value="18098">788&#x5340;</option>
+<option value="18758">936A</option>
+<option value="19208">791&#x5340;</option>
+<option value="810">&#x6566;&#x5316;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10142">&#x5357;&#x74b0;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10231">&#x6c11;&#x6b0a;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10251">&#x5357;&#x4eac;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10293">&#x6c11;&#x751f;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10332">&#x677e;&#x6c5f;&#x65b0;&#x751f;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10334">&#x57fa;&#x9686;&#x8def;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10417">&#x5fe0;&#x5b5d;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10711">&#x7f85;&#x65af;&#x798f;&#x8def;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10851">&#x5167;&#x6e56;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10932">&#x4ec1;&#x611b;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="11152">&#x627f;&#x5fb7;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="11812">&#x548c;&#x5e73;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="11833">&#x5fa9;&#x8208;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="11881">&#x91cd;&#x6176;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="15334">&#x5317;&#x74b0;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="15373">&#x4e2d;&#x5c71;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="15708">&#x4fe1;&#x7fa9;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="17555">&#x6771;&#x74b0;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇低地板-></option>
+                    <option value="17958">&#x85cd;&#x6d77;2&#x7dda;&#x5148;&#x5c0e;&#x516c;&#x8eca;</option>
+<option value="10841">0&#x6771;</option>
+<option value="11811">0&#x5357;</option>
+<option value="10723">1</option>
+<option value="10262">2</option>
+<option value="11861">5</option>
+<option value="16406">8</option>
+<option value="10882">9</option>
+<option value="10864">12</option>
+<option value="10891">14</option>
+<option value="10726">18</option>
+<option value="10873">20</option>
+<option value="10832">22</option>
+<option value="11203">26</option>
+<option value="15141">28</option>
+<option value="11066">32</option>
+<option value="11821">33</option>
+<option value="11091">37</option>
+<option value="10862">38</option>
+<option value="11243">39</option>
+<option value="15664">39&#x591c;</option>
+<option value="11871">41</option>
+<option value="15142">42</option>
+<option value="16559">42&#x5340;</option>
+<option value="10872">46</option>
+<option value="11831">49</option>
+<option value="16467">51</option>
+<option value="10792">52</option>
+<option value="16468">57</option>
+<option value="11244">62</option>
+<option value="10847">63</option>
+<option value="17944">66</option>
+<option value="15362">72</option>
+<option value="10971">88</option>
+<option value="17869">88&#x5340;</option>
+<option value="17517">99</option>
+<option value="15111">202</option>
+<option value="15185">202&#x5340;</option>
+<option value="15314">203</option>
+<option value="11212">204</option>
+<option value="10181">205</option>
+<option value="15372">206</option>
+<option value="15572">207</option>
+<option value="15112">208</option>
+<option value="15113">208&#x5340;</option>
+<option value="16157">208&#x76f4;</option>
+<option value="10912">212</option>
+<option value="10911">212&#x76f4;</option>
+<option value="16132">212&#x591c;</option>
+<option value="15561">214</option>
+<option value="15562">214&#x76f4;</option>
+<option value="15322">215</option>
+<option value="11156">218</option>
+<option value="11158">218&#x5340;</option>
+<option value="11157">218&#x76f4;</option>
+<option value="10415">221</option>
+<option value="10842">222</option>
+<option value="11124">223</option>
+<option value="15375">224</option>
+<option value="10443">225</option>
+<option value="16128">225&#x5340;</option>
+<option value="11245">226</option>
+<option value="15521">227</option>
+<option value="15522">227&#x5340;</option>
+<option value="10161">231</option>
+<option value="10416">232</option>
+<option value="10132">234</option>
+<option value="10283">235</option>
+<option value="11763">236&#x5340;</option>
+<option value="15355">240&#x76f4;</option>
+<option value="10173">241</option>
+<option value="10172">243</option>
+<option value="10162">245</option>
+<option value="15381">246</option>
+<option value="19528">246&#x9810;</option>
+<option value="15353">247</option>
+<option value="15358">247&#x5340;</option>
+<option value="10772">249</option>
+<option value="15333">250</option>
+<option value="10712">251</option>
+<option value="11764">251&#x5340;</option>
+<option value="10746">252</option>
+<option value="10735">253</option>
+<option value="16709">254&#x5340;</option>
+<option value="11252">255</option>
+<option value="11253">255&#x5340;</option>
+<option value="10942">257</option>
+<option value="10823">260</option>
+<option value="10824">260&#x5340;</option>
+<option value="10414">261</option>
+<option value="10961">262</option>
+<option value="10962">262&#x5340;</option>
+<option value="16588">264</option>
+<option value="10482">265&#x5340;</option>
+<option value="16131">265&#x591c;</option>
+<option value="10481">265&#x7d93;&#x4e2d;&#x592e;&#x8def;</option>
+<option value="11171">265&#x7d93;&#x660e;&#x5fb7;&#x8def;</option>
+<option value="15332">267</option>
+<option value="15352">268</option>
+<option value="11841">270</option>
+<option value="11842">270&#x5340;</option>
+<option value="10893">274</option>
+<option value="16581">275</option>
+<option value="11851">276</option>
+<option value="10874">277</option>
+<option value="10752">278</option>
+<option value="16439">278&#x5340;</option>
+<option value="15391">279</option>
+<option value="15546">280</option>
+<option value="15657">280&#x76f4;</option>
+<option value="10856">281</option>
+<option value="15162">282</option>
+<option value="11221">284</option>
+<option value="10846">286&#x526f;</option>
+<option value="10853">287&#x5340;</option>
+<option value="11165">288</option>
+<option value="11246">292</option>
+<option value="16158">292&#x526f;</option>
+<option value="18057">295&#x526f;</option>
+<option value="11041">297</option>
+<option value="19159">297&#x9810;</option>
+<option value="11023">298</option>
+<option value="11411">299</option>
+<option value="15532">300</option>
+<option value="11125">302</option>
+<option value="19717">302&#x5340;</option>
+<option value="10273">303&#x5340;</option>
+<option value="15553">304&#x627f;&#x5fb7;</option>
+<option value="15554">304&#x91cd;&#x6176;</option>
+<option value="10473">306</option>
+<option value="11853">306&#x5340;</option>
+<option value="16111">307</option>
+<option value="19108">307&#x897f;&#x85cf;&#x4e09;&#x6c11;</option>
+<option value="15151">308</option>
+<option value="16112">310</option>
+<option value="19688">310&#x5340;</option>
+<option value="15563">311</option>
+<option value="17512">311&#x5340;</option>
+<option value="10848">505</option>
+<option value="10441">508</option>
+<option value="10442">508&#x5340;</option>
+<option value="11421">513</option>
+<option value="10424">520</option>
+<option value="15313">521</option>
+<option value="15164">530</option>
+<option value="10263">536</option>
+<option value="19720">536&#x5340;</option>
+<option value="11242">539</option>
+<option value="19438">539&#x9810;</option>
+<option value="15172">556</option>
+<option value="17333">557</option>
+<option value="10725">568</option>
+<option value="16900">573</option>
+<option value="16901">574</option>
+<option value="16902">575</option>
+<option value="18041">576</option>
+<option value="15571">600</option>
+<option value="15735">602</option>
+<option value="16121">604</option>
+<option value="15514">605</option>
+<option value="15517">605&#x526f;</option>
+<option value="15518">605&#x65b0;&#x53f0;&#x4e94;</option>
+<option value="11815">606</option>
+<option value="11742">611</option>
+<option value="11093">612</option>
+<option value="10471">615</option>
+<option value="15581">616</option>
+<option value="10422">617</option>
+<option value="17952">617&#x526f;</option>
+<option value="10221">618</option>
+<option value="15334">&#x5317;&#x74b0;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="11231">621</option>
+<option value="10423">622</option>
+<option value="10149">624&#x7da0;&#x91ce;&#x9999;&#x5761;</option>
+<option value="17300">624</option>
+<option value="5415">629</option>
+<option value="19741">629&#x5340;</option>
+<option value="10861">630</option>
+<option value="10475">635</option>
+<option value="10474">636</option>
+<option value="10491">637</option>
+<option value="10492">638</option>
+<option value="17868">638&#x526f;</option>
+<option value="10511">639</option>
+<option value="10453">640</option>
+<option value="19760">640A</option>
+<option value="10328">643</option>
+<option value="10333">644</option>
+<option value="10461">645</option>
+<option value="10462">645&#x526f;</option>
+<option value="10331">647</option>
+<option value="10326">648</option>
+<option value="16122">651</option>
+<option value="10844">652</option>
+<option value="10163">656</option>
+<option value="10164">657</option>
+<option value="16685">657&#x5ef6;</option>
+<option value="16113">658</option>
+<option value="15191">660</option>
+<option value="17825">660&#x5340;</option>
+<option value="11241">662</option>
+<option value="10282">663</option>
+<option value="16123">667</option>
+<option value="15515">668</option>
+<option value="10278">669</option>
+<option value="10771">670</option>
+<option value="10736">671</option>
+<option value="10785">672</option>
+<option value="16169">672&#x5340;</option>
+<option value="15512">675</option>
+<option value="15161">676</option>
+<option value="15638">677</option>
+<option value="5416">678</option>
+<option value="16127">679</option>
+<option value="16184">680</option>
+<option value="15359">681</option>
+<option value="15221">682</option>
+<option value="10811">685</option>
+<option value="11834">688</option>
+<option value="10151">701</option>
+<option value="10148">702</option>
+<option value="16517">704</option>
+<option value="16521">704&#x5340;</option>
+<option value="10195">705</option>
+<option value="10196">706</option>
+<option value="16461">707</option>
+<option value="15513">711</option>
+<option value="17945">712</option>
+<option value="18258">712&#x526f;</option>
+<option value="16504">756</option>
+<option value="16707">757</option>
+<option value="16706">758</option>
+<option value="18738">760</option>
+<option value="17515">778</option>
+<option value="16511">779</option>
+<option value="16692">783</option>
+<option value="16642">787</option>
+<option value="16681">787&#x7d93;&#x745e;&#x82b3;&#x5de5;&#x696d;&#x5340;</option>
+<option value="16641">788</option>
+<option value="18098">788&#x5340;</option>
+<option value="17501">788&#x6d77;&#x79d1;&#x9928;</option>
+<option value="16739">789</option>
+<option value="17865">789&#x5340;</option>
+<option value="16740">790</option>
+<option value="17500">790&#x6f01;&#x6e2f;</option>
+<option value="16682">791</option>
+<option value="19208">791&#x5340;</option>
+<option value="17692">791&#x7e5e;&#x8ca2;&#x5bee;</option>
+<option value="17718">791&#x7d93;&#x8ca2;&#x5bee;&#x5340;&#x885b;&#x751f;</option>
+<option value="16689">793</option>
+<option value="16719">795&#x5f80;&#x6728;&#x67f5;&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x6728;&#x67f5;&#x5e73;&#x6eaa;&#x7dda;&#x29;</option>
+<option value="16758">795&#x5f80;&#x5e73;&#x6eaa;&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x6728;&#x67f5;&#x5e73;&#x6eaa;&#x7dda;&#x29;</option>
+<option value="16757">795&#x5f80;&#x5341;&#x5206;&#x5bee;&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x6728;&#x67f5;&#x5e73;&#x6eaa;&#x7dda;&#x29;</option>
+<option value="16691">796</option>
+<option value="16571">797</option>
+<option value="16576">799</option>
+<option value="16573">800</option>
+<option value="16594">801</option>
+<option value="16608">802</option>
+<option value="16479">802&#x5340;</option>
+<option value="16595">803</option>
+<option value="17524">805</option>
+<option value="17523">806</option>
+<option value="16670">810</option>
+<option value="16425">811</option>
+<option value="16189">812</option>
+<option value="17526">813</option>
+<option value="17527">813&#x5340;</option>
+<option value="16500">815</option>
+<option value="16499">816</option>
+<option value="16731">817</option>
+<option value="16258">819</option>
+<option value="17923">819&#x526f;</option>
+<option value="16584">820</option>
+<option value="16695">821</option>
+<option value="16730">822</option>
+<option value="17525">823</option>
+<option value="17889">824</option>
+<option value="16551">825</option>
+<option value="16554">826</option>
+<option value="16548">827</option>
+<option value="16485">835</option>
+<option value="16269">836</option>
+<option value="16270">838</option>
+<option value="16609">842</option>
+<option value="16474">843</option>
+<option value="17518">845</option>
+<option value="16429">847</option>
+<option value="16697">847&#x5340;</option>
+<option value="16393">849</option>
+<option value="17696">849&#x5c48;&#x5c3a;&#x793e;&#x5340;</option>
+<option value="17621">853&#x8df3;&#x86d9;</option>
+<option value="16552">856&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x9ec3;&#x91d1;&#x798f;&#x9686;&#x7dda;&#x29;</option>
+<option value="16591">857</option>
+<option value="16518">859</option>
+<option value="16528">860</option>
+<option value="16529">861</option>
+<option value="17528">862</option>
+<option value="16675">863</option>
+<option value="16651">864</option>
+<option value="16710">867&#x5340;</option>
+<option value="16526">869</option>
+<option value="16536">875</option>
+<option value="16564">876</option>
+<option value="16527">878</option>
+<option value="18558">878&#x5340;</option>
+<option value="16542">879</option>
+<option value="16659">880</option>
+<option value="16522">881</option>
+<option value="16543">882</option>
+<option value="16660">883</option>
+<option value="16513">885</option>
+<option value="17824">886&#x5340;</option>
+<option value="16607">889</option>
+<option value="16733">890</option>
+<option value="17838">894</option>
+<option value="16717">895</option>
+<option value="5413">896</option>
+<option value="17557">897</option>
+<option value="17706">897&#x5340;</option>
+<option value="15171">902</option>
+<option value="19718">902&#x5340;</option>
+<option value="15183">905</option>
+<option value="15184">905&#x526f;</option>
+<option value="10329">906</option>
+<option value="10724">907</option>
+<option value="17928">907&#x901a;&#x52e4;</option>
+<option value="10325">909</option>
+<option value="15173">912</option>
+<option value="15717">913</option>
+<option value="17532">918</option>
+<option value="18318">918&#x5340;</option>
+<option value="16633">919</option>
+<option value="17534">933</option>
+<option value="16562">935</option>
+<option value="16672">938</option>
+<option value="17363">949</option>
+<option value="17390">950</option>
+<option value="17709">955</option>
+<option value="17740">957</option>
+<option value="17916">963</option>
+<option value="16746">1717</option>
+<option value="15312">&#x7d05;2</option>
+<option value="15331">&#x7d05;3&#x5340;</option>
+<option value="10821">&#x7d05;5</option>
+<option value="11201">&#x7d05;7</option>
+<option value="11202">&#x7d05;7&#x5340;</option>
+<option value="15321">&#x7d05;10</option>
+<option value="17993">&#x7d05;10&#x5340;</option>
+<option value="15531">&#x7d05;12</option>
+<option value="16673">&#x7d05;13</option>
+<option value="15541">&#x7d05;15</option>
+<option value="16674">&#x7d05;22</option>
+<option value="16732">&#x7d05;23</option>
+<option value="16619">&#x7d05;26</option>
+<option value="16671">&#x7d05;27</option>
+<option value="16288">&#x7d05;28</option>
+<option value="16715">&#x7d05;28&#x76f4;</option>
+<option value="11011">&#x7d05;29</option>
+<option value="10431">&#x7d05;31</option>
+<option value="16430">&#x7d05;36</option>
+<option value="16431">&#x7d05;37</option>
+<option value="19088">&#x7d05;37&#x884c;&#x7d93;&#x6d77;&#x6d0b;&#x90fd;&#x5fc3;&#x793e;&#x5340;</option>
+<option value="16282">&#x7d05;38</option>
+<option value="16432">&#x7d05;39</option>
+<option value="19068">&#x7d05;53</option>
+<option value="16166">&#x7d05;50</option>
+<option value="16397">&#x7d05;51</option>
+<option value="10733">&#x68d5;2</option>
+<option value="10742">&#x68d5;6</option>
+<option value="10143">&#x68d5;7</option>
+<option value="17466">&#x68d5;7&#x7da0;&#x91ce;&#x9999;&#x5761;</option>
+<option value="17940">&#x68d5;7&#x5efa;&#x696d;&#x8def;</option>
+<option value="10142">&#x5357;&#x74b0;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10732">&#x7da0;2&#x53f3;</option>
+<option value="10731">&#x7da0;2&#x5de6;</option>
+<option value="16610">&#x7da0;5</option>
+<option value="16611">&#x7da0;6</option>
+<option value="16420">&#x7da0;7</option>
+<option value="16613">&#x7da0;8</option>
+<option value="16418">&#x7da0;10</option>
+<option value="16481">&#x7da0;13</option>
+<option value="16243">&#x7da0;15</option>
+<option value="17555">&#x6771;&#x74b0;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="16265">&#x6a58;1</option>
+<option value="16407">&#x6a58;2</option>
+<option value="16405">&#x6a58;5</option>
+<option value="16274">&#x6a58;9</option>
+<option value="16620">&#x6a58;10</option>
+<option value="16668">&#x6a58;13</option>
+<option value="16490">&#x6a58;17</option>
+<option value="16489">&#x6a58;19</option>
+<option value="18268">&#x6a58;19&#x526f;</option>
+<option value="16582">&#x6a58;25</option>
+<option value="16686">&#x6a58;26</option>
+<option value="17360">&#x85cd;1</option>
+<option value="10281">&#x85cd;2</option>
+<option value="15361">&#x85cd;7</option>
+<option value="18044">&#x85cd;7&#x526f;</option>
+<option value="10292">&#x85cd;10</option>
+<option value="16296">&#x85cd;15</option>
+<option value="16464">&#x85cd;17</option>
+<option value="17516">&#x85cd;18</option>
+<option value="16125">&#x85cd;20&#x5340;</option>
+<option value="16498">&#x85cd;21</option>
+<option value="17332">&#x85cd;21&#x526f;</option>
+<option value="16294">&#x85cd;22</option>
+<option value="16632">&#x85cd;23</option>
+<option value="10941">&#x85cd;25</option>
+<option value="10241">&#x85cd;36</option>
+<option value="16486">&#x85cd;37</option>
+<option value="16487">&#x85cd;38</option>
+<option value="16544">&#x85cd;39</option>
+<option value="16735">&#x85cd;41</option>
+<option value="17311">&#x85cd;41&#x5ef6;&#x548c;</option>
+<option value="16207">&#x85cd;44</option>
+<option value="16729">&#x85cd;44&#x5ef6;</option>
+<option value="16602">&#x85cd;45</option>
+<option value="16586">&#x85cd;46</option>
+<option value="10932">&#x4ec1;&#x611b;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="810">&#x6566;&#x5316;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10851">&#x5167;&#x6e56;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10293">&#x6c11;&#x751f;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10332">&#x677e;&#x6c5f;&#x65b0;&#x751f;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="15373">&#x4e2d;&#x5c71;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="11812">&#x548c;&#x5e73;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="11833">&#x5fa9;&#x8208;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="11881">&#x91cd;&#x6176;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10417">&#x5fe0;&#x5b5d;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="11152">&#x627f;&#x5fb7;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10231">&#x6c11;&#x6b0a;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10251">&#x5357;&#x4eac;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="15708">&#x4fe1;&#x7fa9;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10334">&#x57fa;&#x9686;&#x8def;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="10711">&#x7f85;&#x65af;&#x798f;&#x8def;&#x5e79;&#x7dda;(&#x516c;&#x8eca;&#x96d9;&#x5411;&#x8f49;&#x4e58;&#x512a;&#x60e0;)</option>
+<option value="16606">981</option>
+<option value="16688">983</option>
+<option value="17304">985&#x842c;&#x5927;&#x6a39;&#x6797;&#x5148;&#x5c0e;&#x516c;&#x8eca;</option>
+<option value="17668">982</option>
+<option value="17679">982&#x5340;</option>
+<option value="17680">982&#x76f4;&#x9054;</option>
+<option value="17687">982&#x76f4;&#x9054;&#x65b0;&#x57d4;&#x7dda;</option>
+<option value="16845">578</option>
+<option value="16847">579</option>
+<option value="16849">580</option>
+<option value="16851">581</option>
+<option value="18148">582&#x7d93;&#x5de5;&#x696d;&#x5340;</option>
+<option value="19048">582&#x7d93;&#x6d32;&#x5b50;&#x6d0b;</option>
+<option value="16855">582</option>
+<option value="17513">583</option>
+<option value="17683">585</option>
+<option value="16997">586</option>
+<option value="17009">589</option>
+<option value="17015">677&#x526f;</option>
+<option value="17017">591</option>
+<option value="18198">&#x901a;&#x52e4;11</option>
+<option value="18199">&#x901a;&#x52e4;12</option>
+<option value="18228">&#x901a;&#x52e4;13</option>
+<option value="18428">&#x901a;&#x52e4;16</option>
+<option value="18648">&#x901a;&#x52e4;22</option>
+<option value="18658">&#x901a;&#x52e4;21</option>
+<option value="18708">&#x901a;&#x52e4;24</option>
+<option value="18878">&#x901a;&#x52e4;25</option>
+<option value="19028">&#x901a;&#x52e4;26</option>
+<option value="19408">&#x901a;&#x52e4;27</option>
+<option value="19488">&#x901a;&#x52e4;28</option>
+<option value="19539">&#x901a;&#x52e4;29</option>
+<option value="19721">&#x96d9;&#x5712;&#x5df4;&#x58eb;</option>
+<option value="19759">&#x901a;&#x52e4;30</option>
+<option value="17789">960</option>
+<option value="17802">854</option>
+<option value="17806">899</option>
+<option value="17941">&#x6e6f;&#x6cc9;-&#x5927;&#x576a;&#x6797;-&#x6e6f;&#x6cc9;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇捷運先導公車-></option>
+                    <option value="17958">&#x85cd;&#x6d77;2&#x7dda;&#x5148;&#x5c0e;&#x516c;&#x8eca;</option>
+<option value="17304">985&#x842c;&#x5927;&#x6a39;&#x6797;&#x5148;&#x5c0e;&#x516c;&#x8eca;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇通勤公車-></option>
+                    <option value="17928">907&#x901a;&#x52e4;</option>
+<option value="17967">&#x901a;&#x52e4;7</option>
+<option value="18039">&#x901a;&#x52e4;9</option>
+<option value="18198">&#x901a;&#x52e4;11</option>
+<option value="18199">&#x901a;&#x52e4;12</option>
+<option value="18228">&#x901a;&#x52e4;13</option>
+<option value="18428">&#x901a;&#x52e4;16</option>
+<option value="18648">&#x901a;&#x52e4;22</option>
+<option value="18658">&#x901a;&#x52e4;21</option>
+<option value="18708">&#x901a;&#x52e4;24</option>
+<option value="18878">&#x901a;&#x52e4;25</option>
+<option value="19028">&#x901a;&#x52e4;26</option>
+<option value="19408">&#x901a;&#x52e4;27</option>
+<option value="19488">&#x901a;&#x52e4;28</option>
+<option value="19539">&#x901a;&#x52e4;29</option>
+<option value="19759">&#x901a;&#x52e4;30</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇內科專車-></option>
+                    <option value="10253">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;22</option>
+<option value="15685">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;2</option>
+<option value="15687">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;3</option>
+<option value="15688">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;5</option>
+<option value="15689">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;6</option>
+<option value="15690">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;7</option>
+<option value="15691">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;8</option>
+<option value="15676">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;10</option>
+<option value="15677">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;11</option>
+<option value="15678">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;12</option>
+<option value="15679">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;13</option>
+<option value="15680">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;15</option>
+<option value="15681">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;16</option>
+<option value="15682">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;17</option>
+<option value="15683">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;18</option>
+<option value="15684">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;19</option>
+<option value="15686">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;20</option>
+<option value="18015">&#x5167;&#x79d1;&#x901a;&#x52e4;&#x5c08;&#x8eca;21</option>
+<option value="15693">&#x5167;&#x79d1;&#x5feb;&#x7dda;2</option>
+<option value="15702">&#x5167;&#x79d1;&#x5feb;&#x7dda;1</option>
+<option value="19721">&#x96d9;&#x5712;&#x5df4;&#x58eb;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇南軟專車-></option>
+                    <option value="15694">&#x5357;&#x8edf;&#x901a;&#x52e4;&#x5c08;&#x8eca;&#x4e2d;&#x548c;&#x7dda;</option>
+<option value="15695">&#x5357;&#x8edf;&#x901a;&#x52e4;&#x5c08;&#x8eca;&#x5929;&#x6bcd;&#x7dda;</option>
+<option value="15696">&#x5357;&#x8edf;&#x901a;&#x52e4;&#x5c08;&#x8eca;&#x5317;&#x6295;&#x7dda;</option>
+<option value="15698">&#x5357;&#x8edf;&#x901a;&#x52e4;&#x5c08;&#x8eca;&#x96d9;&#x548c;&#x7dda;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇市民小巴-></option>
+                    <option value="11217">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;1</option>
+<option value="11146">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;2</option>
+<option value="10791">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;5</option>
+<option value="11854">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;6</option>
+<option value="10883">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;7</option>
+<option value="15573">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;8</option>
+<option value="15711">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;9</option>
+<option value="15734">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;10</option>
+<option value="15731">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;11</option>
+<option value="16164">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;12</option>
+<option value="16649">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;15</option>
+<option value="17908">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;16</option>
+<option value="19448">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;17</option>
+<option value="19618">&#x5e02;&#x6c11;&#x5c0f;&#x5df4;18</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇新巴士-></option>
+                    <option value="16752">F101&#x576a;&#x9802;</option>
+<option value="16760">F101&#x6a39;&#x8208;</option>
+<option value="16775">F102</option>
+<option value="16777">F103</option>
+<option value="16761">F105</option>
+<option value="16773">F105&#x53cd;</option>
+<option value="16764">F106</option>
+<option value="16774">F109</option>
+<option value="16792">F121</option>
+<option value="16793">F122</option>
+<option value="16794">F123-0640&#x3001;0700</option>
+<option value="16795">F123-1205</option>
+<option value="16796">F123-1550</option>
+<option value="16800">F126</option>
+<option value="19658">F126&#x7d93;&#x91cc;&#x4e2d;</option>
+<option value="16802">F126&#x6c5f;&#x539d;</option>
+<option value="16786">F131</option>
+<option value="16787">F132</option>
+<option value="16782">F133&#x5e73;&#x65e5;</option>
+<option value="16784">F133&#x672b;&#x73ed;</option>
+<option value="16785">F133&#x5047;&#x65e5;</option>
+<option value="16778">F135</option>
+<option value="16788">F136</option>
+<option value="16789">F137</option>
+<option value="16781">F138&#x5167;&#x6a6b;&#x5c71;</option>
+<option value="16780">F138&#x65b0;&#x53e4;&#x5e84;</option>
+<option value="16790">F139&#x884c;&#x7d93;&#x53f0;2&#x7dda;</option>
+<option value="17694">F139&#x884c;&#x7d93;101&#x7dda;</option>
+<option value="16815">F151-0605</option>
+<option value="16816">F151-0620</option>
+<option value="16817">F151-0730</option>
+<option value="16818">F151-0930</option>
+<option value="16819">F151-1000</option>
+<option value="16804">F151-0800</option>
+<option value="16805">F151-1605</option>
+<option value="16806">F151-1625</option>
+<option value="16807">F151-0830&#x3001;1655</option>
+<option value="16820">F151-1800</option>
+<option value="19258">F151-0655&#x3001;1030</option>
+<option value="19259">F151-1730</option>
+<option value="16823">F152-0600</option>
+<option value="16824">F152-0620&#x3001;0745</option>
+<option value="16825">F152-0635</option>
+<option value="16826">F152-0700</option>
+<option value="16827">F152-0810</option>
+<option value="16828">F152-0845</option>
+<option value="16829">F152-0925</option>
+<option value="16830">F152-1545</option>
+<option value="16831">F152-1655</option>
+<option value="16832">F152-1720</option>
+<option value="16834">F152-1800</option>
+<option value="19269">F152-0950</option>
+<option value="19270">F152-1630</option>
+<option value="19271">F152-1740</option>
+<option value="16808">F153-0620</option>
+<option value="16809">F153-0730&#x3001;0945</option>
+<option value="16810">F153-0820</option>
+<option value="16811">F153-1030</option>
+<option value="16812">F153-1605</option>
+<option value="16814">F153-1730</option>
+<option value="16821">F161</option>
+<option value="16835">F201</option>
+<option value="16837">F202</option>
+<option value="17663">F205</option>
+<option value="17664">F206</option>
+<option value="17665">F207</option>
+<option value="16840">F211</option>
+<option value="16841">F212</option>
+<option value="16842">F212&#x6953;&#x6c5f;</option>
+<option value="17559">F212&#x526f;</option>
+<option value="16843">F213</option>
+<option value="16844">F213&#x9ece;&#x660e;</option>
+<option value="16838">F217</option>
+<option value="16839">F218</option>
+<option value="16861">F233</option>
+<option value="16863">F235</option>
+<option value="16865">F236</option>
+<option value="16867">F237</option>
+<option value="16869">F238</option>
+<option value="16871">F239</option>
+<option value="16873">F250</option>
+<option value="17631">F301</option>
+<option value="16876">F302</option>
+<option value="16877">F303</option>
+<option value="16878">F312</option>
+<option value="16887">F317</option>
+<option value="17990">F319</option>
+<option value="17991">F320</option>
+<option value="16890">F512</option>
+<option value="17914">F512&#x526f;</option>
+<option value="16891">F513</option>
+<option value="16892">F521</option>
+<option value="16893">F522</option>
+<option value="16894">F523</option>
+<option value="16895">F525</option>
+<option value="16896">F526</option>
+<option value="16903">F611</option>
+<option value="16906">F623</option>
+<option value="16907">F625</option>
+<option value="16908">F626</option>
+<option value="18518">F626-0815</option>
+<option value="16909">F627</option>
+<option value="16910">F628</option>
+<option value="16912">F629</option>
+<option value="16914">F630</option>
+<option value="16922">F653A</option>
+<option value="16923">F653B</option>
+<option value="16919">F651</option>
+<option value="16920">F652</option>
+<option value="19640">&#x5e78;&#x798f;&#x5df4;&#x58eb;F652&#x5ef6;&#x4f38;&#x7dda;</option>
+<option value="16924">F655</option>
+<option value="16926">F656</option>
+<option value="17714">F657</option>
+<option value="16929">F703&#x524d;&#x4e09;&#x73ed;</option>
+<option value="17624">F703</option>
+<option value="16937">F711</option>
+<option value="16940">F712</option>
+<option value="16939">F713</option>
+<option value="16941">F721</option>
+<option value="16942">F722</option>
+<option value="16943">F723</option>
+<option value="17623">F723&#x4e0b;&#x77f3;&#x5608;</option>
+<option value="19598">F723&#x4e0a;&#x77f3;&#x5608;</option>
+<option value="18042">F724</option>
+<option value="16944">F801</option>
+<option value="16946">F802</option>
+<option value="16948">F803</option>
+<option value="16950">F805</option>
+<option value="16952">F806</option>
+<option value="16954">F807</option>
+<option value="16956">F808</option>
+<option value="16958">F811</option>
+<option value="16960">F815</option>
+<option value="17693">F815&#x5dba;&#x982d;&#x89c0;&#x76ee;</option>
+<option value="17565">F812</option>
+<option value="17567">F813</option>
+<option value="18068">F816</option>
+<option value="16962">F821</option>
+<option value="16963">F822</option>
+<option value="16964">F823</option>
+<option value="17699">F823&#x5340;</option>
+<option value="18108">F825</option>
+<option value="16969">F835</option>
+<option value="16970">F836</option>
+<option value="16971">F837</option>
+<option value="16972">&#x8ca2;&#x5bee;&#x5340;&#x5b78;&#x751f;&#x5c08;&#x8eca;</option>
+<option value="16973">F838</option>
+<option value="16974">F839</option>
+<option value="18808">&#x5409;&#x6797;&#x7dda;</option>
+<option value="18809">&#x9f8d;&#x5d17;&#x7dda;</option>
+<option value="19348">&#x798f;&#x9023;&#x7dda;</option>
+<option value="19713">&#x5857;&#x6f6d;&#x5e73;&#x65e5;&#x7dda;</option>
+<option value="19714">&#x5857;&#x6f6d;&#x5047;&#x65e5;&#x7dda;</option>
+<option value="16988">F901</option>
+<option value="16990">F902</option>
+<option value="16993">F903</option>
+<option value="16995">F905</option>
+<option value="16999">F907</option>
+<option value="17003">F919&#x516b;&#x9023;</option>
+<option value="19659">F909&#x4f2f;&#x7235;</option>
+<option value="17005">F910</option>
+<option value="17007">F911</option>
+<option value="17568">F913</option>
+<option value="17013">F915</option>
+<option value="17433">F920</option>
+<option value="16677">F921</option>
+<option value="16678">F921&#x5047;&#x65e5;</option>
+<option value="16976">F922&#x5167;&#x5d01;</option>
+<option value="16975">F922&#x70cf;&#x5857;&#x70ad;</option>
+<option value="18052">F922&#x5317;&#x57fa;</option>
+<option value="16676">F923</option>
+<option value="16679">F923&#x5047;&#x65e5;</option>
+<option value="16980">F931-0600</option>
+<option value="16981">F931-0700</option>
+<option value="16982">F931-0800</option>
+<option value="16983">F931-0910</option>
+<option value="16984">F931-1030</option>
+<option value="16985">F931-1255</option>
+<option value="16986">F931-1630</option>
+<option value="16987">F931-1730</option>
+<option value="17391">F932-0600</option>
+<option value="17465">F932-0630</option>
+<option value="17392">F932-1630</option>
+<option value="17393">F932-0820</option>
+<option value="17394">F932-0950</option>
+<option value="17395">F932-1110</option>
+<option value="17733">F932-0715</option>
+<option value="16977">F933-0620&#x5b78;&#x751f;&#x5c08;&#x8eca;</option>
+<option value="16978">F933-0800</option>
+<option value="16979">F933-0710</option>
+<option value="17836">F933-0635</option>
+<option value="17837">F933-0920</option>
+<option value="17839">F933-1030</option>
+<option value="17840">F933-1130</option>
+<option value="17841">F933-1330</option>
+<option value="17842">F933-1430</option>
+<option value="17843">F933-1530</option>
+<option value="17832">&#x76f4;&#x6f6d;&#x91cc;&#x7dda;</option>
+<option value="17809">F132&#x7d93;&#x9752;&#x5c71;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇特定路線專車-></option>
+                    <option value="17560">&#x5152;&#x6a02;1&#x865f;&#x7dda;</option>
+<option value="17561">&#x5152;&#x6a02;2&#x865f;&#x7dda;</option>
+<option value="11741">&#x8c93;&#x7a7a;&#x53f3;&#x7dda;</option>
+<option value="16140">&#x8c93;&#x7a7a;&#x5de6;&#x7dda;&#x28;&#x6307;&#x5357;&#x5bae;&#x29;</option>
+<option value="16163">&#x8c93;&#x7a7a;&#x5de6;&#x7dda;&#x28;&#x52d5;&#x7269;&#x5712;&#x29;</option>
+<option value="16172">&#x61f7;&#x6069;&#x5c08;&#x8eca;S31</option>
+<option value="17018">&#x61f7;&#x6069;&#x5c08;&#x8eca;S32</option>
+<option value="16508">&#x61f7;&#x6069;&#x5c08;&#x8eca;S33</option>
+<option value="19648">&#x61f7;&#x6069;&#x5c08;&#x8eca;S34</option>
+<option value="19649">&#x61f7;&#x6069;&#x5c08;&#x8eca;S35</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇觀光巴士-></option>
+                    <option value="17800">&#x81fa;&#x5317;&#x89c0;&#x5149;&#x5df4;&#x58eb;&#x7d05;&#x7dda;</option>
+<option value="17801">&#x81fa;&#x5317;&#x89c0;&#x5149;&#x5df4;&#x58eb;&#x85cd;&#x7dda;</option>
+<option value="19747">177&#x745e;&#x82b3;&#x89c0;&#x5149;&#x516c;&#x8eca;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇跳蛙專車-></option>
+                    <option value="17621">853&#x8df3;&#x86d9;</option>
+<option value="17720">939&#x8df3;&#x86d9;</option>
+<option value="17835">&#x6797;&#x53e3;-&#x677f;&#x6a4b;</option>
+<option value="19755">&#x65b0;&#x838a;-&#x81fa;&#x5317;&#x8eca;&#x7ad9;</option>
+<option value="19721">&#x96d9;&#x5712;&#x5df4;&#x58eb;</option>
+<option value="17846">&#x9daf;&#x6b4c;&#x706b;&#x8eca;&#x7ad9;-&#x4e2d;&#x6b63;&#x7d00;&#x5ff5;&#x5802;</option>
+<option value="17847">&#x9daf;&#x6b4c;&#x706b;&#x8eca;&#x7ad9;-&#x677e;&#x5c71;&#x6a5f;&#x5834;</option>
+<option value="18288">&#x4e2d;&#x548c;&#x81ea;&#x7acb;&#x8def;-&#x65b0;&#x5e97;</option>
+<option value="17994">&#x842c;&#x91cc;-&#x5167;&#x6e56;&#x79d1;&#x6280;&#x5712;&#x5340;</option>
+<option value="18248">&#x6377;&#x904b;&#x4e03;&#x5f35;&#x7ad9;-&#x5168;&#x7403;&#x5de5;&#x696d;&#x5340;</option>
+<option value="18209">&#x6797;&#x53e3;-&#x6377;&#x904b;&#x5fe0;&#x5b5d;&#x6566;&#x5316;&#x7ad9;</option>
+<option value="18208">&#x6797;&#x53e3;-&#x81fa;&#x5317;&#x8eca;&#x7ad9;&#x28;&#x627f;&#x5fb7;&#x29;</option>
+<option value="18168">&#x8606;&#x6d32;-&#x4e2d;&#x6b63;&#x9ad8;&#x4e2d;</option>
+<option value="18078">&#x6e6f;&#x6cc9;-&#x5341;&#x56db;&#x5f35;-&#x5927;&#x576a;&#x6797;</option>
+<option value="18054">&#x65b0;&#x5e97;&#x28;&#x7da0;&#x4e2d;&#x6d77;&#x29;-&#x6377;&#x904b;&#x65b0;&#x5e97;&#x7ad9;</option>
+<option value="18028">&#x8606;&#x6d32;-&#x5167;&#x6e56;</option>
+<option value="17992">&#x4e09;&#x91cd;-&#x5167;&#x79d1;</option>
+<option value="18017">&#x6e6f;&#x6cc9;-&#x5d07;&#x5149;&#x4e2d;&#x5b78;</option>
+<option value="18014">&#x6cf0;&#x5c71;-&#x5167;&#x6e56;&#x28;&#x76f4;&#x9054;&#x29;</option>
+<option value="17996">&#x8606;&#x6d32;-&#x5357;&#x6e2f;</option>
+<option value="17968">&#x8606;&#x6d32;&#x4e2d;&#x6b63;&#x8def;-&#x58eb;&#x6797;&#x4e2d;&#x6b63;&#x8def;</option>
+<option value="18368">&#x4e2d;&#x548c;&#x5de6;&#x5cb8;&#x793e;&#x5340;-&#x6377;&#x904b;&#x9802;&#x6eaa;&#x7ad9;</option>
+<option value="18478">&#x4e2d;&#x548c;&#x74b0;&#x6cb3;&#x897f;&#x8def;-&#x6c38;&#x548c;&#x4ec1;&#x611b;&#x8def;</option>
+<option value="18538">&#x6377;&#x904b;&#x9802;&#x6eaa;&#x7ad9;-&#x6377;&#x904b;&#x9802;&#x57d4;&#x7ad9;</option>
+<option value="18568">&#x6797;&#x53e3;&#x28;&#x6587;&#x5316;&#x5317;&#x8def;&#x29;-&#x6377;&#x904b;&#x5713;&#x5c71;&#x7ad9;</option>
+<option value="18778">&#x571f;&#x57ce;-&#x5357;&#x5929;&#x6bcd;&#x5ee3;&#x5834;</option>
+<option value="18779">&#x745e;&#x82b3;-&#x5357;&#x6e2f;</option>
+<option value="18798">&#x6377;&#x904b;&#x4e2d;&#x548c;&#x7ad9;-&#x653f;&#x5927;&#x9644;&#x4e2d;</option>
+<option value="18888">&#x653f;&#x5927;&#x9644;&#x4e2d;-&#x6377;&#x904b;&#x666f;&#x7f8e;&#x7ad9;</option>
+<option value="19078">&#x745e;&#x82b3;&#x28;&#x7d93;&#x6771;&#x7887;&#x8def;&#x29;-&#x677e;&#x5c71;&#x8eca;&#x7ad9;</option>
+<option value="19148">&#x6377;&#x904b;&#x65b0;&#x5e97;&#x7ad9;-&#x576a;&#x6797;</option>
+<option value="19238">&#x5317;&#x5927;&#x793e;&#x5340;-&#x6377;&#x904b;&#x9802;&#x57d4;&#x7ad9;</option>
+<option value="19538">&#x6377;&#x904b;&#x5fe0;&#x5b5d;&#x5fa9;&#x8208;&#x7ad9;-&#x4e09;&#x5cfd;</option>
+<option value="19729">&#x77f3;&#x7887;&#x9ad8;&#x4e2d;-&#x6377;&#x904b;&#x5fe0;&#x5b5d;&#x5fa9;&#x8208;&#x7ad9;</option>
+<option value="19733">&#x4e09;&#x5cfd;-&#x4e2d;&#x548c;&#x9ad8;&#x4e2d;</option>
+<option value="19744">&#x5408;&#x5b9c;&#x4f4f;&#x5b85;-&#x6377;&#x904b;&#x4e9e;&#x6771;&#x91ab;&#x9662;&#x7ad9;</option>
+<option value="17911">&#x745e;&#x82b3;-&#x5167;&#x79d1;&#x28;&#x57fa;&#x5ba2;&#x29;</option>
+<option value="17671">&#x6797;&#x53e3;-&#x6377;&#x904b;&#x5713;&#x5c71;&#x7ad9;</option>
+<option value="17689">&#x4e09;&#x5cfd;-&#x6377;&#x904b;&#x6c38;&#x5be7;&#x7ad9;</option>
+<option value="17711">&#x4e09;&#x5cfd;-&#x6377;&#x904b;&#x53f0;&#x5927;&#x91ab;&#x9662;&#x7ad9;</option>
+<option value="17811">&#x6797;&#x53e3;-&#x5167;&#x6e56;&#x79d1;&#x6280;&#x5712;&#x5340;</option>
+<option value="17812">&#x65b0;&#x5e97;-&#x6c50;&#x6b62;</option>
+<option value="17813">&#x6cf0;&#x5c71;-&#x5167;&#x6e56;</option>
+<option value="17814">&#x6de1;&#x6c34;-&#x5167;&#x6e56;&#x79d1;&#x6280;&#x5712;&#x5340;</option>
+<option value="17815">&#x6de1;&#x6c34;-&#x570b;&#x9053;1&#x865f;-&#x5357;&#x6e2f;&#x8eca;&#x7ad9;</option>
+<option value="17866">&#x6797;&#x53e3;&#x28;&#x6587;&#x5316;&#x4e09;&#x8def;&#x29;-&#x6377;&#x904b;&#x5713;&#x5c71;&#x7ad9;</option>
+<option value="17871">&#x6de1;&#x6c34;&#x65b0;&#x5e02;&#x93ae;-&#x677f;&#x6a4b;</option>
+<option value="17873">&#x65b0;&#x5e97;&#x9ad8;&#x4e2d;-&#x4e09;&#x5cfd;</option>
+<option value="17902">&#x745e;&#x82b3;-&#x677e;&#x5c71;&#x8eca;&#x7ad9;&#x28;&#x5317;&#x5ba2;&#x29;</option>
+<option value="17903">&#x745e;&#x82b3;-&#x677e;&#x5c71;&#x8eca;&#x7ad9;&#x28;&#x57fa;&#x5ba2;&#x29;</option>
+<option value="17904">&#x745e;&#x82b3;-&#x5167;&#x79d1;&#x28;&#x5317;&#x5ba2;&#x29;</option>
+<option value="17905">&#x4e09;&#x5cfd;-&#x5167;&#x79d1;</option>
+<option value="17977">&#x53f0;&#x5317;&#x5c0f;&#x57ce;-&#x5927;&#x576a;&#x6797;</option>
+<option value="17915">&#x6c50;&#x6b62;-&#x53f0;&#x5317;101</option>
+<option value="17917">&#x4e94;&#x80a1;-&#x5167;&#x6e56;&#x79d1;&#x6280;&#x5712;&#x5340;</option>
+<option value="17918">&#x6797;&#x53e3;-&#x81fa;&#x5317;&#x9577;&#x5e9a;&#x91ab;&#x9662;</option>
+<option value="17919">&#x6377;&#x904b;&#x666f;&#x5b89;&#x7ad9;-&#x4e09;&#x5cfd;&#x81fa;&#x5317;&#x5927;&#x5b78;</option>
+<option value="17922">&#x6377;&#x904b;&#x8606;&#x6d32;&#x7ad9;-&#x5167;&#x6e56;&#x79d1;&#x6280;&#x5712;&#x5340;</option>
+<option value="17930">&#x65b0;&#x5e97;&#x5317;&#x65b0;&#x8def;-&#x653f;&#x5927;&#x4e00;&#x8857;</option>
+<option value="17931">&#x571f;&#x57ce;&#x91d1;&#x57ce;&#x8def;-&#x6a39;&#x6797;&#x5927;&#x5b89;&#x8def;</option>
+<option value="17941">&#x6e6f;&#x6cc9;-&#x5927;&#x576a;&#x6797;-&#x6e6f;&#x6cc9;</option>
+<option value="17948">&#x4e09;&#x5cfd;-&#x6377;&#x904b;&#x5e9c;&#x4e2d;&#x7ad9;</option>
+<option value="17961">&#x6a39;&#x6797;&#x5f8c;&#x706b;&#x8eca;&#x7ad9;-&#x6d77;&#x6d0b;&#x516c;&#x5712;</option>
+<option value="17962">&#x4e09;&#x5cfd;-&#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;</option>
+<option value="17963">&#x4e2d;&#x548c;-&#x65b0;&#x5317;&#x677f;&#x6a4b;&#x516c;&#x8eca;&#x7ad9;</option>
+<option value="17970">&#x6797;&#x53e3;-&#x6377;&#x904b;&#x5e9c;&#x4e2d;&#x7ad9;</option>
+<option value="17975">&#x77f3;&#x9580;-&#x6377;&#x904b;&#x7d05;&#x6a39;&#x6797;&#x7ad9;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇快速公車-></option>
+                    <option value="10419">232&#x5feb;</option>
+<option value="15516">605&#x5feb;</option>
+<option value="15171">902</option>
+<option value="19718">902&#x5340;</option>
+<option value="10763">903</option>
+<option value="15183">905</option>
+<option value="15184">905&#x526f;</option>
+<option value="10329">906</option>
+<option value="10724">907</option>
+<option value="17928">907&#x901a;&#x52e4;</option>
+<option value="16585">908</option>
+<option value="10325">909</option>
+<option value="16462">910</option>
+<option value="15173">912</option>
+<option value="15717">913</option>
+<option value="10754">915</option>
+<option value="17519">916</option>
+<option value="16210">917</option>
+<option value="17532">918</option>
+<option value="16633">919</option>
+<option value="16603">920</option>
+<option value="18729">920&#x526f;</option>
+<option value="18764">920A</option>
+<option value="16664">921</option>
+<option value="16224">922</option>
+<option value="16422">923</option>
+<option value="16604">925</option>
+<option value="18766">925A</option>
+<option value="17536">927</option>
+<option value="17545">927&#x7d93;&#x53f0;&#x5317;&#x6e2f;</option>
+<option value="17537">928</option>
+<option value="16423">930</option>
+<option value="16614">930&#x5ef6;</option>
+<option value="16560">932</option>
+<option value="17717">932&#x7e5e;&#x570b;&#x5bb6;&#x6559;&#x80b2;&#x7814;&#x7a76;&#x9662;</option>
+<option value="17534">933</option>
+<option value="16562">935</option>
+<option value="16583">936</option>
+<option value="18758">936A</option>
+<option value="16655">937</option>
+<option value="18728">937&#x526f;</option>
+<option value="18762">937A</option>
+<option value="16672">938</option>
+<option value="16635">939</option>
+<option value="17942">939&#x526f;</option>
+<option value="16662">948</option>
+<option value="16728">940</option>
+<option value="16726">941</option>
+<option value="16759">943</option>
+<option value="17292">945</option>
+<option value="17293">946</option>
+<option value="17294">946&#x526f;</option>
+<option value="17570">947</option>
+<option value="17363">949</option>
+<option value="17390">950</option>
+<option value="17548">951</option>
+<option value="17576">952</option>
+<option value="17845">953&#x5340;</option>
+<option value="17575">953</option>
+<option value="17709">955</option>
+<option value="17740">957</option>
+<option value="17916">963</option>
+<option value="17937">965&#x28;&#x53f0;&#x7063;&#x597d;&#x884c;-&#x4e5d;&#x4efd;&#x91d1;&#x74dc;&#x77f3;&#x7dda;&#x29;</option>
+<option value="18118">966</option>
+<option value="18730">966&#x526f;</option>
+<option value="18760">966A</option>
+<option value="18119">967</option>
+<option value="18731">967&#x526f;</option>
+<option value="18128">967&#x76f4;</option>
+<option value="10734">&#x666f;&#x7f8e;-&#x69ae;&#x7e3d;&#x28;&#x5feb;&#x29;</option>
+<option value="17775">908&#x5ef6;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇夜間公車-></option>
+                    <option value="15664">39&#x591c;</option>
+<option value="16132">212&#x591c;</option>
+<option value="16131">265&#x591c;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select onchange="selectRoute(this.value);">
+                    <option value="">選擇活動專案專車-></option>
+                    <option value="19628">&#x65b0;&#x4e5d;&#x865f;&#x505c;&#x8eca;&#x5834;-&#x4e5d;&#x4efd;&#x8001;&#x8857;</option>
+<option value="19629">&#x65b0;&#x4e5d;&#x865f;&#x505c;&#x8eca;&#x5834;-&#x6c34;&#x6e73;&#x6d1e;&#x505c;&#x8eca;&#x5834;</option>
+<option value="19754">&#x65b0;&#x4e5d;&#x865f;&#x505c;&#x8eca;&#x5834;-&#x9ec3;&#x91d1;&#x535a;&#x7269;&#x9928;</option>
+
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#F5F6CE;">
+                <select name="DGHRouteSelect" onchange="selectRoute(this.value);" style="width:100%">
+                    <option value="">選擇公路客運路線-></option>
+                    <option value="17758">1031 &#x570b;&#x5bb6;&#x65b0;&#x57ce;&rarr;&#x6c50;&#x6b62;&#x6a1f;&#x6a39;&#x7063;</option>
+<option value="17757">1031 &#x6c50;&#x6b62;&#x6a1f;&#x6a39;&#x7063;&rarr;&#x570b;&#x5bb6;&#x65b0;&#x57ce;</option>
+<option value="17144">1032 &#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x57fa;&#x9686;</option>
+<option value="17143">1032 &#x57fa;&#x9686;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;</option>
+<option value="17148">1061 &#x65b0;&#x5317;&#x5e02;&#x745e;&#x82b3;&#x5340;&rarr;&#x4e2d;&#x5c71;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5b;&#x4e0d;&#x7d93;&#x6696;&#x6696;&#x5340;&#x516c;&#x6240;&#x5d;</option>
+<option value="17147">1061 &#x81fa;&#x5317;&#x5e02;&rarr;&#x4e2d;&#x5c71;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x65b0;&#x5317;&#x5e02;&#x745e;&#x82b3;&#x5340;&#x5b;&#x4e0d;&#x7d93;&#x6696;&#x6696;&#x5340;&#x516c;&#x6240;&#x5d;</option>
+<option value="17146">1061A &#x65b0;&#x5317;&#x5e02;&#x745e;&#x82b3;&#x5340;&rarr;&#x4e2d;&#x5c71;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5b;&#x7d93;&#x6696;&#x6696;&#x5340;&#x516c;&#x6240;&#x5d;</option>
+<option value="17145">1061A &#x81fa;&#x5317;&#x5e02;&rarr;&#x4e2d;&#x5c71;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x65b0;&#x5317;&#x5e02;&#x745e;&#x82b3;&#x5340;&#x5b;&#x7d93;&#x6696;&#x6696;&#x5340;&#x516c;&#x6240;&#x5d;</option>
+<option value="17149">1062 &#x81fa;&#x5317;&#x5e02;&rarr;&#x4e2d;&#x5c71;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x65b0;&#x5317;&#x5e02;&#x745e;&#x82b3;&#x5340;&rarr;&#x91d1;&#x74dc;&#x77f3;</option>
+<option value="17150">1062 &#x91d1;&#x74dc;&#x77f3;&rarr;&#x65b0;&#x5317;&#x5e02;&#x745e;&#x82b3;&#x5340;&rarr;&#x4e2d;&#x5c71;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="17697">1068 &#x65b0;&#x5317;&#x5e02;&#x91d1;&#x5c71;&#x5340;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x7063;&#x5927;&#x5b78;</option>
+<option value="17698">1068 &#x81fa;&#x7063;&#x5927;&#x5b78;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x65b0;&#x5317;&#x5e02;&#x91d1;&#x5c71;&#x5340;</option>
+<option value="18173">1071 &#x5357;&#x6e2f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x82b1;&#x84ee;&#x5e02;</option>
+<option value="18174">1071 &#x82b1;&#x84ee;&#x5e02;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x5357;&#x6e2f;</option>
+<option value="18289">1071A &#x5357;&#x6e2f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x82b1;&#x84ee;&#x5e02;</option>
+<option value="17796">1088 &#x57fa;&#x9686;&#x5e02;&#x28;&#x6696;&#x6696;&#x5340;&#x29;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x677e;&#x5c71;&#x5340;</option>
+<option value="17797">1088 &#x81fa;&#x5317;&#x5e02;&#x677e;&#x5c71;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x57fa;&#x9686;&#x5e02;&#x28;&#x6696;&#x6696;&#x5340;&#x29;</option>
+<option value="17290">1191 &#x4e2d;&#x5d19;&rarr;&#x53f0;&#x4e94;&#x7dda;&rarr;&#x57fa;&#x9686;</option>
+<option value="17291">1191 &#x57fa;&#x9686;&rarr;&#x53f0;&#x4e94;&#x7dda;&rarr;&#x4e2d;&#x5d19;</option>
+<option value="17933">1356 &#x5357;&#x5d01;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&#x5b;&#x7d93;&#x6843;&#x5712;&#x5e02;&#x8606;&#x7af9;&#x5340;&#x4e2d;&#x6b63;&#x8def;&#x5d;</option>
+<option value="17934">1356 &#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x5d01;&#x5b;&#x7d93;&#x6843;&#x5712;&#x5e02;&#x8606;&#x7af9;&#x5340;&#x4e2d;&#x6b63;&#x8def;&#x5d;</option>
+<option value="17935">1356A &#x5357;&#x5d01;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&#x5b;&#x7d93;&#x6843;&#x5712;&#x5e02;&#x8606;&#x7af9;&#x5340;&#x4e2d;&#x5c71;&#x8def;&#x5d;</option>
+<option value="17936">1356A &#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x5d01;&#x5b;&#x7d93;&#x6843;&#x5712;&#x5e02;&#x8606;&#x7af9;&#x5340;&#x4e2d;&#x5c71;&#x8def;&#x5d;</option>
+<option value="17123">1550 &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317;&#x28;&#x55ae;&#x8ff4;&#x8def;&#x7dda;&#x29;</option>
+<option value="18229">1550A &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317; &#x5b;&#x7d93;&#x5efa;&#x570b;&#x5317;&#x8def;&#x3001;&#x884c;&#x5929;&#x5bae; &#x5d;</option>
+<option value="19049">1550B &#x57fa;&#x9686;&#x4e2d;&#x5c71;&#x5340;&rarr;&#x81fa;&#x5317; &#x5b;&#x7d93;&#x5efa;&#x570b;&#x5317;&#x8def;&#x3001;&#x884c;&#x5929;&#x5bae;&#x5d;</option>
+<option value="19050">1550B &#x81fa;&#x5317;&rarr;&#x57fa;&#x9686;&#x4e2d;&#x5c71;&#x5340; &#x5b;&#x7d93;&#x5efa;&#x570b;&#x5317;&#x8def;&#x3001;&#x884c;&#x5929;&#x5bae;&#x5d;</option>
+<option value="19109">1550C &#x57fa;&#x9686;&#x4e2d;&#x5c71;&#x5340;&rarr;&#x81fa;&#x5317; &#x5b;&#x7d93;&#x570b;&#x9053;3&#x865f;&#x3001;&#x5efa;&#x570b;&#x5317;&#x8def;&#x5d;</option>
+<option value="19110">1550C &#x81fa;&#x5317;&rarr;&#x57fa;&#x9686;&#x4e2d;&#x5c71;&#x5340;  &#x5b;&#x7d93;&#x570b;&#x9053;3&#x865f;&#x3001;&#x5efa;&#x570b;&#x5317;&#x8def;&#x5d;</option>
+<option value="17124">1551 &#x57fa;&#x9686;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x65b0;&#x5e97;</option>
+<option value="17125">1551 &#x65b0;&#x5e97;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x57fa;&#x9686;</option>
+<option value="17859">1558 &#x57fa;&#x9686;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x6728;&#x67f5;&#x52d5;&#x7269;&#x5712;</option>
+<option value="17861">1558A &#x57fa;&#x9686;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x6728;&#x67f5;&#x52d5;&#x7269;&#x5712;&#x5b;&#x7d93;&#x6df1;&#x5751;&#x5d;</option>
+<option value="17862">1558A &#x6728;&#x67f5;&#x52d5;&#x7269;&#x5712;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x57fa;&#x9686;&#x5b;&#x7d93;&#x6df1;&#x5751;&#x5d;</option>
+<option value="18230">1558C &#x57fa;&#x9686;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x6728;&#x67f5;&#x52d5;&#x7269;&#x5712;&#x5b;&#x7d93;&#x6df1;&#x5751;&#x3001;&#x653f;&#x5927; &#x5d;</option>
+<option value="18231">1558C &#x6728;&#x67f5;&#x52d5;&#x7269;&#x5712;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x57fa;&#x9686;&#x5b;&#x7d93;&#x6df1;&#x5751;&#x3001;&#x653f;&#x5927; &#x5d;</option>
+<option value="17112">1570 &#x7f85;&#x6771;&#x93ae;&rarr;&#x570b;&#x9053;5&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;</option>
+<option value="17111">1570 &#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&rarr;&#x570b;&#x9053;5&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x7f85;&#x6771;&#x93ae;</option>
+<option value="17110">1570A &#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&rarr;&#x570b;&#x9053;5&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x7f85;&#x6771;&#x93ae;&#x5b;&#x5047;&#x65e5;&#x8def;&#x7dda;&#x5d;</option>
+<option value="17113">1571 &#x5b9c;&#x862d;&#x5e02;&rarr;&#x570b;&#x9053;5&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;</option>
+<option value="17114">1571 &#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&rarr;&#x570b;&#x9053;5&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x5b9c;&#x862d;&#x5e02;</option>
+<option value="17710">1571A &#x5b9c;&#x862d;&#x5e02;&rarr;&#x570b;&#x9053;5&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&#x5b;&#x5047;&#x65e5;&#x8def;&#x7dda;&#x5d;</option>
+<option value="17115">1571A &#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&rarr;&#x570b;&#x9053;5&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x5b9c;&#x862d;&#x5e02;&#x5b;&#x5047;&#x65e5;&#x8def;&#x7dda;&#x5d;</option>
+<option value="17117">1572 &#x7f85;&#x6771;&#x93ae;&rarr;&#x5b9c;&#x862d;&#x5e02;&rarr;&#x7901;&#x6eaa;&#x9109;&rarr;&#x570b;&#x9053;5&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;</option>
+<option value="17118">1572 &#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&rarr;&#x570b;&#x9053;5&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x7901;&#x6eaa;&#x9109;&rarr;&#x5b9c;&#x862d;&#x5e02;&rarr;&#x7f85;&#x6771;&#x93ae;</option>
+<option value="17116">1572A &#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&rarr;&#x570b;&#x9053;5&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x7901;&#x6eaa;&#x9109;&rarr;&#x5b9c;&#x862d;&#x5e02;&rarr;&#x7f85;&#x6771;&#x93ae;&#x5b;&#x5047;&#x65e5;&#x8def;&#x7dda;&#x5d;</option>
+<option value="17357">1572B &#x7901;&#x6eaa;&#x9109;&rarr;&#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;</option>
+<option value="17358">1572B &#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&rarr;&#x7901;&#x6eaa;&#x9109;</option>
+<option value="17429">1572C &#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&rarr;&#x7901;&#x6eaa;&#x9109;&#x5b;&#x5047;&#x65e5;&#x8def;&#x7dda;&#x5d;</option>
+<option value="17120">1573 &#x5167;&#x6e56;&#x79d1;&#x6280;&#x5712;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x57fa;&#x9686;</option>
+<option value="17119">1573 &#x57fa;&#x9686;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5167;&#x6e56;&#x79d1;&#x6280;&#x5712;&#x5340;</option>
+<option value="17551">1573A &#x5167;&#x6e56;&#x79d1;&#x6280;&#x5712;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x57fa;&#x9686;&#x5b;&#x7e5e;&#x99db;&#x9e97;&#x5c71;&#x9ad8;&#x4e2d;&#x5d;</option>
+<option value="17550">1573A &#x57fa;&#x9686;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5167;&#x6e56;&#x79d1;&#x6280;&#x5712;&#x5340;&#x5b;&#x7e5e;&#x99db;&#x9e97;&#x5c71;&#x9ad8;&#x4e2d;&#x5d;</option>
+<option value="19758">1573B &#x5167;&#x6e56;&#x79d1;&#x6280;&#x5712;&#x5340;&mdash;&#x570b;&#x9053;&#x4e00;&#x865f;&mdash;&#x57fa;&#x9686;&#x5b;&#x6e2f;&#x897f;&#x8857;&#x4e0b;&#x5ba2;&#x7ad9;&#x5d;</option>
+<option value="18010">1579 &#x57fa;&#x9686;&#x5e02;&#x4e2d;&#x6b63;&#x5340;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5340;</option>
+<option value="18011">1579 &#x81fa;&#x5317;&#x5e02;&#x5340;&rarr;&#x57fa;&#x9686;&#x5e02;&#x4e2d;&#x6b63;&#x5340;</option>
+<option value="18012">1579A &#x57fa;&#x9686;&#x5e02;&#x4e2d;&#x6b63;&#x5340;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5340;&#x28;&#x7d93;&#x4e2d;&#x6b63;&#x8def;&#x29;</option>
+<option value="18013">1579A &#x81fa;&#x5317;&#x5e02;&#x5340;&rarr;&#x57fa;&#x9686;&#x5e02;&#x4e2d;&#x6b63;&#x5340;&#x28;&#x7d93;&#x4e2d;&#x6b63;&#x8def;&#x29;</option>
+<option value="18479">1579B &#x57fa;&#x9686;&#x5e02;&#x4e2d;&#x6b63;&#x5340;&rarr;&#x677e;&#x5c71;&#x9ad8;&#x4e2d;&#x28;&#x57fa;&#x9686;&#x8def;&#x29;</option>
+<option value="18480">1579B &#x5e02;&#x5e9c;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x57fa;&#x9686;&#x5e02;&#x4e2d;&#x6b63;&#x5340;</option>
+<option value="19561">1579C &#x57fa;&#x9686;&#x5e02;&#x4e2d;&#x6b63;&#x5340;&rarr;&#x6377;&#x904b;&#x5fe0;&#x5b5d;&#x5fa9;&#x8208;&#x7ad9;&#x28;&#x7d93;&#x4e2d;&#x6b63;&#x8def;&#x29;</option>
+<option value="19562">1579C &#x61f7;&#x751f;&#x570b;&#x4e2d;&rarr;&#x57fa;&#x9686;&#x5e02;&#x4e2d;&#x6b63;&#x5340;&#x28;&#x7d93;&#x4e2d;&#x6b63;&#x8def;&#x29;</option>
+<option value="18171">1580 &#x677f;&#x6a4b;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x82b1;&#x84ee;&#x5e02;</option>
+<option value="18172">1580 &#x82b1;&#x84ee;&#x5e02;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x677f;&#x6a4b;</option>
+<option value="17052">1610 &#x81fa;&#x5317;&rarr;&#x9ad8;&#x96c4;&#x5b;&#x7d93;&#x74b0;&#x5317;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17053">1610 &#x9ad8;&#x96c4;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17050">1610A &#x81fa;&#x5317;&rarr;&#x9ad8;&#x96c4;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17051">1610A &#x9ad8;&#x96c4;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17401">1610B &#x81fa;&#x5317;&rarr;&#x9ad8;&#x96c4;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x5ca1;&#x5c71;&#x7ad9;&#x5d;</option>
+<option value="17402">1610B &#x9ad8;&#x96c4;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x5ca1;&#x5c71;&#x7ad9;&#x3001;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17403">1610C &#x81fa;&#x5317;&rarr;&#x9ad8;&#x96c4;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x5ca1;&#x5c71;&#x7ad9;&#x5d;</option>
+<option value="17404">1610C &#x9ad8;&#x96c4;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x5ca1;&#x5c71;&#x7ad9;&#x3001;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17657">1610D &#x81fa;&#x5317;&rarr;&#x9ad8;&#x96c4;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x5ca1;&#x5c71;&#x7ad9;&#x3001;&#x6960;&#x6893;&#x7ad9;&#x5d;</option>
+<option value="17658">1610D &#x9ad8;&#x96c4;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x6960;&#x6893;&#x7ad9;&#x3001;&#x5ca1;&#x5c71;&#x7ad9;&#x3001;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17989">1610E &#x9ad8;&#x96c4;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x5ca1;&#x5c71;&#x7ad9;&#x5d;</option>
+<option value="18889">1610F &#x81fa;&#x5317;&rarr;&#x9ad8;&#x96c4;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x5ca1;&#x5c71;&#x7ad9;&#x5d;</option>
+<option value="19722">1610G &#x81fa;&#x5317;&rarr;&#x9ad8;&#x96c4;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x5ca1;&#x5c71;&#x7ad9;&#x3001;&#x6960;&#x6893;&#x7ad9;&#x5d;</option>
+<option value="19723">1610G &#x9ad8;&#x96c4;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x6960;&#x6893;&#x7ad9;&#x3001;&#x5ca1;&#x5c71;&#x7ad9;&#x3001;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17056">1611 &#x81fa;&#x5317;&rarr;&#x81fa;&#x5357;&#x5b;&#x7d93;&#x74b0;&#x5317;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17057">1611 &#x81fa;&#x5357;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17054">1611A &#x81fa;&#x5317;&rarr;&#x81fa;&#x5357;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17055">1611A &#x81fa;&#x5357;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17370">1611C &#x81fa;&#x5317;&rarr;&#x81fa;&#x5357;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x3001;&#x4e0d;&#x505c;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x65b0;&#x71df;&#x7ad9;&#x5d;</option>
+<option value="17371">1611C &#x81fa;&#x5357;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x3001;&#x4e0d;&#x505c;&#x65b0;&#x71df;&#x7ad9;&#x3001;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17659">1611D &#x81fa;&#x5317;&rarr;&#x81fa;&#x5357;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x3001;&#x4e0d;&#x505c;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="18891">1611D &#x81fa;&#x5357;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17885">1611E &#x81fa;&#x5357;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x3001;&#x4e0d;&#x505c;&#x65b0;&#x71df;&#x7ad9;&#x3001;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="18890">1611F &#x81fa;&#x5317;&rarr;&#x81fa;&#x5357;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="18939">1611F &#x81fa;&#x5357;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17058">1612 &#x81fa;&#x5317;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5357;&#x5b;&#x7d93;&#x5b89;&#x5751;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17059">1612 &#x81fa;&#x5357;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x5b89;&#x5751;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17060">1612A &#x81fa;&#x5317;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5357;&#x5b;&#x7d93;&#x842c;&#x82b3;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17061">1612A &#x81fa;&#x5357;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x842c;&#x82b3;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17405">1612B &#x81fa;&#x5317;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5357;&#x5b;&#x7d93;&#x5b89;&#x5751;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x4e09;&#x5cfd;&#x7ad9;&#x3001;&#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17406">1612C &#x81fa;&#x5317;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5357;&#x5b;&#x7d93;&#x5b89;&#x5751;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x666f;&#x7f8e;&#x81f3;&#x81fa;&#x5357;&#x73ed;&#x6b21;&#x3001;&#x4e0d;&#x505c;&#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17863">1612D &#x81fa;&#x5317;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5357;&#x5b;&#x7d93;&#x5b89;&#x5751;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17864">1612D &#x81fa;&#x5357;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x5b89;&#x5751;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17062">1613 &#x53f0;&#x5317;&rarr;&#x5c4f;&#x6771;&#x5b;&#x7d93;&#x74b0;&#x5317;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17063">1613 &#x5c4f;&#x6771;&rarr;&#x53f0;&#x5317;&#x5b;&#x7d93;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17064">1613A &#x53f0;&#x5317;&rarr;&#x5c4f;&#x6771;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17065">1613A &#x5c4f;&#x6771;&rarr;&#x53f0;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17407">1613B &#x53f0;&#x5317;&rarr;&#x5c4f;&#x6771;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x4ec1;&#x5fb7;&#x5d;</option>
+<option value="17408">1613B &#x5c4f;&#x6771;&rarr;&#x53f0;&#x5317;&#x5b;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#xff0c;&#x4e0d;&#x505c;&#x4ec1;&#x5fb7;&#x5d;</option>
+<option value="17066">1615 &#x53f0;&#x5317;&rarr;&#x5f70;&#x5316;</option>
+<option value="17067">1615 &#x5f70;&#x5316;&rarr;&#x53f0;&#x5317;</option>
+<option value="17410">1615A &#x53f0;&#x5317;&rarr;&#x5f70;&#x5316;&#x5b;&#x4e0d;&#x505c;&#x671d;&#x99ac;&#x7ad9;&#x5d;</option>
+<option value="17411">1615A &#x5f70;&#x5316;&rarr;&#x53f0;&#x5317;&#x5b;&#x4e0d;&#x505c;&#x671d;&#x99ac;&#x7ad9;&#x5d;</option>
+<option value="17070">1616 &#x53f0;&#x5317;&rarr;&#x54e1;&#x6797;&#x5b;&#x7d93;&#x84ee;&#x82b1;&#x6c60;&#x5d;</option>
+<option value="17071">1616 &#x54e1;&#x6797;&rarr;&#x53f0;&#x5317;&#x5b;&#x7d93;&#x84ee;&#x82b1;&#x6c60;&#x5d;</option>
+<option value="17068">1616B &#x53f0;&#x5317;&rarr;&#x54e1;&#x6797;&#x5b;&#x7d93;&#x53f0;76&#x7dda;&#x5d;</option>
+<option value="17069">1616B &#x54e1;&#x6797;&rarr;&#x53f0;&#x5317;&#x5b;&#x7d93;&#x53f0;76&#x7dda;&#x5d;</option>
+<option value="17372">1616C &#x53f0;&#x5317;&rarr;&#x54e1;&#x6797;&#x5b;&#x7d93;&#x53f0;76&#x7dda;&#x3001;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17373">1616C &#x54e1;&#x6797;&rarr;&#x53f0;&#x5317;&#x5b;&#x7d93;&#x53f0;76&#x7dda;&#x3001;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17072">1617 &#x53f0;&#x5317;&rarr;&#x8c50;&#x539f;&rarr;&#x6771;&#x52e2;</option>
+<option value="17073">1617 &#x6771;&#x52e2;&rarr;&#x8c50;&#x539f;&rarr;&#x53f0;&#x5317;</option>
+<option value="17412">1617A &#x53f0;&#x5317;&rarr;&#x8c50;&#x539f;&rarr;&#x6771;&#x52e2;&#x5b;&#x4e0d;&#x505c;&#x6797;&#x53e3;&#x7ad9;&#x3001;&#x9e97;&#x5bf6;&#x6a02;&#x5712;&#x28;&#x6708;&#x7709;&#x29;&#x7ad9;&#x5d;</option>
+<option value="17413">1617A &#x6771;&#x52e2;&rarr;&#x8c50;&#x539f;&rarr;&#x53f0;&#x5317;&#x5b;&#x4e0d;&#x505c;&#x9e97;&#x5bf6;&#x6a02;&#x5712;&#x28;&#x6708;&#x7709;&#x29;&#x7ad9;&#x3001;&#x6797;&#x53e3;&#x7ad9;&#x5d;</option>
+<option value="17414">1617B &#x53f0;&#x5317;&rarr;&#x8c50;&#x539f;&rarr;&#x6771;&#x52e2;&#x5b;&#x81fa;&#x5317;&#x81f3;&#x8c50;&#x539f;&#x73ed;&#x6b21;&#xff0c;&#x4e0d;&#x505c;&#x6797;&#x53e3;&#x7ad9;&#x3001;&#x9e97;&#x5bf6;&#x6a02;&#x5712;&#x28;&#x6708;&#x7709;&#x29;&#x7ad9;&#x5d;</option>
+<option value="17415">1617B &#x6771;&#x52e2;&rarr;&#x8c50;&#x539f;&rarr;&#x53f0;&#x5317;&#x5b;&#x8c50;&#x539f;&#x81f3;&#x81fa;&#x5317;&#x73ed;&#x6b21;&#xff0c;&#x4e0d;&#x505c;&#x9e97;&#x5bf6;&#x6a02;&#x5712;&#x28;&#x6708;&#x7709;&#x29;&#x7ad9;&#x3001;&#x6797;&#x53e3;&#x7ad9;&#x5d;</option>
+<option value="17883">1617C &#x53f0;&#x5317;&rarr;&#x8c50;&#x539f;&rarr;&#x6771;&#x52e2;&#x5b;&#x4e0d;&#x505c;&#x9e97;&#x5bf6;&#x6a02;&#x5712;&#x28;&#x6708;&#x7709;&#x29;&#x7ad9;&#x5d;</option>
+<option value="17884">1617C &#x6771;&#x52e2;&rarr;&#x8c50;&#x539f;&rarr;&#x53f0;&#x5317;&#x5b;&#x4e0d;&#x505c;&#x9e97;&#x5bf6;&#x6a02;&#x5712;&#x28;&#x6708;&#x7709;&#x29;&#x7ad9;&#x5d;</option>
+<option value="17075">1618 &#x53f0;&#x5317;&rarr;&#x5609;&#x7fa9;</option>
+<option value="17074">1618 &#x5609;&#x7fa9;&rarr;&#x53f0;&#x5317;</option>
+<option value="17374">1618A &#x53f0;&#x5317;&rarr;&#x5609;&#x7fa9;&#x5b;&#x4e0d;&#x505c;&#x6797;&#x53e3;&#x3001;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17375">1618A &#x5609;&#x7fa9;&rarr;&#x53f0;&#x5317;&#x5b;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x6797;&#x53e3;&#x3001;&#x91cd;&#x967d;&#x7ad9;&#x5d;</option>
+<option value="17741">1618B &#x53f0;&#x5317;&rarr;&#x5609;&#x7fa9;&#x5b;&#x76f4;&#x9054;&#x8eca;&#xff0c;&#x4e0d;&#x505c;&#x6797;&#x53e3;&#x3001;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x5927;&#x6797;&#x7ad9;&#x5d;</option>
+<option value="17742">1618C &#x5609;&#x7fa9;&rarr;&#x53f0;&#x5317;&#x5b;&#x4e0d;&#x505c;&#x5927;&#x6797;&#x7ad9;&#x5d;</option>
+<option value="17979">1618D &#x53f0;&#x5317;&rarr;&#x5609;&#x7fa9;&#x5b;&#x4e0d;&#x505c;&#x6797;&#x53e3;&#x7ad9;&#x5d;</option>
+<option value="17980">1618E &#x5609;&#x7fa9;&rarr;&#x53f0;&#x5317;&#x5b;&#x76f4;&#x9054;&#x8eca;&#xff0c;&#x4e0d;&#x505c;&#x5927;&#x6797;&#x7ad9;&#x3001;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x3001;&#x6797;&#x53e3;&#x3001;&#x91cd;&#x967d;&#x7ad9;&#x5d;</option>
+<option value="18893">1618F &#x53f0;&#x5317;&rarr;&#x5609;&#x7fa9;&#x28;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x29;</option>
+<option value="18894">1618F &#x5609;&#x7fa9;&rarr;&#x53f0;&#x5317;&#x28;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x29;</option>
+<option value="17077">1619 &#x81fa;&#x4e2d;&rarr;&#x81fa;&#x7063;&#x5927;&#x9053;&rarr;&#x81fa;&#x5317;</option>
+<option value="17076">1619 &#x81fa;&#x5317;&rarr;&#x81fa;&#x7063;&#x5927;&#x9053;&rarr;&#x81fa;&#x4e2d;</option>
+<option value="17377">1619A &#x81fa;&#x4e2d;&rarr;&#x81fa;&#x7063;&#x5927;&#x9053;&rarr;&#x81fa;&#x5317;&#x5b;&#x671d;&#x99ac;&#x81f3;&#x81fa;&#x5317;&#x73ed;&#x6b21;&#x3001;&#x4e0d;&#x505c;&#x79d1;&#x6280;&#x751f;&#x6d3b;&#x9928;&#x5d;</option>
+<option value="17376">1619A &#x81fa;&#x5317;&rarr;&#x81fa;&#x7063;&#x5927;&#x9053;&rarr;&#x81fa;&#x4e2d;&#x5b;&#x81fa;&#x5317;&#x81f3;&#x671d;&#x99ac;&#x73ed;&#x6b21;&#x3001;&#x4e0d;&#x505c;&#x79d1;&#x6280;&#x751f;&#x6d3b;&#x9928;&#x5d;</option>
+<option value="17417">1619B &#x81fa;&#x4e2d;&rarr;&#x81fa;&#x7063;&#x5927;&#x9053;&rarr;&#x81fa;&#x5317;&#x5b;&#x4e0d;&#x505c;&#x79d1;&#x6280;&#x751f;&#x6d3b;&#x9928;&#x5d;</option>
+<option value="17416">1619B &#x81fa;&#x5317;&rarr;&#x81fa;&#x7063;&#x5927;&#x9053;&rarr;&#x81fa;&#x4e2d;&#x5b;&#x4e0d;&#x505c;&#x79d1;&#x6280;&#x751f;&#x6d3b;&#x9928;&#x5d;</option>
+<option value="17079">1620 &#x53f0;&#x4e2d;&rarr;&#x4e2d;&#x6e05;&#x8def;&rarr;&#x53f0;&#x5317;</option>
+<option value="17078">1620 &#x53f0;&#x5317;&rarr;&#x4e2d;&#x6e05;&#x8def;&rarr;&#x53f0;&#x4e2d;</option>
+<option value="17419">1620A &#x53f0;&#x4e2d;&rarr;&#x4e2d;&#x6e05;&#x8def;&rarr;&#x53f0;&#x5317;&#x5b;&#x4e0d;&#x505c;&#x967d;&#x660e;&#x4ea4;&#x5927;&#x5149;&#x5fa9;&#x8def;&#x5d;</option>
+<option value="17418">1620A &#x53f0;&#x5317;&rarr;&#x4e2d;&#x6e05;&#x8def;&rarr;&#x53f0;&#x4e2d;&#x5b;&#x4e0d;&#x505c;&#x967d;&#x660e;&#x4ea4;&#x5927;&#x5149;&#x5fa9;&#x8def;&#x5d;</option>
+<option value="17421">1620B &#x53f0;&#x4e2d;&rarr;&#x4e2d;&#x6e05;&#x8def;&rarr;&#x53f0;&#x5317;&#x5b;&#x4e0d;&#x505c;&#x6797;&#x53e3;&#x7ad9;&#x3001;&#x967d;&#x660e;&#x4ea4;&#x5927;&#x5149;&#x5fa9;&#x8def;&#x5d;</option>
+<option value="17420">1620B &#x53f0;&#x5317;&rarr;&#x4e2d;&#x6e05;&#x8def;&rarr;&#x53f0;&#x4e2d;&#x5b;&#x4e0d;&#x505c;&#x6797;&#x53e3;&#x7ad9;&#x3001;&#x967d;&#x660e;&#x4ea4;&#x5927;&#x5149;&#x5fa9;&#x8def;&#x5d;</option>
+<option value="17082">1628 &#x53f0;&#x5317;&rarr;&#x9ebb;&#x8c46;&#x3001;&#x4f73;&#x91cc;&rarr;&#x6f1a;&#x6c6a;</option>
+<option value="17083">1628 &#x6f1a;&#x6c6a;&rarr;&#x4f73;&#x91cc;&#x3001;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x5317;</option>
+<option value="17743">1628A &#x53f0;&#x5317;&rarr;&#x9ebb;&#x8c46;&#x3001;&#x4f73;&#x91cc;&rarr;&#x6f1a;&#x6c6a;&#x5b;&#x4e0d;&#x505c;&#x4e2d;&#x58e2;&#x7950;&#x6c11;&#x91ab;&#x9662;&#x5d;</option>
+<option value="17744">1628A &#x6f1a;&#x6c6a;&rarr;&#x4f73;&#x91cc;&#x3001;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x5317;&#x5b;&#x4e0d;&#x505c;&#x4e2d;&#x58e2;&#x7950;&#x6c11;&#x91ab;&#x9662;&#x5d;</option>
+<option value="18210">1628B &#x53f0;&#x5317;&rarr;&#x9ebb;&#x8c46;&#x3001;&#x4f73;&#x91cc;&rarr;&#x6f1a;&#x6c6a;&#x5b;&#x5ef6;&#x99db;&#x82d3;&#x5b50;&#x5bee;&#x3001;&#x5b78;&#x7532;&#x5d;</option>
+<option value="18211">1628B &#x6f1a;&#x6c6a;&rarr;&#x4f73;&#x91cc;&#x3001;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x5317;&#x5b;&#x5ef6;&#x99db;&#x82d3;&#x5b50;&#x5bee;&#x3001;&#x5b78;&#x7532;&#x5d;</option>
+<option value="17086">1630 &#x81fa;&#x5317;&rarr;&#x897f;&#x6e2f;</option>
+<option value="17087">1630 &#x897f;&#x6e2f;&rarr;&#x81fa;&#x5317;</option>
+<option value="17378">1630A &#x81fa;&#x5317;&rarr;&#x897f;&#x6e2f;&#x5b;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17379">1630A &#x897f;&#x6e2f;&rarr;&#x81fa;&#x5317;&#x5b;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="18109">1630C &#x81fa;&#x5317;&rarr;&#x897f;&#x6e2f;&#x5b;&#x7d93;&#x7af9;&#x5858;&#x5d;</option>
+<option value="18120">1630C &#x897f;&#x6e2f;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x7af9;&#x5858;&#x5d;</option>
+<option value="17090">1632 &#x53f0;&#x5317;&rarr;&#x8349;&#x5c6f;&rarr;&#x7af9;&#x5c71;</option>
+<option value="17091">1632 &#x7af9;&#x5c71;&rarr;&#x8349;&#x5c6f;&rarr;&#x53f0;&#x5317;</option>
+<option value="17092">1633 &#x53f0;&#x5317;&rarr;&#x5317;&#x6e2f;&rarr;&#x56db;&#x6e56;&#x9109;&#x5b;&#x7d93;&#x5c16;&#x5c71;&#x5d;</option>
+<option value="17093">1633 &#x56db;&#x6e56;&#x9109;&rarr;&#x5317;&#x6e2f;&rarr;&#x53f0;&#x5317;&#x5b;&#x7d93;&#x5c16;&#x5c71;&#x5d;</option>
+<option value="17094">1633A &#x53f0;&#x5317;&rarr;&#x5317;&#x6e2f;&rarr;&#x56db;&#x6e56;&#x9109;&#x5b;&#x7d93;&#x5b9c;&#x68a7;&#x6751;&#x5d;</option>
+<option value="17095">1633A &#x56db;&#x6e56;&#x9109;&rarr;&#x5317;&#x6e2f;&rarr;&#x53f0;&#x5317;&#x5b;&#x7d93;&#x5b9c;&#x68a7;&#x6751;&#x5d;</option>
+<option value="17382">1633B &#x53f0;&#x5317;&rarr;&#x5317;&#x6e2f;&rarr;&#x56db;&#x6e56;&#x9109;&#x5b;&#x53f0;&#x5317;&#x81f3;&#x5317;&#x6e2f;&#x73ed;&#x6b21;&#x5d;</option>
+<option value="17383">1633B &#x56db;&#x6e56;&#x9109;&rarr;&#x5317;&#x6e2f;&rarr;&#x53f0;&#x5317;&#x5b;&#x5317;&#x6e2f;&#x81f3;&#x53f0;&#x5317;&#x73ed;&#x6b21;&#x5d;</option>
+<option value="17384">1633C &#x53f0;&#x5317;&rarr;&#x5317;&#x6e2f;&rarr;&#x56db;&#x6e56;&#x9109;&#x5b;&#x53f0;&#x5317;&#x81f3;&#x5317;&#x6e2f;&#x73ed;&#x6b21;&#xff0c;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17385">1633C &#x56db;&#x6e56;&#x9109;&rarr;&#x5317;&#x6e2f;&rarr;&#x53f0;&#x5317;&#x5b;&#x5317;&#x6e2f;&#x81f3;&#x53f0;&#x5317;&#x73ed;&#x6b21;&#xff0c;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17096">1635 &#x53f0;&#x5317;&rarr;&#x864e;&#x5c3e;&rarr;&#x56db;&#x6e56;&#x9109;</option>
+<option value="17097">1635 &#x56db;&#x6e56;&#x9109;&rarr;&#x864e;&#x5c3e;&rarr;&#x53f0;&#x5317;</option>
+<option value="17386">1635A &#x53f0;&#x5317;&rarr;&#x864e;&#x5c3e;&rarr;&#x56db;&#x6e56;&#x9109;&#x5b;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17387">1635A &#x56db;&#x6e56;&#x9109;&rarr;&#x864e;&#x5c3e;&rarr;&#x53f0;&#x5317;&#x5b;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17098">1636 &#x53f0;&#x5317;&rarr;&#x897f;&#x87ba;&rarr;&#x56db;&#x6e56;&#x9109;</option>
+<option value="17099">1636 &#x56db;&#x6e56;&#x9109;&rarr;&#x897f;&#x87ba;&rarr;&#x53f0;&#x5317;</option>
+<option value="19752">1636B &#x53f0;&#x5317;&rarr;&#x897f;&#x87ba;&rarr;&#x56db;&#x6e56;&#x9109;&#x5b;&#x81fa;&#x5317;&#x81f3;&#x56db;&#x6e56;&#x7ad9;&#x73ed;&#x6b21;&#x5d;</option>
+<option value="19750">1636B &#x56db;&#x6e56;&#x9109;&rarr;&#x897f;&#x87ba;&rarr;&#x53f0;&#x5317;&#x5b;&#x81fa;&#x5317;&#x81f3;&#x56db;&#x6e56;&#x7ad9;&#x73ed;&#x6b21;&#x5d;</option>
+<option value="19753">1636C &#x56db;&#x6e56;&#x9109;&rarr;&#x897f;&#x87ba;&rarr;&#x81fa;&#x5317;&#x28;&#x7d93;&#x6a4b;&#x982d;&#x29;</option>
+<option value="19751">1636C &#x81fa;&#x5317;&rarr;&#x897f;&#x87ba;&rarr;&#x56db;&#x6e56;&#x9109;&#x28;&#x7d93;&#x6a4b;&#x982d;&#x29;</option>
+<option value="17100">1637 &#x53f0;&#x5317;&rarr;&#x897f;&#x87ba;&rarr;&#x6797;&#x539d;&#x5bee;&rarr;&#x56db;&#x6e56;&#x9109;</option>
+<option value="17101">1637 &#x56db;&#x6e56;&#x9109;&rarr;&#x6797;&#x539d;&#x5bee;&rarr;&#x897f;&#x87ba;&rarr;&#x53f0;&#x5317;</option>
+<option value="17102">1638 &#x53f0;&#x5317;&rarr;&#x6734;&#x5b50;&rarr;&#x6771;&#x77f3;</option>
+<option value="17103">1638 &#x6771;&#x77f3;&rarr;&#x6734;&#x5b50;&rarr;&#x53f0;&#x5317;</option>
+<option value="18135">1638A &#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x6734;&#x5b50;&rarr;&#x6771;&#x77f3; &#x5b;&#x65bc;&#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053;&#x8f49;&#x4e58;&#x3010;1618&#x3011;&#x5f80;&#x8fd4;&#x81fa;&#x5317;&#xff0c;&#x4e0d;&#x55ae;&#x7368;&#x552e;&#x7968;&#x5d;</option>
+<option value="18136">1638A &#x6771;&#x77f3;&rarr;&#x6734;&#x5b50;&rarr;&#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053; &#x5b;&#x65bc;&#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053;&#x8f49;&#x4e58;&#x3010;1618&#x3011;&#x5f80;&#x8fd4;&#x81fa;&#x5317;&#xff0c;&#x4e0d;&#x55ae;&#x7368;&#x552e;&#x7968;&#x5d;</option>
+<option value="17104">1639 &#x53f0;&#x5317;&rarr;&#x5e03;&#x888b;</option>
+<option value="17105">1639 &#x5e03;&#x888b;&rarr;&#x53f0;&#x5317;</option>
+<option value="18137">1639A &#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5e03;&#x888b; &#x5b;&#x65bc;&#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053;&#x8f49;&#x4e58;&#x3010;1618&#x3011;&#x5f80;&#x8fd4;&#x81fa;&#x5317;&#xff0c;&#x4e0d;&#x55ae;&#x7368;&#x552e;&#x7968;&#x5d;</option>
+<option value="18138">1639A &#x5e03;&#x888b;&rarr;&#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053; &#x5b;&#x65bc;&#x5609;&#x7fa9;&#x4ea4;&#x6d41;&#x9053;&#x8f49;&#x4e58;&#x3010;1618&#x3011;&#x5f80;&#x8fd4;&#x81fa;&#x5317;&#xff0c;&#x4e0d;&#x55ae;&#x7368;&#x552e;&#x7968;&#x5d;</option>
+<option value="17106">1652 &#x81fa;&#x5317;&rarr;&#x5f70;&#x5316;&rarr;&#x9e7f;&#x6e2f;&rarr;&#x82b3;&#x82d1;</option>
+<option value="17107">1652 &#x82b3;&#x82d1;&rarr;&#x9e7f;&#x6e2f;&rarr;&#x5f70;&#x5316;&rarr;&#x81fa;&#x5317;</option>
+<option value="17108">1652A &#x81fa;&#x5317;&rarr;&#x5f70;&#x5316;&rarr;&#x9e7f;&#x6e2f;&rarr;&#x82b3;&#x82d1;&#x5b;&#x53f0;&#x5317;&#x81f3;&#x9e7f;&#x6e2f;&#x73ed;&#x6b21;&#x5d;</option>
+<option value="17109">1652A &#x82b3;&#x82d1;&rarr;&#x9e7f;&#x6e2f;&rarr;&#x5f70;&#x5316;&rarr;&#x81fa;&#x5317;&#x5b;&#x9e7f;&#x6e2f;&#x81f3;&#x81fa;&#x5317;&#x73ed;&#x6b21;&#x5d;</option>
+<option value="17660">1652B &#x81fa;&#x5317;&rarr;&#x5f70;&#x5316;&rarr;&#x9e7f;&#x6e2f;&rarr;&#x82b3;&#x82d1;&#x5b;&#x81fa;&#x5317;&#x81f3;&#x9e7f;&#x6e2f;&#x73ed;&#x6b21;&#x3001;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17661">1652B &#x82b3;&#x82d1;&rarr;&#x9e7f;&#x6e2f;&rarr;&#x5f70;&#x5316;&rarr;&#x81fa;&#x5317;&#x5b;&#x9e7f;&#x6e2f;&#x81f3;&#x81fa;&#x5317;&#x73ed;&#x6b21;&#x3001;&#x4e0d;&#x505c;&#x4e2d;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="17981">1662 &#x6843;&#x5712;&#x5e02;&#x6843;&#x5712;&#x5340;&rarr;&#x81fa;&#x5317;&#x5e02;&#x677e;&#x5c71;&#x5340;&#x28;&#x677e;&#x5c71;&#x6a5f;&#x5834;&#x29;</option>
+<option value="17982">1662 &#x81fa;&#x5317;&#x5e02;&#x677e;&#x5c71;&#x5340;&#x28;&#x677e;&#x5c71;&#x6a5f;&#x5834;&#x29;&rarr;&#x6843;&#x5712;&#x5e02;&#x6843;&#x5712;&#x5340;</option>
+<option value="18169">1663 &#x5357;&#x6e2f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x82b1;&#x84ee;&#x5e02;</option>
+<option value="18170">1663 &#x82b1;&#x84ee;&#x5e02;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x5357;&#x6e2f;</option>
+<option value="19599">1663A &#x5357;&#x6e2f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x82b1;&#x84ee;&#x5e02;</option>
+<option value="19091">1665 &#x5b9c;&#x862d;&#x5e02;&rarr;&#x65b0;&#x5317;&#x5e02;&#x65b0;&#x5e97;&#x5340;&#x5b;&#x5168;&#x7a0b;&#x8eca;&#x5d;</option>
+<option value="19089">1665 &#x65b0;&#x5317;&#x5e02;&#x65b0;&#x5e97;&#x5340;&rarr;&#x5b9c;&#x862d;&#x5e02;&#x5b;&#x5168;&#x7a0b;&#x8eca;&#x5d;</option>
+<option value="19092">1665A &#x5b9c;&#x862d;&#x5e02;&rarr;&#x65b0;&#x5317;&#x5e02;&#x65b0;&#x5e97;&#x5340;&#x5b;&#x76f4;&#x9054;&#x8eca;&#x5d;</option>
+<option value="19090">1665A &#x65b0;&#x5317;&#x5e02;&#x65b0;&#x5e97;&#x5340;&rarr;&#x5b9c;&#x862d;&#x5e02;&#x5b;&#x76f4;&#x9054;&#x8eca;&#x5d;</option>
+<option value="17154">1728 &#x65b0;&#x7af9;&#x5e02;&rarr;&#x570b;&#x9053;3&#x865f;&#x3001;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="17153">1728 &#x81fa;&#x5317;&#x5e02;&rarr;&#x570b;&#x9053;3&#x865f;&#x3001;1&#x865f;&rarr;&#x65b0;&#x7af9;&#x5e02;</option>
+<option value="17156">1800 &#x4e2d;&#x5d19;&rarr;&#x57fa;&#x9686;</option>
+<option value="17155">1800 &#x57fa;&#x9686;&rarr;&#x4e2d;&#x5d19;</option>
+<option value="17490">1800A &#x4e2d;&#x5d19;&rarr;&#x57fa;&#x9686;&#x5b;&#x5e02;&#x5e9c;&#x8f49;&#x904b;&#x7ad9;&#x81f3;&#x57fa;&#x9686;&#x5d;</option>
+<option value="17491">1800A &#x57fa;&#x9686;&rarr;&#x4e2d;&#x5d19;&#x5b;&#x57fa;&#x9686;&#x81f3;&#x806f;&#x5408;&#x5831;&#x5d;</option>
+<option value="17157">1801 &#x57fa;&#x9686;&rarr;&#x77f3;&#x724c;&rarr;&#x81fa;&#x5317;&#x8b77;&#x7406;&#x5065;&#x5eb7;&#x5927;&#x5b78;</option>
+<option value="17158">1801 &#x81fa;&#x5317;&#x8b77;&#x7406;&#x5065;&#x5eb7;&#x5927;&#x5b78;&rarr;&#x77f3;&#x724c;&rarr;&#x57fa;&#x9686;</option>
+<option value="17492">1801A &#x57fa;&#x9686;&rarr;&#x77f3;&#x724c;&rarr;&#x81fa;&#x5317;&#x8b77;&#x7406;&#x5065;&#x5eb7;&#x5927;&#x5b78;&#x5b;&#x57fa;&#x9686;&#x81f3;&#x5fb7;&#x660e;&#x8ca1;&#x7d93;&#x79d1;&#x6280;&#x5927;&#x5b78;&#x5d;</option>
+<option value="17493">1801A &#x81fa;&#x5317;&#x8b77;&#x7406;&#x5065;&#x5eb7;&#x5927;&#x5b78;&rarr;&#x77f3;&#x724c;&rarr;&#x57fa;&#x9686;&#x5b;&#x5fb7;&#x660e;&#x8ca1;&#x7d93;&#x79d1;&#x6280;&#x5927;&#x5b78;&#x81f3;&#x57fa;&#x9686;&#x5d;</option>
+<option value="17159">1802 &#x4e09;&#x91cd;&rarr;&#x57fa;&#x9686;</option>
+<option value="17160">1802 &#x57fa;&#x9686;&rarr;&#x4e09;&#x91cd;</option>
+<option value="17164">1803 &#x4e2d;&#x58e2;&rarr;&#x57fa;&#x9686;</option>
+<option value="17163">1803 &#x57fa;&#x9686;&rarr;&#x4e2d;&#x58e2;</option>
+<option value="17165">1813 &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317;</option>
+<option value="17173">1813 &#x81fa;&#x5317;&rarr;&#x57fa;&#x9686;</option>
+<option value="17166">1813A &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317;&#x5b;&#x767e;&#x798f;&#x793e;&#x5340;&#x5d;</option>
+<option value="17167">1813B &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317;&#x5b;&#x6771;&#x4fe1;&#x8def;&#x5d;</option>
+<option value="17168">1813C &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317;&#x5b;&#x516b;&#x6597;&#x5b50;&#x5d;</option>
+<option value="17169">1813D &#x57fa;&#x9686;&#x5b;&#x7d93;&#x4e2d;&#x5c71;&#x5340;&#x5d;&rarr;&#x81fa;&#x5317;</option>
+<option value="18892">1813D &#x81fa;&#x5317;&rarr;&#x57fa;&#x9686;&#x5b;&#x7d93;&#x4e2d;&#x5c71;&#x5340;&#x5d;</option>
+<option value="17170">1813E &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317;&#x5b;&#x5927;&#x6b66;&#x5d19;&#x5d;</option>
+<option value="19363">1813E &#x81fa;&#x5317;&rarr;&#x57fa;&#x9686;&#x5b;&#x5927;&#x6b66;&#x5d19;&#x5d;</option>
+<option value="17171">1813F &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317;&#x5b;&#x6696;&#x6696;&#x5d;</option>
+<option value="17172">1813G &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317;&#x5b;&#x65b0;&#x8c50;&#x91cc;&#x5d;</option>
+<option value="17174">1813H &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317;&#x5b;&#x570b;&#x5bb6;&#x65b0;&#x57ce;&#x5d;</option>
+<option value="19600">1813I &#x81fa;&#x5317;&rarr;&#x57fa;&#x9686;</option>
+<option value="19540">1813J &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317;&#x5b;&#x6771;&#x4fe1;&#x8def;&#x5d;&#x5b;&#x7d93;&#x5357;&#x4eac;&#x6771;&#x8def;&#x5d;</option>
+<option value="19541">1813K &#x57fa;&#x9686;&rarr;&#x81fa;&#x5317;&#x5b;&#x65b0;&#x8c50;&#x91cc;&#x5d;&#x5b;&#x7d93;&#x5357;&#x4eac;&#x6771;&#x8def;&#x5d;</option>
+<option value="17175">1814 &#x57fa;&#x9686;&rarr;&#x5b89;&#x6a02;&#x793e;&#x5340;&rarr;&#x81fa;&#x5317;</option>
+<option value="17176">1815 &#x81fa;&#x5317;&rarr;&#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;</option>
+<option value="17177">1815 &#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;&rarr;&#x81fa;&#x5317;</option>
+<option value="17178">1815A &#x81fa;&#x5317;&rarr;&#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;&#x5b;&#x6cd5;&#x9f13;&#x5c71;&#x5d;</option>
+<option value="17179">1815A &#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;&rarr;&#x81fa;&#x5317;&#x5b;&#x6cd5;&#x9f13;&#x5c71;&#x5d;</option>
+<option value="17180">1815B &#x81fa;&#x5317;&rarr;&#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;&#x5b;&#x7d93;&#x5357;&#x4eac;&#x6771;&#x8def;&#x5d;</option>
+<option value="17181">1815B &#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x5357;&#x4eac;&#x6771;&#x8def;&#x5d;</option>
+<option value="19738">1815C &#x81fa;&#x5317;&rarr;&#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;&#x5b;&#x7d93;&#x57fa;&#x91d1;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17182">1815C &#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x57fa;&#x91d1;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17494">1815D &#x81fa;&#x5317;&rarr;&#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;&#x5b;&#x81fa;&#x5317;&#x81f3;&#x842c;&#x91cc;&#x5d;</option>
+<option value="17495">1815D &#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;&rarr;&#x81fa;&#x5317;&#x5b;&#x842c;&#x91cc;&#x81f3;&#x81fa;&#x5317;&#x5d;</option>
+<option value="18895">1815E &#x81fa;&#x5317;&rarr;&#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;&#x5b;&#x6cd5;&#x9f13;&#x6587;&#x7406;&#x5b78;&#x9662;&#x5d;</option>
+<option value="18896">1815E &#x91d1;&#x5c71;&#x9752;&#x5e74;&#x6d3b;&#x52d5;&#x4e2d;&#x5fc3;&rarr;&#x81fa;&#x5317;&#x5b;&#x6cd5;&#x9f13;&#x6587;&#x7406;&#x5b78;&#x9662;&#x5d;</option>
+<option value="19364">1815F &#x570b;&#x5bb6;&#x65b0;&#x57ce;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x5357;&#x4eac;&#x6771;&#x8def;&#x5d;</option>
+<option value="17185">1816 &#x6843;&#x5712;&rarr;&#x81fa;&#x5317;</option>
+<option value="17184">1816 &#x81fa;&#x5317;&rarr;&#x6843;&#x5712;</option>
+<option value="17187">1816A &#x6843;&#x5712;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x570b;&#x8def;&#x5d;</option>
+<option value="17186">1816A &#x81fa;&#x5317;&rarr;&#x6843;&#x5712;&#x5b;&#x7d93;&#x570b;&#x8def;&#x5d;</option>
+<option value="17183">1816B &#x6843;&#x5712;&rarr;&#x81fa;&#x5317;&#x5b;&#x5927;&#x6709;&#x8def;&#x5d;</option>
+<option value="19542">1816B &#x81fa;&#x5317;&rarr;&#x6843;&#x5712;&#x5b;&#x5927;&#x6709;&#x8def;&#x5d;</option>
+<option value="17191">1818 &#x4e2d;&#x58e2;&rarr;&#x81fa;&#x5317;</option>
+<option value="17190">1818 &#x81fa;&#x5317;&rarr;&#x4e2d;&#x58e2;</option>
+<option value="17705">1818A &#x4e2d;&#x58e2;&rarr;&#x81fa;&#x5317;&#x5b;&#x7e5e;&#x99db;&#x4e2d;&#x539f;&#x5927;&#x5b78;&#x7ad9;&#x5d;</option>
+<option value="17704">1818A &#x81fa;&#x5317;&rarr;&#x4e2d;&#x58e2;&#x5b;&#x7e5e;&#x99db;&#x4e2d;&#x539f;&#x5927;&#x5b78;&#x7ad9;&#x5d;</option>
+<option value="17192">1819 &#x81fa;&#x5317;&rarr;&#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;</option>
+<option value="17193">1819 &#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&rarr;&#x81fa;&#x5317;</option>
+<option value="19724">1819B &#x81fa;&#x5317;&rarr;&#x5357;&#x5d01;&rarr;&#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;</option>
+<option value="19725">1819B &#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&rarr;&#x5357;&#x5d01;&rarr;&#x81fa;&#x5317;</option>
+<option value="17195">1820 &#x7af9;&#x6771;&rarr;&#x81fa;&#x5317;</option>
+<option value="17194">1820 &#x81fa;&#x5317;&rarr;&#x7af9;&#x6771;</option>
+<option value="17197">1820A &#x7af9;&#x6771;&rarr;&#x81fa;&#x5317;&#x5b;&#x7e5e;&#x99db;&#x95dc;&#x897f;&#x5e02;&#x5340;&#x5d;</option>
+<option value="17196">1820A &#x81fa;&#x5317;&rarr;&#x7af9;&#x6771;&#x5b;&#x7e5e;&#x99db;&#x95dc;&#x897f;&#x5e02;&#x5340;&#x5d;</option>
+<option value="17881">1820B &#x7af9;&#x6771;&rarr;&#x81fa;&#x5317;&#x5b;&#x7e5e;&#x99db;&#x4e2d;&#x83ef;&#x79d1;&#x5927;&#x5d;</option>
+<option value="17880">1820B &#x81fa;&#x5317;&rarr;&#x7af9;&#x6771;&#x5b;&#x7e5e;&#x99db;&#x4e2d;&#x83ef;&#x79d1;&#x5927;&#x5d;</option>
+<option value="17199">1821 &#x7af9;&#x6771;&rarr;&#x54e1;&#x6a39;&#x6797;&rarr;&#x81fa;&#x5317;</option>
+<option value="17198">1821 &#x81fa;&#x5317;&rarr;&#x54e1;&#x6a39;&#x6797;&rarr;&#x7af9;&#x6771;</option>
+<option value="16368">1822 &#x65b0;&#x7af9;&rarr;&#x81fa;&#x5317;</option>
+<option value="16367">1822 &#x81fa;&#x5317;&rarr;&#x65b0;&#x7af9;</option>
+<option value="16370">1822A &#x65b0;&#x7af9;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x4e2d;&#x83ef;&#x5927;&#x5b78;&#x5d;</option>
+<option value="16369">1822A &#x81fa;&#x5317;&rarr;&#x65b0;&#x7af9;&#x5b;&#x7d93;&#x4e2d;&#x83ef;&#x5927;&#x5b78;&#x5d;</option>
+<option value="17201">1823 &#x7af9;&#x5357;&rarr;&#x81fa;&#x5317;</option>
+<option value="17200">1823 &#x81fa;&#x5317;&rarr;&#x7af9;&#x5357;</option>
+<option value="17203">1823A &#x7af9;&#x5357;&rarr;&#x81fa;&#x5317;&#x5b;&#x7e5e;&#x99db;&#x6797;&#x53e3;&#x9577;&#x5e9a;&#x91ab;&#x9662;&#x5d;</option>
+<option value="17202">1823A &#x81fa;&#x5317;&rarr;&#x7af9;&#x5357;&#x5b;&#x7e5e;&#x99db;&#x6797;&#x53e3;&#x9577;&#x5e9a;&#x91ab;&#x9662;&#x5d;</option>
+<option value="17204">1824 &#x81fa;&#x5317;&rarr;&#x82d7;&#x6817;</option>
+<option value="17205">1824 &#x82d7;&#x6817;&rarr;&#x81fa;&#x5317;</option>
+<option value="17206">1824A &#x81fa;&#x5317;&rarr;&#x82d7;&#x6817;&#x5b;&#x7d93;&#x6797;&#x53e3;&#x9577;&#x5e9a;&#x91ab;&#x9662;&#x5d;</option>
+<option value="17207">1824A &#x82d7;&#x6817;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x6797;&#x53e3;&#x9577;&#x5e9a;&#x91ab;&#x9662;&#x5d;</option>
+<option value="17211">1826 &#x81fa;&#x4e2d;&rarr;&#x4e2d;&#x6e05;&#x8def;&rarr;&#x81fa;&#x5317;</option>
+<option value="17210">1826 &#x81fa;&#x5317;&rarr;&#x4e2d;&#x6e05;&#x8def;&rarr;&#x81fa;&#x4e2d;</option>
+<option value="17213">1827 &#x81fa;&#x4e2d;&rarr;&#x81fa;&#x7063;&#x5927;&#x9053;&rarr;&#x81fa;&#x5317;</option>
+<option value="17212">1827 &#x81fa;&#x5317;&rarr;&#x81fa;&#x7063;&#x5927;&#x9053;&rarr;&#x81fa;&#x4e2d;</option>
+<option value="17504">1827A &#x81fa;&#x4e2d;&rarr;&#x81fa;&#x7063;&#x5927;&#x9053;&rarr;&#x81fa;&#x5317;&#x5b;&#x671d;&#x99ac;&#x81f3;&#x53f0;&#x5317;&#x5d;</option>
+<option value="17215">1828 &#x5f70;&#x5316;&rarr;&#x81fa;&#x5317;</option>
+<option value="17214">1828 &#x81fa;&#x5317;&rarr;&#x5f70;&#x5316;</option>
+<option value="17217">1829 &#x54e1;&#x6797;&rarr;&#x81fa;&#x5317;</option>
+<option value="17216">1829 &#x81fa;&#x5317;&rarr;&#x54e1;&#x6797;</option>
+<option value="17219">1830 &#x5317;&#x6597;&rarr;&#x81fa;&#x5317;</option>
+<option value="17218">1830 &#x81fa;&#x5317;&rarr;&#x5317;&#x6597;</option>
+<option value="17221">1831 &#x5357;&#x6295;&rarr;&#x81fa;&#x5317;</option>
+<option value="17220">1831 &#x81fa;&#x5317;&rarr;&#x5357;&#x6295;</option>
+<option value="17986">1831A &#x5357;&#x6295;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x9727;&#x5cf0;&#x5d;</option>
+<option value="17985">1831A &#x81fa;&#x5317;&rarr;&#x5357;&#x6295;&#x5b;&#x7d93;&#x9727;&#x5cf0;&#x5d;</option>
+<option value="17223">1832 &#x57d4;&#x91cc;&rarr;&#x81fa;&#x5317;</option>
+<option value="17222">1832 &#x81fa;&#x5317;&rarr;&#x57d4;&#x91cc;</option>
+<option value="17225">1832A &#x57d4;&#x91cc;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x570b;&#x9053;6&#x865f;&#x5d;</option>
+<option value="17224">1832A &#x81fa;&#x5317;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x57d4;&#x91cc;&#x5b;&#x7d93;&#x570b;&#x9053;6&#x865f;&#x5d;</option>
+<option value="17875">1832B &#x666e;&#x53f0;&#x9ad8;&#x4e2d;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x570b;&#x9053;6&#x865f;&#x5d;</option>
+<option value="17874">1832B &#x81fa;&#x5317;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x666e;&#x53f0;&#x9ad8;&#x4e2d;&#x5b;&#x7d93;&#x570b;&#x9053;6&#x865f;&#x5d;</option>
+<option value="18982">1832C &#x57d4;&#x91cc;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x53f0;63&#x7dda;&#x5d;</option>
+<option value="18983">1832D &#x666e;&#x53f0;&#x9ad8;&#x4e2d;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x53f0;63&#x7dda;&#x5d;</option>
+<option value="19731">1832E &#x66a8;&#x5357;&#x5927;&#x5b78;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x570b;&#x9053;6&#x865f;&#x5d;</option>
+<option value="19730">1832E &#x81fa;&#x5317;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x66a8;&#x5357;&#x5927;&#x5b78;&#x5b;&#x7d93;&#x570b;&#x9053;6&#x865f;&#x5d;</option>
+<option value="17227">1833 &#x65e5;&#x6708;&#x6f6d;&rarr;&#x81fa;&#x5317;</option>
+<option value="17226">1833 &#x81fa;&#x5317;&rarr;&#x65e5;&#x6708;&#x6f6d;</option>
+<option value="18984">1833A &#x65e5;&#x6708;&#x6f6d;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x53f0;63&#x7dda;&#x5d;</option>
+<option value="17229">1834 &#x5609;&#x7fa9;&rarr;&#x81fa;&#x5317;</option>
+<option value="17228">1834 &#x81fa;&#x5317;&rarr;&#x5609;&#x7fa9;</option>
+<option value="17230">1835 &#x81fa;&#x5317;&rarr;&#x963f;&#x91cc;&#x5c71;</option>
+<option value="17231">1835 &#x963f;&#x91cc;&#x5c71;&rarr;&#x81fa;&#x5317;</option>
+<option value="17233">1836 &#x65b0;&#x71df;&rarr;&#x81fa;&#x5317;</option>
+<option value="17232">1836 &#x81fa;&#x5317;&rarr;&#x65b0;&#x71df;</option>
+<option value="17234">1837 &#x81fa;&#x5317;&rarr;&#x81fa;&#x5357;</option>
+<option value="17235">1837 &#x81fa;&#x5357;&rarr;&#x81fa;&#x5317;</option>
+<option value="18349">1837A &#x81fa;&#x5317;&rarr;&#x81fa;&#x5357;&#x5b;&#x4e0d;&#x7d93;&#x6797;&#x53e3;&#x7ad9;&#x5d;</option>
+<option value="18350">1837A &#x81fa;&#x5357;&rarr;&#x81fa;&#x5317;&#x5b;&#x4e0d;&#x7d93;&#x6797;&#x53e3;&#x7ad9;&#x5d;</option>
+<option value="17236">1838 &#x81fa;&#x5317;&rarr;&#x9ad8;&#x96c4;&#x28;&#x6797;&#x53e3;&#x4ea4;&#x6d41;&#x9053;&#x29;</option>
+<option value="17237">1838 &#x9ad8;&#x96c4;&rarr;&#x81fa;&#x5317;&#x28;&#x6797;&#x53e3;&#x4ea4;&#x6d41;&#x9053;&#x29;</option>
+<option value="17238">1838A &#x81fa;&#x5317;&rarr;&#x9ad8;&#x96c4;&#x5b;&#x897f;&#x87ba;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17239">1838A &#x9ad8;&#x96c4;&rarr;&#x81fa;&#x5317;&#x5b;&#x897f;&#x87ba;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="18841">1838B &#x81fa;&#x5317;&rarr;&#x9ad8;&#x96c4;&#x28;&#x4e0d;&#x7d93;&#x6797;&#x53e3;&#x7ad9;&#x29;</option>
+<option value="18842">1838B &#x9ad8;&#x96c4;&rarr;&#x81fa;&#x5317;&#x28;&#x4e0d;&#x7d93;&#x6797;&#x53e3;&#x7ad9;&#x29;</option>
+<option value="17243">1839 &#x5c4f;&#x6771;&rarr;&#x81fa;&#x5317;</option>
+<option value="17242">1839 &#x81fa;&#x5317;&rarr;&#x5c4f;&#x6771;</option>
+<option value="17241">1839A &#x5c4f;&#x6771;&rarr;&#x81fa;&#x5317;&#x5b;&#x7d93;&#x897f;&#x87ba;&#x5d;</option>
+<option value="17240">1839A &#x81fa;&#x5317;&rarr;&#x5c4f;&#x6771;&#x5b;&#x7d93;&#x897f;&#x87ba;&#x5d;</option>
+<option value="17244">1840 &#x677e;&#x5c71;&#x6a5f;&#x5834;&rarr;&#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;</option>
+<option value="17245">1840 &#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&rarr;&#x677e;&#x5c71;&#x6a5f;&#x5834;</option>
+<option value="17246">1841 &#x677e;&#x5c71;&#x6a5f;&#x5834;&rarr;&#x5357;&#x5d01;&rarr;&#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;</option>
+<option value="17247">1841 &#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&rarr;&#x5357;&#x5d01;&rarr;&#x677e;&#x5c71;&#x6a5f;&#x5834;</option>
+<option value="17248">1841A &#x677e;&#x5c71;&#x6a5f;&#x5834;&rarr;&#x5357;&#x5d01;&rarr;&#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&#x5b;&#x6843;&#x5712;&#x822a;&#x7a7a;&#x8ca8;&#x904b;&#x5712;&#x5340;&#x5d;</option>
+<option value="17249">1841A &#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&rarr;&#x5357;&#x5d01;&rarr;&#x677e;&#x5c71;&#x6a5f;&#x5834;&#x5b;&#x6843;&#x5712;&#x822a;&#x7a7a;&#x8ca8;&#x904b;&#x5712;&#x5340;&#x5d;</option>
+<option value="19630">1841B &#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&rarr;&#x5357;&#x5d01;&rarr;&#x677e;&#x5c71;&#x6a5f;&#x5834;&#x5b;&#x81fa;&#x8302;&#x81f3;&#x677e;&#x5c71;&#x6a5f;&#x5834;&#x5d;</option>
+<option value="17250">1842 &#x5927;&#x5712;&rarr;&#x677e;&#x5c71;&#x6a5f;&#x5834;</option>
+<option value="17252">1842 &#x677e;&#x5c71;&#x6a5f;&#x5834;&rarr;&#x5927;&#x5712;</option>
+<option value="17251">1842A &#x5927;&#x5712;&rarr;&#x677e;&#x5c71;&#x6a5f;&#x5834;&#x5b;&#x7d93;&#x6797;&#x53e3;&#x9577;&#x5e9a;&#x91ab;&#x9662;&#x5d;</option>
+<option value="17253">1842A &#x677e;&#x5c71;&#x6a5f;&#x5834;&rarr;&#x5927;&#x5712;&#x5b;&#x7d93;&#x6797;&#x53e3;&#x9577;&#x5e9a;&#x91ab;&#x9662;&#x5d;</option>
+<option value="17254">1843 &#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;</option>
+<option value="17255">1843 &#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;</option>
+<option value="17912">1851 &#x677f;&#x6a4b;&rarr;&#x81fa;&#x4e2d;</option>
+<option value="17913">1851 &#x81fa;&#x4e2d;&rarr;&#x677f;&#x6a4b;</option>
+<option value="17256">1877 &#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x982d;&#x57ce;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x982d;&#x57ce;&#x93ae;</option>
+<option value="17257">1877 &#x5b9c;&#x862d;&#x7e23;&#x982d;&#x57ce;&#x93ae;&rarr;&#x982d;&#x57ce;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;</option>
+<option value="18739">1877B &#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x982d;&#x57ce;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x982d;&#x57ce;&#x93ae;&#x5b;&#x5047;&#x65e5;&#x52d5;&#x7dda;&#x5d;</option>
+<option value="19365">1877B &#x5b9c;&#x862d;&#x7e23;&#x982d;&#x57ce;&#x93ae;&rarr;&#x982d;&#x57ce;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&#x5b;&#x5047;&#x65e5;&#x52d5;&#x7dda;&#x5d;</option>
+<option value="17258">1878 &#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x5b9c;&#x862d;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x5b9c;&#x862d;&#x5e02;</option>
+<option value="17259">1878 &#x5b9c;&#x862d;&#x7e23;&#x5b9c;&#x862d;&#x5e02;&rarr;&#x5b9c;&#x862d;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;</option>
+<option value="18740">1878A &#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x5b9c;&#x862d;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x5b9c;&#x862d;&#x5e02;&#x5b;&#x5047;&#x65e5;&#x52d5;&#x7dda;&#x5d;</option>
+<option value="19366">1878A &#x5b9c;&#x862d;&#x7e23;&#x5b9c;&#x862d;&#x5e02;&rarr;&#x5b9c;&#x862d;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&#x5b;&#x5047;&#x65e5;&#x52d5;&#x7dda;&#x5d;</option>
+<option value="18999">1878B &#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x5b9c;&#x862d;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x5b9c;&#x862d;&#x5e02;</option>
+<option value="19000">1878B &#x5b9c;&#x862d;&#x7e23;&#x5b9c;&#x862d;&#x5e02;&rarr;&#x5b9c;&#x862d;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;</option>
+<option value="19001">1878C &#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x5b9c;&#x862d;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x5b9c;&#x862d;&#x5e02;&#x5b;&#x5047;&#x65e5;&#x52d5;&#x7dda;&#x5d;</option>
+<option value="19367">1878C &#x5b9c;&#x862d;&#x7e23;&#x5b9c;&#x862d;&#x5e02;&rarr;&#x5b9c;&#x862d;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5b;&#x5047;&#x65e5;&#x52d5;&#x7dda;&#x5d;</option>
+<option value="17260">1879 &#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;&rarr;&#x53f0;9&#x7dda;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x8607;&#x6fb3;&#x93ae;</option>
+<option value="17261">1879 &#x5b9c;&#x862d;&#x7e23;&#x8607;&#x6fb3;&#x93ae;&rarr;&#x53f0;9&#x7dda;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;</option>
+<option value="17676">1879A &#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;</option>
+<option value="17677">1879A &#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;</option>
+<option value="18741">1879C &#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;&rarr;&#x53f0;9&#x7dda;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x8607;&#x6fb3;&#x93ae;&#x5b;&#x5047;&#x65e5;&#x52d5;&#x7dda;&#x5d;</option>
+<option value="19368">1879C &#x5b9c;&#x862d;&#x7e23;&#x8607;&#x6fb3;&#x93ae;&rarr;&#x53f0;9&#x7dda;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&#x5b;&#x5047;&#x65e5;&#x52d5;&#x7dda;&#x5d;</option>
+<option value="18742">1879D &#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;&#x5b;&#x5047;&#x65e5;&#x52d5;&#x7dda;&#x5d;</option>
+<option value="19369">1879D &#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x5357;&#x6e2f;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5713;&#x5c71;&#x8f49;&#x904b;&#x7ad9;&#x5b;&#x5047;&#x65e5;&#x52d5;&#x7dda;&#x5d;</option>
+<option value="19757">1880 &#x57fa;&#x9686;&#x706b;&#x8eca;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&#x57fa;&#x9686;&#x7aef;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x982d;&#x57ce;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;</option>
+<option value="19756">1880 &#x5b9c;&#x862d;&rarr;&#x982d;&#x57ce;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;1&#x865f;&#x57fa;&#x9686;&#x7aef;&rarr;&#x57fa;&#x9686;&#x706b;&#x8eca;&#x7ad9;</option>
+<option value="17319">1915 &#x677f;&#x6a4b;&#x5ba2;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x7901;&#x6eaa;&rarr;&#x5b9c;&#x862d;&rarr;&#x7f85;&#x6771;</option>
+<option value="17318">1915 &#x7f85;&#x6771;&rarr;&#x5b9c;&#x862d;&rarr;&#x7901;&#x6eaa;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x677f;&#x6a4b;&#x5ba2;&#x904b;&#x7ad9;</option>
+<option value="17317">1915A &#x677f;&#x6a4b;&rarr;&#x7f85;&#x6771;&#x5168;&#x7a0b;&#x8eca;&#x5b;&#x7d93;&#x74b0;&#x6771;&#x5927;&#x9053;&#x5d;</option>
+<option value="17316">1915A &#x7f85;&#x6771;&rarr;&#x677f;&#x6a4b;&#x5168;&#x7a0b;&#x8eca;&#x5b;&#x7d93;&#x74b0;&#x6771;&#x5927;&#x9053;&#x5d;</option>
+<option value="17365">1915B &#x677f;&#x6a4b;&rarr;&#x7901;&#x6eaa;&#x5168;&#x7a0b;&#x8eca;</option>
+<option value="17364">1915B &#x7901;&#x6eaa;&rarr;&#x677f;&#x6a4b;&#x5168;&#x7a0b;&#x8eca;</option>
+<option value="17627">1915C &#x677f;&#x6a4b;&rarr;&#x7f85;&#x6771;&#x5168;&#x7a0b;&#x8eca;&#x5b;&#x7d93;&#x77f3;&#x7887;&#x6df1;&#x5751;&#x5d;</option>
+<option value="17626">1915C &#x7f85;&#x6771;&rarr;&#x677f;&#x6a4b;&#x5168;&#x7a0b;&#x8eca;&#x5b;&#x7d93;&#x77f3;&#x7887;&#x6df1;&#x5751;&#x5d;</option>
+<option value="17778">1915D &#x677f;&#x6a4b;&#x5ba2;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x7901;&#x6eaa;&#x5b;&#x9023;&#x7e8c;&#x5047;&#x671f;&#x758f;&#x904b;&#x8def;&#x7dda;&#x5d;</option>
+<option value="17777">1915D &#x7901;&#x6eaa;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x677f;&#x6a4b;&#x5ba2;&#x904b;&#x7ad9;&#x5b;&#x9023;&#x7e8c;&#x5047;&#x671f;&#x758f;&#x904b;&#x8def;&#x7dda;&#x5d;</option>
+<option value="17320">1916 &#x5b9c;&#x862d;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x677f;&#x6a4b;&#x5ba2;&#x904b;&#x7ad9;</option>
+<option value="17321">1916 &#x677f;&#x6a4b;&#x5ba2;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x5b9c;&#x862d;</option>
+<option value="18329">1916A &#x5b9c;&#x862d;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5317;&#x8f49;&#x904b;&#x7ad9;</option>
+<option value="18330">1916A &#x81fa;&#x5317;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x5b9c;&#x862d;</option>
+<option value="17323">1917 &#x677f;&#x6a4b;&#x5ba2;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x7f85;&#x6771;</option>
+<option value="17322">1917 &#x7f85;&#x6771;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x677f;&#x6a4b;&#x5ba2;&#x904b;&#x7ad9;</option>
+<option value="17325">1917A &#x677f;&#x6a4b;&#x5ba2;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x7f85;&#x6771;&#x5b;&#x884c;&#x7d93;&#x74b0;&#x6771;&#x5927;&#x9053;&#x5d;</option>
+<option value="17324">1917A &#x7f85;&#x6771;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x677f;&#x6a4b;&#x5ba2;&#x904b;&#x7ad9;&#x5b;&#x884c;&#x7d93;&#x74b0;&#x6771;&#x5927;&#x9053;&#x5d;</option>
+<option value="18331">1917B &#x7f85;&#x6771;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5317;&#x8f49;&#x904b;&#x7ad9;</option>
+<option value="18332">1917B &#x81fa;&#x5317;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x7f85;&#x6771;</option>
+<option value="17270">1960 &#x81fa;&#x5317;&#x5e02;&rarr;&#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;</option>
+<option value="17271">1960 &#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="17273">1961 &#x5927;&#x5712;&#x5340;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="17272">1961 &#x81fa;&#x5317;&#x5e02;&rarr;&#x5927;&#x5712;&#x5340;</option>
+<option value="17275">1961A &#x5927;&#x5712;&#x5340;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5b;&#x901a;&#x52e4;&#x7dda;&#x7d93;&#x5357;&#x5d01;&#x5d;</option>
+<option value="17274">1961A &#x81fa;&#x5317;&#x5e02;&rarr;&#x5927;&#x5712;&#x5340;&#x5b;&#x901a;&#x52e4;&#x7dda;&#x7d93;&#x5357;&#x5d01;&#x5d;</option>
+<option value="17764">1962 &#x677f;&#x6a4b;&rarr;&#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;</option>
+<option value="17763">1962 &#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&rarr;&#x677f;&#x6a4b;</option>
+<option value="17765">1968 &#x65b0;&#x5e97;&rarr;&#x4e2d;&#x548c;&rarr;&#x4e09;&#x5cfd;&rarr;&#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;</option>
+<option value="17766">1968 &#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&rarr;&#x4e09;&#x5cfd;&rarr;&#x4e2d;&#x548c;&rarr;&#x65b0;&#x5e97;</option>
+<option value="17767">1968A &#x65b0;&#x5e97;&rarr;&#x4e2d;&#x548c;&rarr;&#x4e09;&#x5cfd;&rarr;&#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&#x5b;&#x4e0d;&#x4e0b;&#x4e09;&#x9daf;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17768">1968A &#x81fa;&#x7063;&#x6843;&#x5712;&#x570b;&#x969b;&#x6a5f;&#x5834;&rarr;&#x4e09;&#x5cfd;&rarr;&#x4e2d;&#x548c;&rarr;&#x65b0;&#x5e97;&#x5b;&#x4e0d;&#x4e0b;&#x4e09;&#x9daf;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17276">2000 &#x6843;&#x5712;&#x9f9c;&#x5c71;&rarr;&#x81fa;&#x5317;&#x9577;&#x5e9a;&#x91ab;&#x9662;</option>
+<option value="17277">2000 &#x81fa;&#x5317;&#x9577;&#x5e9a;&#x91ab;&#x9662;&rarr;&#x6843;&#x5712;&#x9f9c;&#x5c71;</option>
+<option value="17263">2011 &#x65b0;&#x7af9;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="17262">2011 &#x81fa;&#x5317;&#x5e02;&rarr;&#x65b0;&#x7af9;&#x8f49;&#x904b;&#x7ad9;</option>
+<option value="17428">2011B &#x65b0;&#x7af9;&#x9999;&#x5c71;&#x7267;&#x5834;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5b;&#x7d93;&#x8304;&#x82f3;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="19601">2011C &#x65b0;&#x7af9;&#x9999;&#x5c71;&#x7267;&#x5834;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5b;&#x7d93;&#x8304;&#x82f3;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="19309">2011C &#x81fa;&#x5317;&#x5e02;&rarr;&#x65b0;&#x7af9;&#x9999;&#x5c71;&#x7267;&#x5834;&#x5b;&#x7d93;&#x8304;&#x82f3;&#x4ea4;&#x6d41;&#x9053;&#x5d;</option>
+<option value="17267">2022 &#x4e2d;&#x58e2;&#x5340;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="17266">2022 &#x81fa;&#x5317;&#x5e02;&rarr;&#x4e2d;&#x58e2;&#x5340;</option>
+<option value="17818">2088 &#x57fa;&#x9686;&#x5e02;&#x28;&#x4e2d;&#x6b63;&#x5340;&#x3001;&#x4fe1;&#x7fa9;&#x5340;&#x29;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;</option>
+<option value="17819">2088 &#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x57fa;&#x9686;&#x5e02;&#x28;&#x4e2d;&#x6b63;&#x5340;&#x3001;&#x4fe1;&#x7fa9;&#x5340;&#x29;</option>
+<option value="17820">2088A &#x57fa;&#x9686;&#x5e02;&#x28;&#x4e2d;&#x6b63;&#x5340;&#x3001;&#x4fe1;&#x7fa9;&#x5340;&#x29;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&#x5b;&#x5ef6;&#x99db;&#x516b;&#x6597;&#x5b50;&#x7ad9;&#x5d;</option>
+<option value="17821">2088A &#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x57fa;&#x9686;&#x5e02;&#x28;&#x4e2d;&#x6b63;&#x5340;&#x3001;&#x4fe1;&#x7fa9;&#x5340;&#x29;&#x5b;&#x5ef6;&#x99db;&#x516b;&#x6597;&#x5b50;&#x7ad9;&#x5d;</option>
+<option value="19559">2088B &#x57fa;&#x9686;&#x5e02;&#x28;&#x4e2d;&#x6b63;&#x5340;&#x3001;&#x4fe1;&#x7fa9;&#x5340;&#x29;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&#x5b;&#x7d93;&#x57fa;&#x9686;&#x5e02;&#x6df1;&#x6fb3;&#x5751;&#x8def;&#x5d;</option>
+<option value="19560">2088B &#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x57fa;&#x9686;&#x5e02;&#x28;&#x4e2d;&#x6b63;&#x5340;&#x3001;&#x4fe1;&#x7fa9;&#x5340;&#x29;&#x5b;&#x7d93;&#x57fa;&#x9686;&#x5e02;&#x6df1;&#x6fb3;&#x5751;&#x8def;&#x5d;</option>
+<option value="19745">2088C &#x57fa;&#x9686;&#x5e02;&#x28;&#x4e2d;&#x6b63;&#x5340;&#x3001;&#x4fe1;&#x7fa9;&#x5340;&#x29;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x4fe1;&#x7fa9;&#x5340;&#x5b;&#x53f0;62&#x7dda;&#x5d;</option>
+<option value="16309">5116 &#x6843;&#x5712;&rarr;&#x81fa;&#x5317;&#x9577;&#x5e9a;&#x91ab;&#x9662;</option>
+<option value="16310">5116 &#x81fa;&#x5317;&#x9577;&#x5e9a;&#x91ab;&#x9662;&rarr;&#x6843;&#x5712;</option>
+<option value="17362">5203A &#x6843;&#x5712;&#x5e02;&#x8606;&#x7af9;&#x5340;&#x516d;&#x798f;&#x8def;&#x53e3;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="17361">5203A &#x81fa;&#x5317;&#x5e02;&rarr;&#x6843;&#x5712;&#x5e02;&#x8606;&#x7af9;&#x5340;&#x516d;&#x798f;&#x8def;&#x53e3;</option>
+<option value="17287">5250 &#x6843;&#x5712;&#x5e02;&#x5927;&#x5712;&#x5340;&rarr;&#x5357;&#x5d01;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="17286">5250 &#x81fa;&#x5317;&#x5e02;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x5d01;&rarr;&#x6843;&#x5712;&#x5e02;&#x5927;&#x5712;&#x5340;</option>
+<option value="17289">5250A &#x6843;&#x5712;&#x5e02;&#x5927;&#x5712;&#x5340;&rarr;&#x5357;&#x5d01;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5b;&#x7d93;&#x5949;&#x5316;&#x8def;&#x3001;&#x5357;&#x798f;&#x8857;&#x5d;</option>
+<option value="17288">5250A &#x81fa;&#x5317;&#x5e02;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x5d01;&rarr;&#x6843;&#x5712;&#x5e02;&#x5927;&#x5712;&#x5340;&#x5b;&#x7d93;&#x5949;&#x5316;&#x8def;&#x3001;&#x5357;&#x798f;&#x8857;&#x5d;</option>
+<option value="17399">5250B &#x5357;&#x7af9;&#x4e2d;&#x6b63;&#x5317;&#x8def;&#x53e3;&rarr;&#x5357;&#x5d01;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5b;&#x7d93;&#x5949;&#x5316;&#x8def;&#x3001;&#x5357;&#x798f;&#x8857;&#x5d;</option>
+<option value="17398">5250B &#x81fa;&#x5317;&#x5e02;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x5d01;&rarr;&#x5357;&#x7af9;&#x4e2d;&#x6b63;&#x5317;&#x8def;&#x53e3;&#x5b;&#x7d93;&#x5949;&#x5316;&#x8def;&#x3001;&#x5357;&#x798f;&#x8857;&#x5d;</option>
+<option value="19740">5250C &#x5357;&#x7af9;&#x4e2d;&#x6b63;&#x5317;&#x8def;&#x53e3;&rarr;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5b;&#x7d93;&#x5949;&#x5316;&#x8def;&#x3001;&#x5357;&#x798f;&#x8857;&#x5d;</option>
+<option value="19739">5250C &#x81fa;&#x5317;&#x5e02;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x7d93;&#x570b;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x5357;&#x7af9;&#x4e2d;&#x6b63;&#x5317;&#x8def;&#x53e3;&#x5b;&#x7d93;&#x5949;&#x5316;&#x8def;&#x3001;&#x5357;&#x798f;&#x8857;&#x5d;</option>
+<option value="16330">5350 &#x516d;&#x798f;&#x6751;&rarr;&#x5c0f;&#x4eba;&#x570b;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="16329">5350 &#x81fa;&#x5317;&#x5e02;&rarr;&#x5c0f;&#x4eba;&#x570b;&rarr;&#x516d;&#x798f;&#x6751;</option>
+<option value="16389">6606 &#x81fa;&#x5317;&rarr;&#x8c50;&#x539f;</option>
+<option value="16388">6606 &#x8c50;&#x539f;&rarr;&#x81fa;&#x5317;</option>
+<option value="18290">7000D &#x6597;&#x516d;&rarr;&#x81fa;&#x5317;</option>
+<option value="18291">7000D &#x81fa;&#x5317;&rarr;&#x6597;&#x516d;</option>
+<option value="17037">7005 &#x6c11;&#x96c4;&#x9109;&rarr;&#x570b;&#x9053;1&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="17036">7005 &#x81fa;&#x5317;&#x5e02;&rarr;&#x570b;&#x9053;1&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x6c11;&#x96c4;&#x9109;</option>
+<option value="18005">7005B &#x6c11;&#x96c4;&rarr;&#x897f;&#x87ba;&#x28;&#x4f75;&#x73ed;&#x8f49;&#x4e58;&#x81fa;&#x5317;&#x29;</option>
+<option value="18006">7005B &#x897f;&#x87ba;&rarr;&#x6c11;&#x96c4;&#x28;&#x4f75;&#x73ed;&#x8f49;&#x4e58;&#x6c11;&#x96c4;&#x29;</option>
+<option value="17315">7500 &#x81fa;&#x5317;&#x5e02;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5357;&#x5e02;&#x28;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x29;</option>
+<option value="17314">7500 &#x81fa;&#x5357;&#x5e02;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x28;&#x7d93;&#x4e09;&#x91cd;&#x4ea4;&#x6d41;&#x9053;&#x29;</option>
+<option value="17440">7500D &#x53f0;&#x5317;&rarr;&#x65b0;&#x7af9;&rarr;&#x65b0;&#x71df;&rarr;&#x53f0;&#x5357;</option>
+<option value="17439">7500D &#x53f0;&#x5357;&rarr;&#x65b0;&#x71df;&rarr;&#x65b0;&#x7af9;&rarr;&#x53f0;&#x5317;</option>
+<option value="17442">7500E &#x53f0;&#x5317;&rarr;&#x6843;&#x5712;&rarr;&#x65b0;&#x71df;&rarr;&#x53f0;&#x5357;</option>
+<option value="17441">7500E &#x53f0;&#x5357;&rarr;&#x65b0;&#x71df;&rarr;&#x6843;&#x5712;&rarr;&#x53f0;&#x5317;</option>
+<option value="17444">7500F &#x53f0;&#x5317;&rarr;&#x65b0;&#x7af9;&rarr;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x5357;</option>
+<option value="17443">7500F &#x53f0;&#x5357;&rarr;&#x9ebb;&#x8c46;&rarr;&#x65b0;&#x7af9;&rarr;&#x53f0;&#x5317;</option>
+<option value="17446">7500G &#x53f0;&#x5317;&rarr;&#x6843;&#x5712;&rarr;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x5357;</option>
+<option value="17445">7500G &#x53f0;&#x5357;&rarr;&#x9ebb;&#x8c46;&rarr;&#x6843;&#x5712;&rarr;&#x53f0;&#x5317;</option>
+<option value="17456">7500L &#x53f0;&#x5317;&rarr;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x5357;</option>
+<option value="17455">7500L &#x53f0;&#x5357;&rarr;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x5317;</option>
+<option value="17458">7500M &#x53f0;&#x5317;&rarr;&#x65b0;&#x71df;&rarr;&#x53f0;&#x5357;</option>
+<option value="17457">7500M &#x53f0;&#x5357;&rarr;&#x65b0;&#x71df;&rarr;&#x53f0;&#x5317;</option>
+<option value="17460">7500N &#x53f0;&#x5317;&rarr;&#x6843;&#x5712;&rarr;&#x65b0;&#x71df;&rarr;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x5357;</option>
+<option value="17459">7500N &#x53f0;&#x5357;&rarr;&#x9ebb;&#x8c46;&rarr;&#x65b0;&#x71df;&rarr;&#x6843;&#x5712;&rarr;&#x53f0;&#x5317;</option>
+<option value="17462">7500O &#x53f0;&#x5317;&rarr;&#x65b0;&#x7af9;&rarr;&#x65b0;&#x71df;&rarr;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x5357;</option>
+<option value="17461">7500O &#x53f0;&#x5357;&rarr;&#x9ebb;&#x8c46;&rarr;&#x65b0;&#x71df;&rarr;&#x65b0;&#x7af9;&rarr;&#x53f0;&#x5317;</option>
+<option value="17640">7500Q &#x53f0;&#x5317;&rarr;&#x53f0;&#x5357;</option>
+<option value="17632">7500Q &#x53f0;&#x5357;&rarr;&#x53f0;&#x5317;</option>
+<option value="17641">7500R &#x53f0;&#x5317;&rarr;&#x53f0;&#x4e2d;&rarr;&#x53f0;&#x5357;</option>
+<option value="17633">7500R &#x53f0;&#x5357;&rarr;&#x53f0;&#x4e2d;&rarr;&#x53f0;&#x5317;</option>
+<option value="17642">7500S &#x53f0;&#x5317;&rarr;&#x6843;&#x5712;&rarr;&#x53f0;&#x5357;</option>
+<option value="17634">7500S &#x53f0;&#x5357;&rarr;&#x6843;&#x5712;&rarr;&#x53f0;&#x5317;</option>
+<option value="17643">7500T &#x53f0;&#x5317;&rarr;&#x65b0;&#x7af9;&rarr;&#x53f0;&#x5357;</option>
+<option value="17635">7500T &#x53f0;&#x5357;&rarr;&#x65b0;&#x7af9;&rarr;&#x53f0;&#x5317;</option>
+<option value="17644">7500U &#x53f0;&#x5317;&rarr;&#x53f0;&#x4e2d;&rarr;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x5357;</option>
+<option value="17636">7500U &#x53f0;&#x5357;&rarr;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x4e2d;&rarr;&#x53f0;&#x5317;</option>
+<option value="17645">7500V &#x53f0;&#x5317;&rarr;&#x6843;&#x5712;&rarr;&#x53f0;&#x4e2d;&rarr;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x5357;</option>
+<option value="17637">7500V &#x53f0;&#x5357;&rarr;&#x9ebb;&#x8c46;&rarr;&#x53f0;&#x4e2d;&rarr;&#x6843;&#x5712;&rarr;&#x53f0;&#x5317;</option>
+<option value="17646">7500W &#x53f0;&#x5317;&rarr;&#x53f0;&#x4e2d;&rarr;&#x65b0;&#x71df;&rarr;&#x53f0;&#x5357;</option>
+<option value="17638">7500W &#x53f0;&#x5357;&rarr;&#x65b0;&#x71df;&rarr;&#x53f0;&#x4e2d;&rarr;&#x53f0;&#x5317;</option>
+<option value="17708">9001 &#x6843;&#x5712;&#x5e02;&#x4e2d;&#x58e2;&#x5340;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x6771;&#x5357;&#x5340;</option>
+<option value="17907">9001 &#x81fa;&#x5317;&#x5e02;&#x6771;&#x5357;&#x5340;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x6843;&#x5712;&#x5e02;&#x4e2d;&#x58e2;&#x5340;</option>
+<option value="16326">9003 &#x65b0;&#x7af9;&#x5e02;&rarr;&#x570b;&#x9053;1&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="16325">9003 &#x81fa;&#x5317;&#x5e02;&rarr;&#x570b;&#x9053;1&#x865f;&#x9ad8;&#x901f;&#x516c;&#x8def;&rarr;&#x65b0;&#x7af9;&#x5e02;</option>
+<option value="16311">9005 &#x6843;&#x5712;&#x5e02;&#x897f;&#x5317;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x6771;&#x5357;&#x5340;</option>
+<option value="16312">9005 &#x81fa;&#x5317;&#x5e02;&#x6771;&#x5357;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x6843;&#x5712;&#x5e02;&#x897f;&#x5317;&#x5340;</option>
+<option value="17738">9005A &#x6843;&#x5712;&#x5e02;&#x897f;&#x5317;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x6771;&#x5357;&#x5340;&#x28;&#x7e5e;&#x99db;&#x6c38;&#x5b89;&#x8def;&#x29;</option>
+<option value="17739">9005A &#x81fa;&#x5317;&#x5e02;&#x6771;&#x5357;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x6843;&#x5712;&#x5e02;&#x897f;&#x5317;&#x5340;&#x28;&#x7e5e;&#x99db;&#x6c38;&#x5b89;&#x8def;&#x29;</option>
+<option value="17152">9006 &#x57fa;&#x9686;&#x5e02;&rarr;&#x81fa;&#x5317;&#x5e02;</option>
+<option value="17151">9006 &#x81fa;&#x5317;&#x5e02;&rarr;&#x57fa;&#x9686;&#x5e02;</option>
+<option value="16323">9009 &#x6843;&#x5712;&#x5e02;&#x897f;&#x5317;&#x5340;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x6771;&#x5357;&#x5340;</option>
+<option value="16324">9009 &#x81fa;&#x5317;&#x5e02;&#x6771;&#x5357;&#x5340;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x6843;&#x5712;&#x5e02;&#x897f;&#x5317;&#x5340;</option>
+<option value="16401">9023 &#x6843;&#x5712;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x58eb;&#x6797;&#x5340;</option>
+<option value="17629">9023 &#x81fa;&#x5317;&#x5e02;&#x58eb;&#x6797;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x6843;&#x5712;</option>
+<option value="17685">9023A &#x6843;&#x5712;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x58eb;&#x6797;&#x5340;&#x5b;&#x4e2d;&#x6b63;&#x85dd;&#x6587;&#x7279;&#x5340;&#x767c;&#x8eca;&#x5d;</option>
+<option value="16319">9025 &#x4e2d;&#x58e2;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x677e;&#x5c71;&#x5340;</option>
+<option value="17298">9025 &#x81fa;&#x5317;&#x5e02;&#x677e;&#x5c71;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x4e2d;&#x58e2;</option>
+<option value="17488">9025A &#x4e2d;&#x58e2;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x81fa;&#x5317;&#x5e02;&#x677e;&#x5c71;&#x5340;&#x5b;&#x7e5e;&#x99db;&#x4e2d;&#x592e;&#x5927;&#x5b78;&#x5d;</option>
+<option value="17489">9025A &#x81fa;&#x5317;&#x5e02;&#x677e;&#x5c71;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x4e2d;&#x58e2;&#x5b;&#x7e5e;&#x99db;&#x4e2d;&#x592e;&#x5927;&#x5b78;&#x5d;</option>
+<option value="17121">9026 &#x57fa;&#x9686;&#x5e02;&#x5b89;&#x6a02;&#x5340;&rarr;&#x6c50;&#x6b62;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5357;&#x6e2f;&#x5c55;&#x89bd;&#x9928;&#x5b;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="19310">9026 &#x81fa;&#x5317;&#x5e02;&#x5357;&#x6e2f;&#x5c55;&#x89bd;&#x9928;&rarr;&#x6c50;&#x6b62;&rarr;&#x57fa;&#x9686;&#x5e02;&#x5b89;&#x6a02;&#x5340;&#x5b;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="19272">9026A &#x57fa;&#x9686;&#x5e02;&#x5b89;&#x6a02;&#x5340;&rarr;&#x6c50;&#x6b62;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5357;&#x6e2f;&#x5c55;&#x89bd;&#x9928;&#x5b;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="19273">9026A &#x81fa;&#x5317;&#x5e02;&#x5357;&#x6e2f;&#x5c55;&#x89bd;&#x9928;&rarr;&#x6c50;&#x6b62;&rarr;&#x57fa;&#x9686;&#x5e02;&#x5b89;&#x6a02;&#x5340;&#x5b;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="19359">9026B &#x57fa;&#x9686;&#x5e02;&#x5b89;&#x6a02;&#x5340;&rarr;&#x6c50;&#x6b62;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5357;&#x6e2f;&#x5c55;&#x89bd;&#x9928;&#x5b;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="19360">9026B &#x81fa;&#x5317;&#x5e02;&#x5357;&#x6e2f;&#x5c55;&#x89bd;&#x9928;&rarr;&#x6c50;&#x6b62;&rarr;&#x57fa;&#x9686;&#x5e02;&#x5b89;&#x6a02;&#x5340;&#x5b;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="19361">9026C &#x57fa;&#x9686;&#x5e02;&#x5b89;&#x6a02;&#x5340;&rarr;&#x6c50;&#x6b62;&rarr;&#x81fa;&#x5317;&#x5e02;&#x5357;&#x6e2f;&#x5c55;&#x89bd;&#x9928;&#x5b;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="19362">9026C &#x81fa;&#x5317;&#x5e02;&#x5357;&#x6e2f;&#x5c55;&#x89bd;&#x9928;&rarr;&#x6c50;&#x6b62;&rarr;&#x57fa;&#x9686;&#x5e02;&#x5b89;&#x6a02;&#x5340;&#x5b;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&#x5d;</option>
+<option value="19118">9028 &#x5b9c;&#x862d;&#x7e23;&#x8607;&#x6fb3;&#x93ae;&rarr;&#x53f0;9&#x7dda;&rarr;&#x7f85;&#x6771;&#x93ae;&rarr;&#x5b9c;&#x862d;&#x7e23;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x65b0;&#x5e97;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x65b0;&#x5317;&#x5e02;&#x65b0;&#x5e97;&#x5340;</option>
+<option value="19117">9028 &#x65b0;&#x5317;&#x5e02;&#x65b0;&#x5e97;&#x5340;&rarr;&#x65b0;&#x5e97;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&rarr;&#x7f85;&#x6771;&#x93ae;&rarr;&#x53f0;9&#x7dda;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x8607;&#x6fb3;&#x93ae;</option>
+<option value="19112">9028B &#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;&rarr;&#x65b0;&#x5317;&#x5e02;&#x65b0;&#x5e97;&#x5340;</option>
+<option value="19111">9028B &#x65b0;&#x5317;&#x5e02;&#x65b0;&#x5e97;&#x5340;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;</option>
+<option value="19116">9028D &#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x576a;&#x6797;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x65b0;&#x5e97;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x65b0;&#x5317;&#x5e02;&#x65b0;&#x5e97;&#x5340;&#x5b;&#x7d93;&#x576a;&#x6797;&#x5d;</option>
+<option value="19115">9028D &#x65b0;&#x5317;&#x5e02;&#x65b0;&#x5e97;&#x5340;&rarr;&#x65b0;&#x5e97;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x570b;&#x9053;3&#x865f;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x576a;&#x6797;&rarr;&#x570b;&#x9053;5&#x865f;&rarr;&#x7f85;&#x6771;&#x4ea4;&#x6d41;&#x9053;&rarr;&#x5b9c;&#x862d;&#x7e23;&#x7f85;&#x6771;&#x93ae;&#x5b;&#x7d93;&#x576a;&#x6797;&#x5d;</option>
+<option value="17879">9069 &#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x6843;&#x5712;&#x5e02;&#x5927;&#x6709;&#x7279;&#x5340;</option>
+<option value="17878">9069 &#x6843;&#x5712;&#x5e02;&#x5927;&#x6709;&#x7279;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x5357;&#x6e2f;&#x8f49;&#x904b;&#x7ad9;</option>
+<option value="18051">9069A &#x6377;&#x904b;&#x5357;&#x4eac;&#x5fa9;&#x8208;&#x7ad9;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x6843;&#x5712;&#x5e02;&#x5927;&#x6709;&#x7279;&#x5340;</option>
+<option value="18050">9069A &#x6843;&#x5712;&#x5e02;&#x5927;&#x6709;&#x7279;&#x5340;&rarr;&#x570b;&#x9053;1&#x865f;&rarr;&#x6377;&#x904b;&#x5357;&#x4eac;&#x5fa9;&#x8208;&#x7ad9;</option>
+
+                </select>
+            </td>
+        </tr>
+    </table>
+    <table border=0 width="100%">
+        <tr>
+            <td colspan=3 align=center>
+                <img src="bus0.gif" border=0>:一般公車
+            </td>
+            <td colspan=3 align=center>
+                <img src="bus1.gif" border=0>:低地板公車
+            </td>
+            <td colspan=3 align=center>
+                <img src="bus2.gif" border=0>:大復康巴士
+            </td>
+            </td>
+            <td colspan=3 align=center>
+                <img src="bus6.gif" border=0>:無障礙中巴
+            </td>
+			<!--             
+            <td>
+                <img src="bus3.gif" border=0>:狗狗友善專車
+            </td>
+
+            <td>
+                <img src="bus3.gif" border=0>:圓仔專車
+            </td>
+             -->
+        </tr>
+    
+        
+	        
+        <tr>
+            <td colspan=4 align=center>
+                <img src="crowd0.gif" border=0>:舒適
+            </td>
+            <td colspan=4 align=center>
+                <img src="crowd1.gif" border=0>:中等
+            </td>
+            <td colspan=4 align=center>
+                <img src="crowd2.gif" border=0>:擁擠
+            </td>
+        </tr>
+        
+　　</table>
+</div>
+
+</body>
+</html>
