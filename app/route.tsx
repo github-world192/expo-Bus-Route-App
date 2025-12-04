@@ -357,7 +357,12 @@ export default function RouteScreen() {
         
         <View style={styles.routeCardInfo}>
           <Text style={styles.routeCardTime}>⏱ {item.arrival_time_text}</Text>
-          <Text style={styles.routeCardStops}>🚏 途經 {item.stop_count} 站</Text>
+          <Text style={styles.routeCardStops}>🚏 途經 {item.stop_count} 站 :
+            {(item.estimated_duration !== undefined && item.estimated_duration > 0) && (
+            <Text style={styles.routeCardStops}> {item.estimated_duration} 分鐘</Text>
+          )}
+          </Text>
+          
         </View>
 
         {isSelected && (
@@ -749,6 +754,11 @@ const styles = StyleSheet.create({
   routeCardStops: {
     fontSize: 13,
     color: '#666',
+  },
+  routeCardDuration: {
+    fontSize: 13,
+    color: '#4CAF50',
+    fontWeight: '600',
   },
   routeCardDetail: {
     marginTop: 16,
