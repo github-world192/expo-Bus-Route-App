@@ -56,6 +56,7 @@ export default function StopDetailScreen() {
       }
 
       const results = await plannerRef.current.fetchBusesAtSid(sids[0]);
+      console.log(sids[0]);
       const allBuses = results.flat();
 
       const uiArrivals: UIArrival[] = allBuses
