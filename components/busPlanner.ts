@@ -296,7 +296,7 @@ export class BusPlannerService {
   /**
    * 取得特定 SID 的即時公車列表 (平行抓取 HTML + JSON)
    */
-  async fetchRealtimeAtSid(sid: string): Promise<any[]> {
+  async fetchBusesAtSid(sid: string): Promise<any[]> {
     const info = this.getStopInfo(sid);
     const slid = info ? info.slid : null;
 
@@ -463,7 +463,7 @@ export class BusPlannerService {
     const tasks = Object.keys(sidGroups).map(async (sid) => {
       const groupBuses = sidGroups[sid];
       // 重新抓取該站即時資訊
-      const realtimeList = await this.fetchRealtimeAtSid(sid);
+      const realtimeList = await this.fetchBusesAtSid(sid);
       const realtimeMap = new Map(realtimeList.map(r => [r.rid, r]));
 
       return groupBuses.map(bus => {
@@ -519,7 +519,7 @@ export class BusPlannerService {
 
     // 3. 平行查詢：(起點即時資訊) + (終點 HTML)
     // 目的：透過終點 HTML 找出所有經過終點的 RID，用於快速過濾
-    const tStart = Promise.all(startSids.map(sid => this.fetchRealtimeAtSid(sid)));
+    const tStart = Promise.all(startSids.map(sid => this.fetchBusesAtSid(sid)));
     const tEnd = Promise.all(endSidsRep.map(sid => this.fetchText(`${BASE_URL}/stop.jsp?sid=${sid}`)));
 
     const [startResNested, endResHtml] = await Promise.all([tStart, tEnd]);
