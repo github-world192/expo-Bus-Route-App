@@ -27,6 +27,10 @@ export default function StopDetailScreen() {
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
+  
+  // 刷新冷卻時間（毫秒）
+  const REFRESH_COOLDOWN = 3000; // 3 秒
   
   // 注意：因為 fetchBusesAtSid 不回傳方向，暫時移除 Tabs 的過濾功能
   // const [selectedTab, setSelectedTab] = useState<'去' | '回'>('去');
@@ -88,6 +92,16 @@ export default function StopDetailScreen() {
   }, [stopName, serviceReady]);
 
   const onRefresh = () => {
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTime;
+    
+    // 如果距離上次刷新少於冷卻時間，則忽略
+    if (timeSinceLastRefresh < REFRESH_COOLDOWN) {
+      console.log(`請稍候 ${Math.ceil((REFRESH_COOLDOWN - timeSinceLastRefresh) / 1000)} 秒後再刷新`);
+      return;
+    }
+    
+    setLastRefreshTime(now);
     setRefreshing(true);
     fetchBusData();
   };

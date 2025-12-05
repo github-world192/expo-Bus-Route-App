@@ -42,7 +42,11 @@ export default function StopScreen() {
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const intervalRef = useRef<any>(null);
+
+  // 刷新冷卻時間（毫秒）
+  const REFRESH_COOLDOWN = 3000; // 3 秒
 
   // 常用路線狀態
   const [favoriteRoutes, setFavoriteRoutes] = useState<FavoriteRoute[]>([]);
@@ -139,6 +143,16 @@ export default function StopScreen() {
   };
 
   const onRefresh = () => {
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTime;
+    
+    // 如果距離上次刷新少於冷卻時間，則忽略
+    if (timeSinceLastRefresh < REFRESH_COOLDOWN) {
+      console.log(`請稍候 ${Math.ceil((REFRESH_COOLDOWN - timeSinceLastRefresh) / 1000)} 秒後再刷新`);
+      return;
+    }
+    
+    setLastRefreshTime(now);
     setRefreshing(true);
     fetchBusData(selectedStop);
   };

@@ -45,10 +45,15 @@ export default function RouteScreen() {
   const [selectedRouteIndex, setSelectedRouteIndex] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [hasSearched, setHasSearched] = useState<boolean>(false);
+  const [isPlanning, setIsPlanning] = useState<boolean>(false); // 防止重複規劃
   
   // 自動更新狀態
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
   const updateIntervalRef = useRef<any>(null);
+  
+  // 更新冷卻時間（毫秒）
+  const UPDATE_COOLDOWN = 3000; // 3 秒
   
   // 常用路線狀態
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
@@ -75,6 +80,7 @@ export default function RouteScreen() {
           
           // 延遲一下確保狀態更新完成
           setTimeout(async () => {
+            setIsPlanning(true);
             setLoading(true);
             setHasSearched(true);
             
@@ -90,6 +96,7 @@ export default function RouteScreen() {
               setRouteInfo([]);
             } finally {
               setLoading(false);
+              setIsPlanning(false);
             }
           }, 100);
         }
@@ -116,10 +123,11 @@ export default function RouteScreen() {
 
   // 規劃路線
   const planRoute = async () => {
-    if (!fromStop || !toStop) {
+    if (!fromStop || !toStop || isPlanning) {
       return;
     }
 
+    setIsPlanning(true);
     setLoading(true);
     setHasSearched(true);
     
@@ -139,14 +147,25 @@ export default function RouteScreen() {
       setRouteInfo([]);
     } finally {
       setLoading(false);
+      setIsPlanning(false);
     }
   };
 
   // 更新路線動態資訊
   const updateRouteInfo = async () => {
-    if (!fromStop || !toStop || routeInfo.length === 0 || isUpdating) return;
+    if (!fromStop || !toStop || routeInfo.length === 0) return;
+    
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastUpdateTime;
+    
+    // 如果距離上次更新少於冷卻時間，則忽略（自動更新除外）
+    if (isUpdating || (timeSinceLastUpdate < UPDATE_COOLDOWN && lastUpdateTime !== 0)) {
+      console.log(`請稍候 ${Math.ceil((UPDATE_COOLDOWN - timeSinceLastUpdate) / 1000)} 秒後再更新`);
+      return;
+    }
     
     try {
+      setLastUpdateTime(now);
       setIsUpdating(true);
       console.log('更新路線動態...');
       
@@ -236,11 +255,12 @@ export default function RouteScreen() {
     setToStopDisplay(tempDisplay);
     
     // 如果兩個站牌都有填寫，使用交換後的值立即重新規劃
-    if (willSwap) {
+    if (willSwap && !isPlanning) {
       // 使用 React 的批次更新後執行
       setTimeout(async () => {
-        if (!newFromStop || !newToStop) return;
+        if (!newFromStop || !newToStop || isPlanning) return;
         
+        setIsPlanning(true);
         setLoading(true);
         setHasSearched(true);
         
@@ -256,6 +276,7 @@ export default function RouteScreen() {
           setRouteInfo([]);
         } finally {
           setLoading(false);
+          setIsPlanning(false);
         }
       }, 200);
     }
@@ -502,9 +523,9 @@ export default function RouteScreen() {
 
         <View style={styles.actionButtonsRow}>
           <TouchableOpacity
-            style={[styles.planButton, (!fromStop || !toStop) && styles.planButtonDisabled]}
+            style={[styles.planButton, (!fromStop || !toStop || isPlanning) && styles.planButtonDisabled]}
             onPress={planRoute}
-            disabled={!fromStop || !toStop || loading}
+            disabled={!fromStop || !toStop || loading || isPlanning}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
