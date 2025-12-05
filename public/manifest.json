@@ -1,6 +1,6 @@
 {
   "name": "台北公車即時資訊",
-  "short_name": "台北公車",
+  "short_name": "Stop togo",
   "description": "查詢台北市公車即時到站資訊與路線規劃",
   "start_url": "/",
   "display": "standalone",
