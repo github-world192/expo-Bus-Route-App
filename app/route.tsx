@@ -319,6 +319,20 @@ export default function RouteScreen() {
       if (result.success) {
         setIsFavorite(true);
         console.log('已加入常用路線');
+        
+        // 立即預載公車路線資訊以加快未來存取速度
+        try {
+          console.log('預載公車路線資訊...');
+          const plans = await plannerRef.current.plan(fromStop, toStop);
+          if (plans.length > 0) {
+            const routeNames = [...new Set(plans.map(bus => bus.routeName))];
+            await favoriteRoutesService.updateRouteCacheNames(fromStop, toStop, routeNames);
+            console.log('已預載路線快取:', routeNames.length, '條路線');
+          }
+        } catch (error) {
+          console.error('預載路線快取失敗:', error);
+          // 不影響加入常用路線的流程，只是預載失敗
+        }
       } else {
         console.log('加入失敗:', result.message);
       }

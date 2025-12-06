@@ -15,6 +15,8 @@ export interface FavoriteRoute {
   lastUsed?: number;             // 最後使用時間
   useCount: number;              // 使用次數
   pinned: boolean;               // 是否置頂
+  cachedRouteNames?: string[];   // 快取的可用公車路線（用於快速顯示）
+  cacheUpdatedAt?: number;       // 快取更新時間
 }
 
 // 常用路線資料結構
@@ -383,6 +385,67 @@ export class FavoriteRoutesService {
       totalUsageCount: data.routes.reduce((sum, r) => sum + r.useCount, 0),
       maxCount: data.maxCount,
     };
+  }
+
+  /**
+   * 更新路線的快取路線名稱
+   * @param fromStop 起點站牌
+   * @param toStop 終點站牌
+   * @param routeNames 可用的公車路線名稱陣列
+   */
+  async updateRouteCacheNames(
+    fromStop: string,
+    toStop: string,
+    routeNames: string[]
+  ): Promise<boolean> {
+    try {
+      const data = await this.loadData();
+      const id = this.generateRouteId(fromStop, toStop);
+      const routeIndex = data.routes.findIndex(route => route.id === id);
+
+      if (routeIndex === -1) {
+        console.warn('路線不存在，無法更新快取');
+        return false;
+      }
+
+      data.routes[routeIndex].cachedRouteNames = routeNames;
+      data.routes[routeIndex].cacheUpdatedAt = Date.now();
+      
+      const saved = await this.saveData(data);
+      if (saved) {
+        console.log('已更新路線快取:', fromStop, '→', toStop, '路線數:', routeNames.length);
+      }
+      return saved;
+    } catch (error) {
+      console.error('更新路線快取錯誤:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 取得路線的快取路線名稱
+   * @param fromStop 起點站牌
+   * @param toStop 終點站牌
+   * @returns 快取的路線名稱陣列，如果沒有快取則返回 null
+   */
+  async getCachedRouteNames(
+    fromStop: string,
+    toStop: string
+  ): Promise<string[] | null> {
+    try {
+      const data = await this.loadData();
+      const id = this.generateRouteId(fromStop, toStop);
+      const route = data.routes.find(route => route.id === id);
+
+      if (!route || !route.cachedRouteNames) {
+        return null;
+      }
+
+      return route.cachedRouteNames;
+    } catch (error) {
+      console.error('取得快取路線名稱錯誤:', error);
+      return null;
+    }
   }
 
   /**

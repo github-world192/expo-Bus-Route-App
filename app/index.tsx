@@ -52,6 +52,11 @@ export default function StopScreen() {
 
   // 常用路線狀態
   const [favoriteRoutes, setFavoriteRoutes] = useState<FavoriteRoute[]>([]);
+  const [favoriteRouteArrivals, setFavoriteRouteArrivals] = useState<UIArrival[]>([]);
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState<number>(0);
+  
+  // 顯示模式: 'favorite' | 'nearby' | 'default'
+  const [displayMode, setDisplayMode] = useState<'favorite' | 'nearby' | 'default'>('default');
   
   // 長按選單狀態
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
@@ -244,8 +249,146 @@ export default function StopScreen() {
       const routes = await favoriteRoutesService.getAllRoutes(true);
       setFavoriteRoutes(routes);
       console.log('已載入常用路線:', routes.length, '條');
+      
+      // 如果有常用路線，抽取第一個路線的公車動態
+      if (routes.length > 0) {
+        setSelectedRouteIndex(0);
+        await fetchFavoriteRouteArrivals(0);
+      } else {
+        // 沒有常用路線，顯示預設站牌
+        setDisplayMode('default');
+        setFavoriteRouteArrivals([]);
+      }
     } catch (error) {
       console.error('載入常用路線失敗:', error);
+    }
+  };
+
+  // 抽取指定常用路線的公車動態（快取快速顯示 + 背景更新）
+  const fetchFavoriteRouteArrivals = async (routeIndex: number, forceRefresh: boolean = false) => {
+    try {
+      if (!serviceReady || favoriteRoutes.length === 0) {
+        console.log('Service not ready or no favorite routes');
+        return;
+      }
+
+      const route = favoriteRoutes[routeIndex];
+      if (!route) {
+        console.log('Route not found at index:', routeIndex);
+        return;
+      }
+
+      console.log('Processing route:', route.fromStop, '→', route.toStop);
+      
+      // 步驟 1: 如果有快取的路線名稱，立即顯示預設資料
+      if (route.cachedRouteNames && route.cachedRouteNames.length > 0 && !forceRefresh) {
+        console.log('使用快取路線:', route.cachedRouteNames);
+        
+        // 立即顯示快取路線的預設資料（等待中...）
+        const placeholderArrivals: UIArrival[] = route.cachedRouteNames.map((routeName, idx) => ({
+          route: routeName,
+          estimatedTime: '查詢中...',
+          key: `placeholder-${route.id}-${routeName}-${idx}`,
+        }));
+        
+        setFavoriteRouteArrivals(placeholderArrivals);
+        setDisplayMode('favorite');
+      }
+      
+      // 步驟 2: 取得起點站 SID
+      const fromSids = plannerRef.current.getRepresentativeSids(route.fromStop);
+      console.log('From stop SIDs:', fromSids);
+      if (fromSids.length === 0) {
+        setFavoriteRouteArrivals([]);
+        setDisplayMode('default');
+        return;
+      }
+
+      // 步驟 3: 規劃路徑以取得可用路線名稱
+      const plans = await plannerRef.current.plan(
+        route.fromStop,
+        route.toStop
+      );
+
+      console.log('Plans found:', plans.length);
+      if (plans.length === 0) {
+        setFavoriteRouteArrivals([]);
+        setDisplayMode('default');
+        return;
+      }
+
+      // 取得所有可用的公車路線名稱
+      const routeNames = [...new Set(plans.map(bus => bus.routeName))];
+      console.log('Route names:', routeNames);
+
+      // 更新快取（如果路線有變化或是第一次加載）
+      if (!route.cachedRouteNames || 
+          JSON.stringify(route.cachedRouteNames.sort()) !== JSON.stringify(routeNames.sort())) {
+        console.log('更新路線快取...');
+        await favoriteRoutesService.updateRouteCacheNames(
+          route.fromStop,
+          route.toStop,
+          routeNames
+        );
+        // 重新載入常用路線以更新快取
+        const updatedRoutes = await favoriteRoutesService.getAllRoutes(true);
+        setFavoriteRoutes(updatedRoutes);
+      }
+
+      // 步驟 4: 抽取起點站的即時公車資料
+      const results = await plannerRef.current.fetchBusesAtSid(fromSids[0]);
+      const allBuses = results.flat();
+      console.log('All buses at', route.fromStop, ':', allBuses.length, 'buses');
+      
+      // 找出起點站有的公車且在路線中
+      const matchingBuses = allBuses.filter(bus => 
+        routeNames.includes(bus.route)
+      );
+
+      console.log('Matching buses:', matchingBuses.length);
+
+      // 轉換為 UI 格式
+      const favoriteArrivals: UIArrival[] = matchingBuses.map((bus, idx) => ({
+        route: bus.route,
+        estimatedTime: bus.timeText,
+        key: `fav-${route.id}-${bus.rid}-${idx}`,
+      }));
+
+      // 如果沒有匹配的公車，顯示所有可用路線但標註為無資料
+      if (favoriteArrivals.length === 0 && routeNames.length > 0) {
+        routeNames.forEach((routeName, idx) => {
+          favoriteArrivals.push({
+            route: routeName,
+            estimatedTime: '無資料',
+            key: `fav-nodata-${route.id}-${routeName}-${idx}`,
+          });
+        });
+      }
+
+      // 依照到站時間排序
+      favoriteArrivals.sort((a, b) => {
+        const timeA = a.estimatedTime;
+        const timeB = b.estimatedTime;
+        if (timeA.includes('分') && !timeB.includes('分')) return -1;
+        if (!timeA.includes('分') && timeB.includes('分')) return 1;
+        return 0;
+      });
+
+      console.log('Total favorite arrivals:', favoriteArrivals.length);
+
+      setFavoriteRouteArrivals(favoriteArrivals);
+      
+      // 根據結果設定顯示模式
+      if (favoriteArrivals.length > 0) {
+        console.log('Setting display mode to: favorite');
+        setDisplayMode('favorite');
+      } else {
+        console.log('Setting display mode to: default (no matching buses)');
+        setDisplayMode('default');
+      }
+    } catch (error) {
+      console.error('抽取常用路線公車動態失敗:', error);
+      setDisplayMode('default');
     }
   };
 
@@ -376,6 +519,17 @@ export default function StopScreen() {
     </TouchableOpacity>
   );
 
+  const renderFavoriteRouteItem = ({ item }: { item: UIArrival }) => (
+    <TouchableOpacity>
+      <View style={styles.row}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.route}>{item.route}</Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>{renderBadge(item.estimatedTime)}</View>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       {/* 側欄 */}
@@ -465,13 +619,16 @@ export default function StopScreen() {
               contentContainerStyle={styles.quickRouteScrollContent}
               style={styles.quickRouteScrollView}
             >
-              {favoriteRoutes.slice(0, 5).map((route) => (
+              {favoriteRoutes.slice(0, 5).map((route, index) => (
                 <TouchableOpacity
                   key={route.id}
-                  style={styles.quickRouteButton}
+                  style={[
+                    styles.quickRouteButton,
+                    selectedRouteIndex === index && displayMode === 'favorite' && styles.quickRouteButtonActive
+                  ]}
                   onPress={() => {
-                    router.push(`/route?from=${encodeURIComponent(route.fromStop)}&to=${encodeURIComponent(route.toStop)}`);
-                    favoriteRoutesService.recordUsage(route.fromStop, route.toStop);
+                    setSelectedRouteIndex(index);
+                    fetchFavoriteRouteArrivals(index);
                   }}
                   onLongPress={() => handleLongPress(route)}
                   delayLongPress={Platform.OS === 'web' ? 300 : 500}
@@ -479,12 +636,21 @@ export default function StopScreen() {
                 >
                   {route.pinned && <Text style={styles.pinIcon}>📌</Text>}
                   {route.displayName ? (
-                    <Text style={styles.quickRouteDisplayName}>{route.displayName}</Text>
+                    <Text style={[
+                      styles.quickRouteDisplayName,
+                      selectedRouteIndex === index && displayMode === 'favorite' && styles.quickRouteTextActive
+                    ]}>{route.displayName}</Text>
                   ) : (
                     <>
-                      <Text style={styles.quickRouteFrom}>{route.fromStop}</Text>
+                      <Text style={[
+                        styles.quickRouteFrom,
+                        selectedRouteIndex === index && displayMode === 'favorite' && styles.quickRouteTextActive
+                      ]}>{route.fromStop}</Text>
                       <Text style={styles.quickRouteArrow}>→</Text>
-                      <Text style={styles.quickRouteTo}>{route.toStop}</Text>
+                      <Text style={[
+                        styles.quickRouteTo,
+                        selectedRouteIndex === index && displayMode === 'favorite' && styles.quickRouteTextActive
+                      ]}>{route.toStop}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -506,47 +672,67 @@ export default function StopScreen() {
       {/* 通知設定 */}
       {/* 移到 FlatList 的 ListHeaderComponent */}
 
-      {/* 站牌標題與刷新按鈕 */}
-      <View style={styles.directionBar}>
-        <Text style={styles.directionBarText}>{selectedStop}</Text>
-        {Platform.OS === 'web' && (
-          <TouchableOpacity
-            onPress={onRefresh}
-            disabled={refreshing}
-            style={styles.refreshButton}
-          >
-            <Text style={styles.refreshButtonText}>
-              {refreshing ? '更新中...' : '刷新'}
+      {/* 根據優先順序顯示公車動態 */}
+      {displayMode === 'favorite' && favoriteRouteArrivals.length > 0 ? (
+        // 顯示常用路線公車
+        <>
+          <View style={styles.directionBar}>
+            <Text style={styles.directionBarText}>
+              {favoriteRoutes[selectedRouteIndex]?.displayName || 
+               `${favoriteRoutes[selectedRouteIndex]?.fromStop} → ${favoriteRoutes[selectedRouteIndex]?.toStop}`}
             </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* 公車列表 */}
-      {loading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" />
-          <Text style={{ color: '#999', marginTop: 8 }}>載入中...</Text>
-        </View>
+          </View>
+          <FlatList
+            data={favoriteRouteArrivals}
+            renderItem={renderFavoriteRouteItem}
+            keyExtractor={(item) => item.key}
+            scrollEnabled={false}
+          />
+        </>
       ) : (
-        <FlatList
-          data={arrivals}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.key}
-          ListHeaderComponent={<NotificationSettings />}
-          refreshControl={
-            Platform.OS !== 'web' ? (
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            ) : undefined
-          }
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>目前無公車資訊</Text>
-              <Text style={styles.hintText}>或查無此站牌資料</Text>
+        // 顯示預設站牌公車
+        <>
+          <View style={styles.directionBar}>
+            <Text style={styles.directionBarText}>{selectedStop}</Text>
+            {Platform.OS === 'web' && (
+              <TouchableOpacity
+                onPress={onRefresh}
+                disabled={refreshing}
+                style={styles.refreshButton}
+              >
+                <Text style={styles.refreshButtonText}>
+                  {refreshing ? '更新中...' : '刷新'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {loading ? (
+            <View style={styles.loading}>
+              <ActivityIndicator size="large" />
+              <Text style={{ color: '#999', marginTop: 8 }}>載入中...</Text>
             </View>
-          }
-          contentContainerStyle={{ paddingBottom: 120 }}
-        />
+          ) : (
+            <FlatList
+              data={arrivals}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.key}
+              ListHeaderComponent={<NotificationSettings />}
+              refreshControl={
+                Platform.OS !== 'web' ? (
+                  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                ) : undefined
+              }
+              ListEmptyComponent={
+                <View style={styles.empty}>
+                  <Text style={styles.emptyText}>目前無公車資訊</Text>
+                  <Text style={styles.hintText}>或查無此站牌資料</Text>
+                </View>
+              }
+              contentContainerStyle={{ paddingBottom: 120 }}
+            />
+          )}
+        </>
       )}
 
       {/* 更新時間 */}
@@ -710,6 +896,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     gap: 6,
+  },
+  quickRouteButtonActive: {
+    backgroundColor: '#6F73F8',
+  },
+  quickRouteTextActive: {
+    color: '#fff',
+    fontWeight: '700',
   },
   pinIcon: {
     fontSize: 10,
