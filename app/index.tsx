@@ -742,6 +742,37 @@ export default function StopScreen() {
             <Text style={styles.sidebarItemIcon}>🔔</Text>
             <Text style={styles.sidebarItemText}>乘車時間通知</Text>
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.sidebarItem}
+            onPress={async () => {
+              if (Platform.OS === 'web') {
+                if (confirm('確定要清除所有快取資料嗎？這將刪除常用路線、最近站牌等所有儲存的資料。')) {
+                  await AsyncStorage.clear();
+                  alert('快取已清除！頁面將重新載入。');
+                  window.location.reload();
+                }
+              } else {
+                Alert.alert(
+                  '清除快取',
+                  '確定要清除所有快取資料嗎？這將刪除常用路線、最近站牌等所有儲存的資料。',
+                  [
+                    { text: '取消', style: 'cancel' },
+                    {
+                      text: '確定',
+                      style: 'destructive',
+                      onPress: async () => {
+                        await AsyncStorage.clear();
+                        Alert.alert('完成', '快取已清除！請重新啟動應用程式。');
+                      },
+                    },
+                  ]
+                );
+              }
+            }}
+          >
+            <Text style={styles.sidebarItemIcon}>🗑️</Text>
+            <Text style={styles.sidebarItemText}>清除快取</Text>
+          </TouchableOpacity>
         </ScrollView>
       </Animated.View>
 
