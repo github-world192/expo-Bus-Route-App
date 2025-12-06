@@ -444,7 +444,7 @@ export class BusPlannerService {
 
   private async _fetchText(url: string): Promise<string | null> {
     try {
-        const res = await fetch(url, { headers: { 'User-Agent': CONFIG.USER_AGENT } });
+        const res = await fetch(url);
         if (!res.ok) return null;
         return await res.text();
     } catch (e) {
@@ -454,7 +454,7 @@ export class BusPlannerService {
 
   private async _fetchJson(url: string): Promise<any | null> {
     try {
-        const res = await fetch(url, { headers: { 'User-Agent': CONFIG.USER_AGENT } });
+        const res = await fetch(url);
         if (!res.ok) return null;
         return await res.json();
     } catch (e) {
