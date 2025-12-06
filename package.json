@@ -52,6 +52,7 @@
   "devDependencies": {
     "@types/react": "~19.1.10",
     "@types/react-native": "^0.72.8",
+    "baseline-browser-mapping": "^2.9.4",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
