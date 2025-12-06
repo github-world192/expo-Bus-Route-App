@@ -289,10 +289,32 @@ export default function StopScreen() {
       setFavoriteRoutes(routes);
       console.log('已載入常用路線:', routes.length, '條');
       
-      // 如果有常用路線，預載所有路線的公車動態
+      // 如果有常用路線，立即顯示快取資料
       if (routes.length > 0) {
         setSelectedRouteIndex(0);
-        await loadAllFavoriteRoutesArrivals(routes);
+        setDisplayMode('favorite');
+        
+        // 立即顯示快取的路線名稱（快速載入）
+        const cachedArrivals: UIArrival[][] = routes.map(route => {
+          if (route.cachedRouteNames && route.cachedRouteNames.length > 0) {
+            return route.cachedRouteNames.map((routeName, idx) => ({
+              route: routeName,
+              estimatedTime: '載入中...',
+              key: `cache-${route.id}-${routeName}-${idx}`,
+            }));
+          }
+          return [{
+            route: '載入中',
+            estimatedTime: '...',
+            key: `loading-${route.id}`,
+          }];
+        });
+        
+        setAllFavoriteArrivals(cachedArrivals);
+        setFavoriteRouteArrivals(cachedArrivals[0]);
+        
+        // 在背景載入實際動態資料
+        loadAllFavoriteRoutesArrivals(routes);
         
         // 啟動定時刷新常用路線動態（30秒）
         if (favoriteIntervalRef.current) clearInterval(favoriteIntervalRef.current);
@@ -313,23 +335,37 @@ export default function StopScreen() {
     }
   };
 
-  // 預載所有常用路線的公車動態
+  // 預載所有常用路線的公車動態（逐個載入並即時更新）
   const loadAllFavoriteRoutesArrivals = async (routes: FavoriteRoute[]) => {
     try {
-      const allArrivals: UIArrival[][] = [];
+      // 初始化陣列，保留快取資料
+      const tempArrivals: UIArrival[][] = routes.map(route => {
+        if (route.cachedRouteNames && route.cachedRouteNames.length > 0) {
+          return route.cachedRouteNames.map((routeName, idx) => ({
+            route: routeName,
+            estimatedTime: '載入中...',
+            key: `cache-${route.id}-${routeName}-${idx}`,
+          }));
+        }
+        return [{
+          route: '載入中',
+          estimatedTime: '...',
+          key: `loading-${route.id}`,
+        }];
+      });
       
+      // 逐個載入路線動態
       for (let i = 0; i < routes.length; i++) {
         const arrivals = await fetchSingleRouteArrivals(routes[i], i);
-        allArrivals.push(arrivals);
-      }
-      
-      setAllFavoriteArrivals(allArrivals);
-      
-      // 更新當前顯示的路線動態（保持用戶當前查看的頁面）
-      if (allArrivals.length > 0) {
-        const currentIndex = selectedRouteIndex < allArrivals.length ? selectedRouteIndex : 0;
-        setFavoriteRouteArrivals(allArrivals[currentIndex]);
-        setDisplayMode('favorite');
+        tempArrivals[i] = arrivals;
+        
+        // 即時更新狀態，讓使用者看到已載入的資料
+        setAllFavoriteArrivals([...tempArrivals]);
+        
+        // 如果這是當前顯示的路線，立即更新顯示
+        if (i === selectedRouteIndex) {
+          setFavoriteRouteArrivals(arrivals);
+        }
       }
     } catch (error) {
       console.error('預載所有路線動態失敗:', error);
@@ -345,25 +381,14 @@ export default function StopScreen() {
 
       console.log('Processing route:', route.fromStop, '→', route.toStop);
       
-      // 步驟 1: 如果有快取的路線名稱，立即顯示預設資料
-      let placeholderArrivals: UIArrival[] = [];
-      if (route.cachedRouteNames && route.cachedRouteNames.length > 0) {
-        console.log('使用快取路線:', route.cachedRouteNames);
-        placeholderArrivals = route.cachedRouteNames.map((routeName, idx) => ({
-          route: routeName,
-          estimatedTime: '查詢中...',
-          key: `placeholder-${route.id}-${routeName}-${idx}`,
-        }));
-      }
-      
-      // 步驟 2: 取得起點站 SID
+      // 步驟 1: 取得起點站 SID
       const fromSids = plannerRef.current.getRepresentativeSids(route.fromStop);
       console.log('From stop SIDs:', fromSids);
       if (fromSids.length === 0) {
         return [];
       }
 
-      // 步驟 3: 規劃路徑以取得可用路線名稱
+      // 步驟 2: 規劃路徑以取得可用路線名稱
       const plans = await plannerRef.current.plan(
         route.fromStop,
         route.toStop
@@ -389,8 +414,9 @@ export default function StopScreen() {
         );
       }
 
-      // 步驟 4: 抽取起點站的即時公車資料
+      // 步驟 3: 抽取起點站的即時公車資料
       const results = await plannerRef.current.fetchBusesAtSid(fromSids[0]);
+      console.log('Fetching data for SIDs:', fromSids[0]);
       const allBuses = results.flat();
       console.log('All buses at', route.fromStop, ':', allBuses.length, 'buses');
       
