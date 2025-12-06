@@ -37,7 +37,7 @@ export default function StopDetailScreen() {
   
   const plannerRef = useRef(new BusPlannerService());
   const [serviceReady, setServiceReady] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<any>(null);
 
   useEffect(() => {
     const initService = async () => {
@@ -63,10 +63,10 @@ export default function StopDetailScreen() {
       const allBuses = results.flat();
 
       const uiArrivals: UIArrival[] = allBuses
-        .sort((a, b) => a.raw_time - b.raw_time)
+        .sort((a, b) => a.rawTime - b.rawTime)
         .map((bus, idx) => ({
           route: bus.route,
-          estimatedTime: bus.time_text,
+          estimatedTime: bus.timeText,
           key: `${bus.rid}-${idx}`
         }));
 

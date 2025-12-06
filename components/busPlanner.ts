@@ -1,14 +1,22 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import * as cheerio from 'cheerio';
+/**
+ * BusPlannerService.ts
+ * 台北公車即時路線規劃器 (Taipei Bus Planner)
+ * Target: React Native (Expo SDK 54+)
+ */
 
-// 注意：請確保 stop_id_map.json 位於 assets 資料夾，
-// 並且在 tsconfig.json 中設定 "resolveJsonModule": true
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as cheerio from 'cheerio';
 import stopDataRaw from '../databases/stop_id_map.json';
 
-// ==========================================
-// 1. 型別定義 (Type Definitions)
-// ==========================================
+// 直接引入靜態資料庫
+class MockAsyncStorage {
+  static store: Record<string, string> = {};
+  static getItem(key: string) { return Promise.resolve(this.store[key] || null); }
+  static setItem(key: string, value: string) { this.store[key] = value; return Promise.resolve(); }
+}
+const AsyncStorage = MockAsyncStorage;
+
+// ========== 類型定義 ==========
 
 export interface GeoLocation {
   lat: number;
@@ -19,637 +27,495 @@ export interface StopInfo {
   name: string;
   sid: string;
   geo?: GeoLocation;
-  slid?: string;
 }
 
 export interface BusInfo {
-  route_name: string;
+  routeName: string;
   rid: string;
   sid: string;
-  arrival_time_text: string;
-  raw_time: number;
-  direction_text: string;
-  stop_count: number;
-  estimated_duration?: number; // 預估行程時間（分鐘）
-  start_geo?: GeoLocation;
-  end_geo?: GeoLocation;
-  path_stops: StopInfo[];
+  arrivalTimeText: string;
+  rawTime: number;
+  directionText: string;
+  stopCount: number;
+  startGeo?: GeoLocation;
+  endGeo?: GeoLocation;
+  pathStops: StopInfo[];
 }
 
-interface StopMapData {
-  by_sid: { [key: string]: any };
-  by_name: { [key: string]: string[] };
+export interface RouteDetail {
+  goStops: Array<{ name: string; sid: string }>;
+  backStops: Array<{ name: string; sid: string }>;
 }
 
-// ==========================================
-// 2. 配置與常數 (Constants)
-// ==========================================
+export interface StopDatabase {
+  by_sid: Record<string, { lat?: string; lon?: string; slid?: string; name?: string }>;
+  by_name: Record<string, string[]>;
+}
 
-// 依據原始 TS 檔保留 CORS Proxy 設定，若為純 Native 環境可移除 corsproxy.io 前綴
-const BASE_URL = "https://corsproxy.io/?https://pda5284.gov.taipei/MQS";
+// ========== 配置 ==========
 
-// 模擬 iPhone Safari 的 User Agent
-const USER_AGENT = 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1';
-
-const STATUS_CODES: { [key: string]: string } = {
-  '0': '進站中', '': '未發車', '-1': '未發車', '-2': '交管不停', '-3': '末班已過', '-4': '今日未營運'
+const CONFIG = {
+  BASE_URL: "https://api.codetabs.com/v1/proxy?quest=https://pda5284.gov.taipei/MQS",
+  USER_AGENT: "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+  TIMEOUT_MS: 10000,
+  CACHE_KEY_PREFIX: "BUS_ROUTE_CACHE_",
+  TIME_NOT_DEPARTED: 99999,
+  TIME_ARRIVING: 0,
+  TIME_UNKNOWN: 88888,
 };
 
-// ==========================================
-// 3. 資料提供者介面與實作 (Data Provider)
-// ==========================================
-
-interface IDataProvider {
-  loadData(): Promise<StopMapData>;
-  loadCache(): Promise<any>;
-  saveCache(data: any): Promise<void>;
+enum BusStatus {
+  ARRIVING = '進站中',
+  NOT_DEPARTED = '未發車',
+  TRAFFIC_CONTROL = '交管不停',
+  LAST_PASSED = '末班已過',
+  NOT_OPERATING = '今日未營運',
+  UNKNOWN = '未知'
 }
 
-class ExpoDataProvider implements IDataProvider {
-  private cacheKey: string;
+// ========== 解析工具 ==========
 
-  constructor(cacheKey: string = 'route_validation_cache') {
-    this.cacheKey = cacheKey;
+class TimeParser {
+  static parseTextToSeconds(text: string): number {
+    const t = text.trim();
+    if (t.includes("進站") || t.includes("將到")) return CONFIG.TIME_ARRIVING;
+    if (t.includes("未發車") || t.includes("末班") || t.includes("今日未")) return CONFIG.TIME_NOT_DEPARTED;
+    if (t.includes(":")) return CONFIG.TIME_UNKNOWN; 
+
+    const digits = t.replace(/\D/g, '');
+    if (!digits) return CONFIG.TIME_NOT_DEPARTED;
+    
+    const val = parseInt(digits, 10);
+    return t.includes("分") ? val * 60 : val;
   }
 
-  async loadData(): Promise<StopMapData> {
-    return stopDataRaw as unknown as StopMapData;
-  }
+  static formatStatusCode(code: string): string {
+    const codeStr = String(code).trim();
+    const mapping: Record<string, string> = {
+      '0': BusStatus.ARRIVING,
+      '': BusStatus.NOT_DEPARTED,
+      '-1': BusStatus.NOT_DEPARTED,
+      '-2': BusStatus.TRAFFIC_CONTROL,
+      '-3': BusStatus.LAST_PASSED,
+      '-4': BusStatus.NOT_OPERATING
+    };
 
-  async loadCache(): Promise<any> {
+    if (mapping[codeStr]) return mapping[codeStr];
+    if (codeStr.includes(':')) return codeStr;
+
     try {
-      const jsonValue = await AsyncStorage.getItem(this.cacheKey);
-      return jsonValue != null ? JSON.parse(jsonValue) : {};
-    } catch(e) {
-      console.warn("讀取快取失敗", e);
-      return {};
+      const secs = parseInt(codeStr, 10);
+      if (isNaN(secs)) return BusStatus.UNKNOWN;
+      if (secs < 0) return BusStatus.NOT_DEPARTED; 
+      if (secs < 180) return "將到站";
+      return `${Math.floor(secs / 60)}分`;
+    } catch {
+      return BusStatus.NOT_DEPARTED;
     }
   }
+}
 
-  async saveCache(data: any): Promise<void> {
+class UrlHelper {
+  static getParam(href: string | undefined, key: string): string | null {
+    if (!href) return null;
     try {
-      const jsonValue = JSON.stringify(data);
-      await AsyncStorage.setItem(this.cacheKey, jsonValue);
+      const url = new URL(href, CONFIG.BASE_URL);
+      return url.searchParams.get(key);
     } catch (e) {
-      console.error("寫入快取失敗", e);
+      return null;
     }
   }
 }
 
-// ==========================================
-// 4. 核心邏輯服務 (Core Service)
-// ==========================================
+// ========== 核心服務 ==========
 
 export class BusPlannerService {
-  private dataProvider: IDataProvider;
-  private stopMap: StopMapData = { by_sid: {}, by_name: {} };
-  private routeCache: { [key: string]: any } = {}; // 執行期間的記憶體快取 (路線詳情)
-  private validationCache: { [key: string]: BusInfo[] } = {}; // 持久化的路徑快取
+  private db: StopDatabase;
+  private routeRequestDedupMap: Map<string, Promise<RouteDetail>> = new Map();
+  private isInitialized = false;
 
   constructor() {
-    this.dataProvider = new ExpoDataProvider();
+    this.db = { by_sid: {}, by_name: {} };
   }
 
-  /**
-   * 初始化：載入資料庫與快取
-   */
-  async initialize() {
-    this.stopMap = await this.dataProvider.loadData();
-    this.validationCache = await this.dataProvider.loadCache();
+  public async initialize(): Promise<void> {
+    this.db = stopDataRaw as unknown as StopDatabase;
+    this.isInitialized = true;
+    return Promise.resolve();
   }
 
-  // --- 基礎查找 Helpers ---
+  // --- Getters ---
 
-  getSidsByName(name: string): string[] {
-    return this.stopMap.by_name[name] || [];
+  public getSidsByName(name: string): string[] {
+    return this.db.by_name[name] || [];
   }
 
-  getSlidBySid(sid: string): string | null {
-    const info = this.stopMap.by_sid[sid];
-    return info ? info.slid : null;
-  }
-
-  getGeoBySid(sid: string): GeoLocation | undefined {
-    const info = this.stopMap.by_sid[sid];
-    if (info && info.lat) {
+  public getGeoBySid(sid: string): GeoLocation | undefined {
+    const info = this.db.by_sid[sid];
+    if (info && info.lat && info.lon) {
       return { lat: parseFloat(info.lat), lon: parseFloat(info.lon) };
     }
     return undefined;
   }
 
-  /**
-   * 取得代表性 SIDs
-   * 針對某個站名，依據 SLID 去重
-   */
-  getRepresentativeSids(name: string): string[] {
+  public getRepresentativeSids(name: string): string[] {
     const allSids = this.getSidsByName(name);
-    if (!allSids.length) return [];
-
     const seenSlids = new Set<string>();
     const representatives: string[] = [];
 
     for (const sid of allSids) {
-      const slid = this.getSlidBySid(sid);
-      if (slid && !seenSlids.has(slid)) {
-        seenSlids.add(slid);
-        representatives.push(sid);
-      } else if (!slid) {
-        // 保險起見，若無 SLID 也納入
+      const info = this.db.by_sid[sid];
+      const slid = info?.slid;
+
+      if (slid) {
+        if (!seenSlids.has(slid)) {
+          seenSlids.add(slid);
+          representatives.push(sid);
+        }
+      } else {
         representatives.push(sid);
       }
     }
     return representatives;
   }
 
-  // --- 時間處理 ---
+  // --- Logic ---
 
-  /**
-   * 計算兩個地理座標之間的距離（公里）
-   * 使用 Haversine 公式
-   */
-  private calculateDistance(geo1: GeoLocation, geo2: GeoLocation): number {
-    const R = 6371; // 地球半徑（公里）
-    const dLat = this.toRadians(geo2.lat - geo1.lat);
-    const dLon = this.toRadians(geo2.lon - geo1.lon);
-    
-    const a = 
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRadians(geo1.lat)) * Math.cos(this.toRadians(geo2.lat)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
+  public async fetchBusesAtSid(sid: string): Promise<any[]> {
+    const info = this.db.by_sid[sid];
+    const slid = info?.slid;
 
-  private toRadians(degrees: number): number {
-    return degrees * (Math.PI / 180);
-  }
+    const taskHtml = this._fetchText(`${CONFIG.BASE_URL}/stop.jsp?sid=${sid}`);
+    const taskJson = slid 
+      ? this._fetchJson(`${CONFIG.BASE_URL}/StopLocationDyna?stoplocationid=${slid}`) 
+      : Promise.resolve(null);
 
-  /**
-   * 計算路徑總距離（公里）
-   */
-  private calculatePathDistance(pathStops: StopInfo[]): number {
-    if (pathStops.length < 2) return 0;
-    
-    let totalDistance = 0;
-    for (let i = 0; i < pathStops.length - 1; i++) {
-      const current = pathStops[i];
-      const next = pathStops[i + 1];
-      
-      if (current.geo && next.geo) {
-        totalDistance += this.calculateDistance(current.geo, next.geo);
-      }
-    }
-    
-    return totalDistance;
-  }
-
-  /**
-   * 計算預估行程時間（分鐘）
-   * 優先使用距離計算，降級使用站數估算
-   */
-  private calculateEstimatedDuration(stopCount: number, pathStops?: StopInfo[]): number {
-    if (stopCount <= 0) return 0;
-    
-    const currentHour = new Date().getHours();
-    const currentDay = new Date().getDay(); // 0 = 週日, 6 = 週六
-    
-    // 嘗試使用距離計算（更精確）
-    if (pathStops && pathStops.length >= 2) {
-      const straightDistance = this.calculatePathDistance(pathStops);
-      
-      if (straightDistance > 0) {
-        // 計算平均站距，判斷路線類型
-        const avgStopDistance = straightDistance / stopCount;
-        
-        // 動態道路修正係數（考慮實際道路彎曲）
-        let roadFactor = 1.3; // 預設：一般市區
-        
-        if (avgStopDistance > 1.5) {
-          roadFactor = 1.15; // 郊區/快速道路（站距大，道路較直）
-        } else if (avgStopDistance < 0.4) {
-          roadFactor = 1.4;  // 密集市區（站距小，道路曲折）
-        } else if (avgStopDistance < 0.8) {
-          roadFactor = 1.35; // 一般市區
-        }
-        
-        // 實際道路距離
-        const actualDistance = straightDistance * roadFactor;
-        
-        // 基於距離的計算
-        let averageSpeed = 20; // 基礎速度：20 km/h（市區公車平均）
-        
-        // 尖峰時段：速度降低（7-9am, 5-7pm 平日）
-        const isWeekday = currentDay >= 1 && currentDay <= 5;
-        const isRushHour = isWeekday && 
-          ((currentHour >= 7 && currentHour < 9) || (currentHour >= 17 && currentHour < 19));
-        
-        if (isRushHour) {
-          averageSpeed = 15; // 尖峰時段速度降至 15 km/h
-        }
-        
-        // 離峰/深夜時段：速度提升（22pm-6am）
-        const isOffPeak = currentHour >= 22 || currentHour < 6;
-        if (isOffPeak) {
-          averageSpeed = 25; // 深夜速度提升至 25 km/h
-        }
-        
-        // 週末：速度微幅提升
-        if (!isWeekday && !isOffPeak) {
-          averageSpeed += 2;
-        }
-        
-        // 計算行駛時間 + 每站停靠時間（每站約 30 秒）
-        const drivingTime = (actualDistance / averageSpeed) * 60; // 轉換為分鐘
-        const stopTime = stopCount * 0.5; // 每站停靠 0.5 分鐘
-        
-        // Debug 日誌
-        console.log(`[時間計算] 直線: ${straightDistance.toFixed(2)}km, 道路係數: ${roadFactor}, 實際: ${actualDistance.toFixed(2)}km, 速度: ${averageSpeed}km/h, 站數: ${stopCount}, 行駛: ${drivingTime.toFixed(1)}分, 停靠: ${stopTime}分, 總計: ${Math.round(drivingTime + stopTime)}分`);
-
-        return Math.round(drivingTime + stopTime);
-      }
-    }
-    
-    // 降級：使用站數估算（當沒有 Geo 資料時）
-    console.log(`[時間計算] 降級模式 - 使用站數估算: ${stopCount} 站`);
-    
-    let baseTime = stopCount * 2.5;
-    
-    // 尖峰時段加成
-    const isRushHour = (currentHour >= 7 && currentHour < 9) || (currentHour >= 17 && currentHour < 19);
-    if (isRushHour) {
-      baseTime *= 1.3;
-    }
-    
-    // 離峰時段
-    const isOffPeak = currentHour >= 22 || currentHour < 6;
-    if (isOffPeak) {
-      baseTime *= 0.8;
-    }
-    
-    console.log(`[時間計算] 站數模式結果: ${Math.round(baseTime)}分`);
-    
-    return Math.round(baseTime);
-  }
-
-  private parseTimeText(text: string): number {
-    text = (text || "").trim();
-    if (text.includes("進站")) return 0;
-    if (text.includes("即將")) return 10;
-    if (text.includes("將到")) return 10; // Python: < 180s logic often results in "將到"
-    
-    if (text.includes("分")) {
-      const num = parseInt(text.replace(/\D/g, ''));
-      return isNaN(num) ? 99999 : num * 60;
-    }
-    return 99999;
-  }
-
-  private formatTimeFromCode(code: string): string {
-    if (code === '0') return "進站中";
-    if (STATUS_CODES[code]) return STATUS_CODES[code];
-    try {
-      const secs = parseInt(code);
-      if (secs < 0) return STATUS_CODES[code] || "未發車";
-      if (secs < 180) return "將到站";
-      return `${Math.floor(secs / 60)}分`;
-    } catch { return "未發車"; }
-  }
-
-  // --- HTTP Fetchers ---
-
-  private async fetchHtml(url: string): Promise<string | null> {
-    try {
-      const res = await axios.get(url, { headers: { 'User-Agent': USER_AGENT }, timeout: 8000 });
-      return res.status === 200 ? (typeof res.data === 'string' ? res.data : JSON.stringify(res.data)) : null;
-    } catch (e) { return null; }
-  }
-
-  private async fetchJson(url: string): Promise<any | null> {
-    try {
-      const res = await axios.get(url, { headers: { 'User-Agent': USER_AGENT }, timeout: 8000 });
-      return res.status === 200 ? res.data : null;
-    } catch (e) { return null; }
-  }
-
-  // --- 爬蟲邏輯 ---
-
-  async fetchBusesAtSid(sid: string): Promise<any[]> {
-    const info = this.stopMap.by_sid[sid];
-    if (!info) return [];
-    const slid = info.slid;
-
-    const urlHtml = `${BASE_URL}/stop.jsp?sid=${sid}`;
-    const urlJson = slid ? `${BASE_URL}/StopLocationDyna?stoplocationid=${slid}` : null;
-
-    const promises: Promise<any>[] = [this.fetchHtml(urlHtml)];
-    if (urlJson) promises.push(this.fetchJson(urlJson));
-
-    const results = await Promise.all(promises);
-    const html = results[0] as string | null;
-    const jsonData = (results.length > 1 ? results[1] : null) as any;
+    const [html, jsonData] = await Promise.all([taskHtml, taskJson]);
 
     if (!html) return [];
 
     const $ = cheerio.load(html);
-    const routeMap: { [key: string]: any } = {};
+    const routeMap: Record<string, { route: string; rid: string }> = {};
 
     $('tr').each((_, row) => {
-      const link = $(row).find('a[href*="route.jsp"]');
-      if (link.length === 0) return;
+        const $row = $(row);
+        // FIX: 使用 .first() 避免抓到隱藏的區間車連結文字
+        const link = $row.find('a[href*="route.jsp"]').first();
+        if (link.length === 0) return;
 
-      let dynId: string | null = null;
-      $(row).find('td').each((_, td) => {
-        const id = $(td).attr('id');
-        if (id && id.startsWith('tte')) {
-          dynId = id.replace('tte', '');
+        const href = link.attr('href');
+        const rid = UrlHelper.getParam(href, 'rid');
+        const routeName = link.text().trim();
+        
+        // FIX: 更精確地尋找 tte ID，模擬 Python 的 find behavior
+        let dynId = null;
+        const dynIdRaw = $row.find('td[id^="tte"]').attr('id');
+        if (dynIdRaw) {
+            dynId = dynIdRaw.replace('tte', '');
         }
-      });
 
-      if (dynId) {
-        const href = link.attr('href') || '';
-        const query = href.split('?')[1] || '';
-        const params = new URLSearchParams(query);
-        const rid = params.get('rid') || '';
-        routeMap[dynId] = { route: link.text().trim(), rid, sid };
-      }
+        if (dynId && rid) {
+            routeMap[dynId] = { route: routeName, rid };
+        }
     });
 
     const buses: any[] = [];
 
     if (jsonData && jsonData.Stop) {
-      for (const stopItem of jsonData.Stop) {
-        const vals = (stopItem.n1 || "").split(',');
-        if (vals.length < 8) continue;
-        
-        const jDynId = vals[1];
-        const jTime = vals[7];
+        for (const item of jsonData.Stop) {
+            const vals = (item.n1 || "").split(',');
+            if (vals.length < 8) continue;
 
-        if (routeMap[jDynId]) {
-          const info = routeMap[jDynId];
-          const timeText = this.formatTimeFromCode(jTime);
-          buses.push({
-            route: info.route,
-            rid: info.rid,
-            sid: sid,
-            time_text: timeText,
-            raw_time: this.parseTimeText(timeText)
-          });
-          delete routeMap[jDynId];
+            const jDynId = vals[1];
+            const jTimeCode = vals[7];
+
+            if (routeMap[jDynId]) {
+                const { route, rid } = routeMap[jDynId];
+                delete routeMap[jDynId]; 
+                
+                const timeText = TimeParser.formatStatusCode(jTimeCode);
+                buses.push({
+                    route,
+                    rid,
+                    sid,
+                    timeText: timeText,
+                    rawTime: TimeParser.parseTextToSeconds(timeText)
+                });
+            }
         }
-      }
     }
 
     for (const key in routeMap) {
-      const info = routeMap[key];
-      buses.push({
-        route: info.route,
-        rid: info.rid,
-        sid: sid,
-        time_text: "無法取得",
-        raw_time: 99999
-      });
+        const info = routeMap[key];
+        buses.push({
+            route: info.route,
+            rid: info.rid,
+            sid,
+            timeText: "更新中",
+            rawTime: CONFIG.TIME_NOT_DEPARTED
+        });
     }
+
+    // FIX: 強制依照時間排序，確保 plan 在去重時優先保留「進站中」的最佳車次
+    // 這解決了 0南 (進站中) 被 0南 (21分) 覆蓋的問題
+    buses.sort((a, b) => a.rawTime - b.rawTime);
 
     return buses;
   }
 
-  async getRidsAtSid(sid: string): Promise<Set<string>> {
-    const buses = await this.fetchBusesAtSid(sid);
-    return new Set(buses.map(b => b.rid));
-  }
-
-  async getRouteDetail(rid: string): Promise<any> {
-    if (this.routeCache[rid]) return this.routeCache[rid];
-
-    const html = await this.fetchHtml(`${BASE_URL}/route.jsp?rid=${rid}`);
-    if (!html) return {};
-    
-    const $ = cheerio.load(html);
-
-    const parseStops = (classRegex: RegExp) => {
-      const stops: any[] = [];
-      $('tr').each((_, row) => {
-        const className = $(row).attr('class');
-        if (className && classRegex.test(className)) {
-          const link = $(row).find('a');
-          if (link.length) {
-            const href = link.attr('href') || '';
-            const params = new URLSearchParams(href.split('?')[1]);
-            stops.push({
-              name: link.text().trim(),
-              slid: params.get('slid') || ''
-            });
-          }
-        }
-      });
-      return stops;
-    };
-
-    const data = {
-      go_stops: parseStops(/ttego\d+/),
-      back_stops: parseStops(/tteback\d+/)
-    };
-    
-    this.routeCache[rid] = data;
-    return data;
-  }
-
-  getVerifiedPath(stops: any[], startName: string, endName: string, currentSlid: string | null): any[] | null {
-    const startIndices = stops.map((s, i) => s.name === startName ? i : -1).filter(i => i !== -1);
-    if (startIndices.length === 0) return null;
-
-    let candidates: any[][] = [];
-
-    for (const idx of startIndices) {
-      const stopSlid = stops[idx].slid;
-      if (currentSlid && stopSlid && currentSlid !== stopSlid) continue;
-
-      const subList = stops.slice(idx);
-      const endRelIndex = subList.findIndex((s: any) => s.name === endName);
-      
-      if (endRelIndex !== -1) {
-        candidates.push(subList.slice(0, endRelIndex + 1));
-      }
+  public async getRouteStructure(rid: string): Promise<RouteDetail> {
+    if (this.routeRequestDedupMap.has(rid)) {
+      return this.routeRequestDedupMap.get(rid)!;
     }
 
-    if (candidates.length === 0) return null;
-    return candidates.reduce((a, b) => a.length < b.length ? a : b);
+    const task = (async (): Promise<RouteDetail> => {
+      const html = await this._fetchText(`${CONFIG.BASE_URL}/route.jsp?rid=${rid}`);
+      if (!html) return { goStops: [], backStops: [] };
+
+      const $ = cheerio.load(html);
+
+      const extractStops = (classRegex: RegExp) => {
+        const stops: Array<{ name: string; sid: string }> = [];
+        $('tr').each((_, el) => {
+            const className = $(el).attr('class') || '';
+            if (classRegex.test(className)) {
+                // FIX: 同樣使用 .first()
+                const link = $(el).find('a').first();
+                if (link.length > 0) {
+                    const href = link.attr('href');
+                    const sid = UrlHelper.getParam(href, 'sid');
+                    if (sid) {
+                        stops.push({ name: link.text().trim(), sid: sid });
+                    }
+                }
+            }
+        });
+        return stops;
+      };
+
+      return {
+        goStops: extractStops(/ttego\d+/),
+        backStops: extractStops(/tteback\d+/)
+      };
+    })();
+
+    this.routeRequestDedupMap.set(rid, task);
+    
+    try {
+        return await task;
+    } finally {
+        setTimeout(() => this.routeRequestDedupMap.delete(rid), 2000); 
+    }
   }
 
-  // ==========================================
-  // 5. 快取更新邏輯 (移植自 Python: update_cached_buses)
-  // ==========================================
-
-  /**
-   * 針對快取中的路線，只更新時間而不重新規劃路徑
-   */
-  async updateCachedBuses(cachedBuses: BusInfo[]): Promise<BusInfo[]> {
-    // 1. 將快取的公車依據 SID 分組，減少請求次數
+  public async updateCachedBuses(cachedBuses: BusInfo[]): Promise<BusInfo[]> {
     const sidGroups: Record<string, BusInfo[]> = {};
-    for (const b of cachedBuses) {
-      if (!sidGroups[b.sid]) sidGroups[b.sid] = [];
-      sidGroups[b.sid].push(b);
-    }
+    cachedBuses.forEach(b => {
+        if (!sidGroups[b.sid]) sidGroups[b.sid] = [];
+        sidGroups[b.sid].push(b);
+    });
 
-    // 2. 定義單個 SID 的更新邏輯
-    const updateGroup = async (sid: string, buses: BusInfo[]): Promise<BusInfo[]> => {
-      // 抓取該 SID 的即時資料
-      const realtimeData = await this.fetchBusesAtSid(sid);
-      // 建立 RID -> 即時資訊的 Map
-      const realtimeMap = new Map<string, any>();
-      realtimeData.forEach(d => realtimeMap.set(d.rid, d));
+    const tasks = Object.keys(sidGroups).map(async (sid) => {
+        const groupBuses = sidGroups[sid];
+        const realtimeList = await this.fetchBusesAtSid(sid);
+        const realtimeMap = new Map(realtimeList.map(x => [x.rid, x]));
 
-      const updatedBuses: BusInfo[] = [];
+        return groupBuses.map(busData => {
+            const rt = realtimeMap.get(busData.rid);
+            const arrival = rt ? rt.timeText : "更新中";
+            const raw = rt ? rt.rawTime : CONFIG.TIME_NOT_DEPARTED;
 
-      for (const cachedB of buses) {
-        if (realtimeMap.has(cachedB.rid)) {
-          const rt = realtimeMap.get(cachedB.rid);
-          
-          // 更新時間，其餘路徑資訊保持不變 (Deep Copy 建議)
-          const newBus: BusInfo = {
-            ...cachedB,
-            arrival_time_text: rt.time_text,
-            raw_time: rt.raw_time,
-            // 保留或計算預估行程時間（處理舊快取沒有此欄位的情況）
-            estimated_duration: cachedB.estimated_duration ?? this.calculateEstimatedDuration(cachedB.stop_count, cachedB.path_stops),
-            // 重新解析 Geo 物件以防丟失 (若從 JSON 還原)
-            start_geo: cachedB.start_geo ? { ...cachedB.start_geo } : undefined,
-            end_geo: cachedB.end_geo ? { ...cachedB.end_geo } : undefined,
-            path_stops: cachedB.path_stops.map(s => ({ ...s, geo: s.geo ? { ...s.geo } : undefined }))
-          };
-          updatedBuses.push(newBus);
-        } else {
-            // 若該班車已消失在即時資料中（例如開走了），視需求決定是否保留
-            // 策略：這裡設為未發車或移除。目前策略：更新為"未發車"並保留，或直接移除。
-            // 為了避免畫面跳動，我們將其時間設為極大值
-            updatedBuses.push({
-                ...cachedB,
-                arrival_time_text: "更新失敗",
-                raw_time: 99999
-            });
-        }
-      }
-      return updatedBuses;
-    };
+            return {
+                ...busData,
+                arrivalTimeText: arrival,
+                rawTime: raw
+            };
+        });
+    });
 
-    // 3. 併發執行所有 SID 的更新
-    const tasks = Object.entries(sidGroups).map(([sid, buses]) => updateGroup(sid, buses));
     const results = await Promise.all(tasks);
-
-    // 4. 展平結果
-    return results.flat().sort((a, b) => a.raw_time - b.raw_time);
+    return results.flat().sort((a, b) => a.rawTime - b.rawTime);
   }
 
-  // ==========================================
-  // 6. 主功能入口 (Main Plan Function)
-  // ==========================================
+  public async plan(startName: string, endName: string): Promise<BusInfo[]> {
+    if (!this.isInitialized) await this.initialize();
 
-  async plan(startStation: string, endStation: string): Promise<BusInfo[]> {
-    const cacheKey = `${startStation}|${endStation}`;
+    const cacheKey = `${CONFIG.CACHE_KEY_PREFIX}${startName}_${endName}`;
     
-    // 1. 檢查快取
-    // 若命中快取，則執行「快速更新模式」(Python: update_cached_buses)
-    if (this.validationCache[cacheKey]) {
-      console.log(`[BusPlanner] Hit cache for ${startStation}->${endStation}, updating times...`);
-      return await this.updateCachedBuses(this.validationCache[cacheKey]);
+    try {
+        const cachedJson = await AsyncStorage.getItem(cacheKey);
+        if (cachedJson) {
+            const cachedBuses: BusInfo[] = JSON.parse(cachedJson);
+            return await this.updateCachedBuses(cachedBuses);
+        }
+    } catch (e) {
+        console.warn("[BusPlanner] Cache read error:", e);
     }
 
-    console.log(`[BusPlanner] No cache, planning route ${startStation}->${endStation}`);
+    const startSids = this.getRepresentativeSids(startName);
+    const endSidsFull = this.getSidsByName(endName);
+    const endSidsRep = this.getRepresentativeSids(endName);
+    const endSidsSet = new Set(endSidsFull);
 
-    // 2. 取得代表性 SIDs
-    const startRepSids = this.getRepresentativeSids(startStation);
-    const endRepSids = this.getRepresentativeSids(endStation);
+    if (startSids.length === 0 || endSidsRep.length === 0) return [];
 
-    if (startRepSids.length === 0 || endRepSids.length === 0) return [];
+    const [startRealtimeGroups, endHtmlResults] = await Promise.all([
+        Promise.all(startSids.map(sid => this.fetchBusesAtSid(sid))),
+        Promise.all(endSidsRep.map(sid => this._fetchText(`${CONFIG.BASE_URL}/stop.jsp?sid=${sid}`)))
+    ]);
 
-    // 3. 併發查詢：起點公車列表 & 終點路線列表
-    const startTask = Promise.all(startRepSids.map(sid => this.fetchBusesAtSid(sid)));
-    const endTask = Promise.all(endRepSids.map(sid => this.getRidsAtSid(sid)));
-
-    const [startResultsNested, endRidsSets] = await Promise.all([startTask, endTask]);
-
-    // 4. 計算交集
     const endRidsUnion = new Set<string>();
-    endRidsSets.forEach(set => set.forEach(rid => endRidsUnion.add(rid)));
+    endHtmlResults.forEach(html => {
+        if (html) {
+            const matches = html.matchAll(/route\.jsp\?rid=(\d+)/g);
+            for (const m of matches) {
+                endRidsUnion.add(m[1]);
+            }
+        }
+    });
 
-    const allStartCandidates = startResultsNested.flat();
-    const ridFiltered = allStartCandidates.filter(b => endRidsUnion.has(b.rid));
+    const allStartBuses = startRealtimeGroups.flat();
+    const validCandidates = allStartBuses.filter(c => endRidsUnion.has(c.rid));
 
-    // 5. 驗證路徑詳情
-    const validBuses: BusInfo[] = [];
-    const seenRoutes = new Set<string>();
-    
-    ridFiltered.sort((a, b) => a.raw_time - b.raw_time);
+    if (validCandidates.length === 0) return [];
 
-    for (const cand of ridFiltered) {
-      if (seenRoutes.has(cand.rid)) continue;
+    const uniqueRids = [...new Set(validCandidates.map(c => c.rid))];
+    await Promise.all(uniqueRids.map(rid => this.getRouteStructure(rid)));
 
-      const routeData = await this.getRouteDetail(cand.rid);
-      const candSlid = this.getSlidBySid(cand.sid);
+    const finalBuses: BusInfo[] = [];
+    const seenKeys = new Set<string>(); 
 
-      let direction = "未知";
-      let pathStopsData = this.getVerifiedPath(routeData.go_stops, startStation, endStation, candSlid);
-      
-      if (pathStopsData) {
-        direction = "去程";
-      } else {
-        pathStopsData = this.getVerifiedPath(routeData.back_stops, startStation, endStation, candSlid);
-        if (pathStopsData) direction = "返程";
-      }
+    for (const cand of validCandidates) {
+        const key = `${cand.rid}_${cand.sid}`;
+        if (seenKeys.has(key)) continue;
 
-      if (pathStopsData) {
-        seenRoutes.add(cand.rid);
+        const routeStruct = await this.getRouteStructure(cand.rid);
         
-        const enhancedPath: StopInfo[] = pathStopsData.map((p: any) => {
-          const refSid = (this.getSidsByName(p.name) || [])[0] || "";
-          return {
-            name: p.name,
-            sid: refSid,
-            geo: this.getGeoBySid(refSid)
-          };
-        });
+        let direction = "去程";
+        let path = this._determineDirection(routeStruct.goStops, cand.sid, endSidsSet, endName);
 
-        const startGeo = this.getGeoBySid(cand.sid);
-        const endRefSid = endRepSids[0] || "";
-        const endGeo = this.getGeoBySid(endRefSid);
+        if (!path) {
+            direction = "返程";
+            path = this._determineDirection(routeStruct.backStops, cand.sid, endSidsSet, endName);
+        }
 
-        const stopCount = enhancedPath.length - 1;
-        const estimatedDuration = this.calculateEstimatedDuration(stopCount, enhancedPath);
+        if (path) {
+            seenKeys.add(key);
+            
+            const enhancedPath: StopInfo[] = path.map(p => ({
+                name: p.name,
+                sid: p.sid,
+                geo: this.getGeoBySid(p.sid)
+            }));
 
-        validBuses.push({
-          route_name: cand.route,
-          rid: cand.rid,
-          sid: cand.sid,
-          arrival_time_text: cand.time_text,
-          raw_time: cand.raw_time,
-          direction_text: direction,
-          stop_count: stopCount,
-          estimated_duration: estimatedDuration,
-          start_geo: startGeo,
-          end_geo: endGeo,
-          path_stops: enhancedPath
-        });
-      }
+            const startGeo = enhancedPath.length > 0 ? enhancedPath[0].geo : this.getGeoBySid(cand.sid);
+            const endGeo = enhancedPath.length > 0 ? enhancedPath[enhancedPath.length - 1].geo : undefined;
+
+            finalBuses.push({
+                routeName: cand.route,
+                rid: cand.rid,
+                sid: cand.sid,
+                arrivalTimeText: cand.timeText,
+                rawTime: cand.rawTime,
+                directionText: direction,
+                stopCount: enhancedPath.length - 1,
+                startGeo: startGeo,
+                endGeo: endGeo,
+                pathStops: enhancedPath
+            });
+        }
     }
 
-    // 6. 寫入快取
-    if (validBuses.length > 0) {
-      // 儲存前移除即時時間資訊，確保下次讀取時只拿靜態路徑結構
-      // 這裡直接存完整物件也可以，但在 updateCachedBuses 會覆蓋時間
-      const cacheToSave = validBuses.map(b => {
-          const { arrival_time_text, raw_time, ...rest } = b;
-          // 恢復為預設值，避免混淆
-          return { ...rest, arrival_time_text: '', raw_time: 0 } as BusInfo;
-      });
-      
-      this.validationCache[cacheKey] = cacheToSave;
-      await this.dataProvider.saveCache(this.validationCache);
-      
-      // 回傳時要保留這次查到的時間
-      return validBuses;
+    finalBuses.sort((a, b) => a.rawTime - b.rawTime);
+    
+    const cachePayload = finalBuses.map(b => ({
+        ...b,
+        arrivalTimeText: '',
+        rawTime: 0
+    }));
+    
+    AsyncStorage.setItem(cacheKey, JSON.stringify(cachePayload))
+        .catch(e => console.warn("[BusPlanner] Cache write failed:", e));
+
+    return finalBuses;
+  }
+
+  // --- Helpers ---
+
+  private async _fetchText(url: string): Promise<string | null> {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        return await res.text();
+    } catch (e) {
+        return null;
+    }
+  }
+
+  private async _fetchJson(url: string): Promise<any | null> {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (e) {
+        return null;
+    }
+  }
+
+  private _determineDirection(
+    stops: Array<{ name: string; sid: string }>,
+    startSid: string,
+    endSidsSet: Set<string>,
+    endName: string
+  ): Array<{ name: string; sid: string }> | null {
+    const startInfo = this.db.by_sid[startSid];
+    const targetSlid = startInfo?.slid;
+
+    let startIndex = -1;
+    for (let i = 0; i < stops.length; i++) {
+        const currSid = stops[i].sid;
+        if (currSid === startSid) {
+            startIndex = i;
+            break;
+        }
+        if (targetSlid) {
+            const currInfo = this.db.by_sid[currSid];
+            if (currInfo?.slid === targetSlid) {
+                startIndex = i;
+                break;
+            }
+        }
     }
 
-    return validBuses;
+    if (startIndex === -1) return null;
+
+    const pathSlice = stops.slice(startIndex);
+    const endSlidsSet = new Set<string>();
+    endSidsSet.forEach(esid => {
+        const info = this.db.by_sid[esid];
+        if (info?.slid) endSlidsSet.add(info.slid);
+    });
+
+    let foundIndex = -1;
+    for (let i = 1; i < pathSlice.length; i++) { 
+        const stop = pathSlice[i];
+        const currInfo = this.db.by_sid[stop.sid];
+        const currSlid = currInfo?.slid;
+
+        const isMatch = endSidsSet.has(stop.sid) || 
+                        (currSlid && endSlidsSet.has(currSlid)) ||
+                        stop.name === endName;
+        
+        if (isMatch) {
+            foundIndex = i;
+            break;
+        }
+    }
+
+    if (foundIndex !== -1) {
+        return pathSlice.slice(0, foundIndex + 1);
+    }
+
+    return null;
   }
 }

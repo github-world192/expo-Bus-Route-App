@@ -122,12 +122,12 @@ export default function StopScreen() {
       // 3. 合併並轉換資料
       const allBuses = results.flat();
       
-      // 轉換為 UI 格式並排序 (依據 raw_time，即到站秒數)
+      // 轉換為 UI 格式並排序 (依據 rawTime，即到站秒數)
       const uiArrivals: UIArrival[] = allBuses
-        .sort((a, b) => a.raw_time - b.raw_time)
+        .sort((a, b) => a.rawTime - b.rawTime)
         .map((bus, idx) => ({
           route: bus.route,
-          estimatedTime: bus.time_text,
+          estimatedTime: bus.timeText,
           key: `${bus.rid}-${idx}`, // 確保 key 唯一
         }));
 
