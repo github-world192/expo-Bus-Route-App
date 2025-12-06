@@ -62,19 +62,51 @@ export default function StopDetailScreen() {
       }
 
       const results = await plannerRef.current.fetchBusesAtSid(sids[0]);
-      const allBuses = results.flat();
+      const allBuses = results.flat().sort((a, b) => a.rawTime - b.rawTime);
 
-      const uiArrivals: UIArrival[] = allBuses
-        .sort((a, b) => a.rawTime - b.rawTime)
-        .map((bus, idx) => ({
-          route: bus.route,
-          direction: bus.direction,
-          estimatedTime: bus.timeText,
-          key: `${bus.rid}-${idx}`
-        }));
+      // 先立即顯示路線名稱和時間，方向欄位暫時為空
+      const initialArrivals: UIArrival[] = allBuses.map((bus, idx) => ({
+        route: bus.route,
+        direction: '', // 先不顯示方向
+        estimatedTime: bus.timeText,
+        key: `${bus.rid}-${idx}`
+      }));
 
-      setArrivals(uiArrivals);
+      setArrivals(initialArrivals);
       setLastUpdate(new Date().toLocaleTimeString());
+
+      // 背景異步獲取每個公車路線的終點站資訊
+      allBuses.forEach(async (bus, idx) => {
+        try {
+          // 獲取路線結構來取得終點站
+          const routeStructure = await plannerRef.current.getRouteStructure(bus.rid);
+          
+          // 根據方向決定使用 goStops 或 backStops
+          const isGoDirection = bus.direction.includes('去') || bus.direction.includes('往');
+          const stops = isGoDirection ? routeStructure.goStops : routeStructure.backStops;
+          
+          // 取最後一個站點作為終點站
+          let destinationStop = bus.direction; // 預設
+          if (stops && stops.length > 0) {
+            destinationStop = `往 ${stops[stops.length - 1].name}`;
+          }
+
+          // 更新該筆資料的方向資訊
+          setArrivals(prev => {
+            const updated = [...prev];
+            const targetIndex = updated.findIndex(item => item.key === `${bus.rid}-${idx}`);
+            if (targetIndex !== -1) {
+              updated[targetIndex] = {
+                ...updated[targetIndex],
+                direction: destinationStop
+              };
+            }
+            return updated;
+          });
+        } catch (err) {
+          console.warn(`無法獲取路線 ${bus.route} (${bus.rid}) 的終點站:`, err);
+        }
+      });
 
     } catch (error) {
       console.error('🚨 Failed to fetch bus data:', error);
@@ -186,8 +218,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 10,
   },
-  backArrow: { color: '#fff', fontSize: 26, marginRight: 10 },
-  title: { color: '#fff', fontSize: 24, fontWeight: '700' },
+  backArrow: { color: '#fff', fontSize: 30, marginRight: 10 },
+  title: { color: '#fff', fontSize: 28, fontWeight: '700' },
 
   subHeader: {
     paddingHorizontal: 20,
@@ -195,7 +227,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#2b3435',
     borderBottomWidth: 1,
   },
-  subHeaderText: { color: '#aaa', fontSize: 14 },
+  subHeaderText: { color: '#aaa', fontSize: 16 },
 
   row: {
     flexDirection: 'row',
@@ -210,10 +242,10 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     flex: 1,
   },
-  route: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  route: { color: '#fff', fontSize: 22, fontWeight: '700' },
   direction: { 
     color: '#aaa', 
-    fontSize: 12, 
+    fontSize: 14, 
     marginTop: 3,
   },
   badge: {
@@ -224,9 +256,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
   },
-  badgeText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  badgeText: { color: '#fff', fontWeight: '700', fontSize: 17 },
 
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   empty: { marginTop: 40, alignItems: 'center' },
-  emptyText: { color: '#9aa6a6', fontSize: 18, fontWeight: '700' },
+  emptyText: { color: '#9aa6a6', fontSize: 20, fontWeight: '700' },
 });
