@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   FlatList,
   Keyboard,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -81,23 +82,23 @@ export default function SearchScreen() {
   const onSelect = (stop: string) => {
     // 維持原本邏輯：跳轉至 stop 頁面，並傳遞站名參數
     // 下一頁 (/stop) 需負責利用這個 name 去 stop_id_map.json 查出對應的 sid 列表
-    router.push(`/stop?name=${encodeURIComponent(stop)}`);
+    setTimeout(() => router.push(`/stop?name=${encodeURIComponent(stop)}`), 100);
   };
 
   const onCancel = () => {
     Keyboard.dismiss();
     if (router.canGoBack()) {
-      router.back();
+      setTimeout(() => router.back(), 100);
     } else {
       // 如果沒有上一頁（例如直接開啟），則回到首頁
-      router.replace('/');
+      setTimeout(() => router.replace('/'), 100);
     }
   };
 
   const onMap = () => {
     Keyboard.dismiss();
     // 跳轉到地圖頁面
-    router.push('/map');
+    setTimeout(() => router.push('/map'), 100);
   };
 
   return (
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#152021',
-    paddingTop: 50, 
+    paddingTop: Platform.OS === 'ios' ? 50 : 28,
     paddingHorizontal: 16,
   },
   inputRow: {

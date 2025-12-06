@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -133,7 +134,7 @@ export default function StopDetailScreen() {
     <View style={styles.container}>
       {/* 上方標題 */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => setTimeout(() => router.back(), 100)}>
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{stopName}</Text>
@@ -174,7 +175,11 @@ export default function StopDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#152021', paddingTop: 48 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#152021', 
+    paddingTop: Platform.OS === 'ios' ? 50 : 28 
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

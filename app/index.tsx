@@ -73,6 +73,28 @@ export default function StopScreen() {
   // 側欄狀態
   const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
   const sidebarAnimation = useRef(new Animated.Value(0)).current;
+  
+  // 通知設定 Modal 狀態
+  const [notificationModalVisible, setNotificationModalVisible] = useState<boolean>(false);
+  
+  // 檢測是否為手機裝置
+  const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false);
+  
+  useEffect(() => {
+    // 檢測裝置類型
+    if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      setIsMobileDevice(true);
+    } else if (Platform.OS === 'web') {
+      // Web 平台檢測螢幕尺寸
+      const checkMobile = () => {
+        const width = Dimensions.get('window').width;
+        setIsMobileDevice(width < 768);
+      };
+      checkMobile();
+      const subscription = Dimensions.addEventListener('change', checkMobile);
+      return () => subscription?.remove();
+    }
+  }, []);
 
   // 側欄動畫效果
   useEffect(() => {
@@ -756,18 +778,69 @@ export default function StopScreen() {
           </TouchableOpacity>
         </View>
         <ScrollView style={styles.sidebarContent}>
-          <TouchableOpacity style={styles.sidebarItem}>
+          {/* 首頁 */}
+          <TouchableOpacity 
+            style={styles.sidebarItem}
+            onPress={() => {
+              setSidebarVisible(false);
+              setTimeout(() => router.push('/'), 300);
+            }}
+          >
             <Text style={styles.sidebarItemIcon}>🏠</Text>
             <Text style={styles.sidebarItemText}>首頁</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sidebarItem}>
+          
+          {/* 附近站牌 */}
+          <TouchableOpacity 
+            style={styles.sidebarItem}
+            onPress={() => {
+              setSidebarVisible(false);
+              setTimeout(() => router.push('/search'), 300);
+            }}
+          >
             <Text style={styles.sidebarItemIcon}>📍</Text>
             <Text style={styles.sidebarItemText}>附近站牌</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.sidebarItem}>
+          
+          {/* 路線規劃 */}
+          <TouchableOpacity 
+            style={styles.sidebarItem}
+            onPress={() => {
+              setSidebarVisible(false);
+              setTimeout(() => router.push('/route'), 300);
+            }}
+          >
+            <Text style={styles.sidebarItemIcon}>🚌</Text>
+            <Text style={styles.sidebarItemText}>路線規劃</Text>
+          </TouchableOpacity>
+          
+          {/* 乘車時間通知 */}
+          <TouchableOpacity 
+            style={styles.sidebarItem}
+            onPress={() => {
+              setSidebarVisible(false);
+              setTimeout(() => setNotificationModalVisible(true), 300);
+            }}
+          >
             <Text style={styles.sidebarItemIcon}>🔔</Text>
             <Text style={styles.sidebarItemText}>乘車時間通知</Text>
           </TouchableOpacity>
+          
+          {/* 地圖（僅手機顯示） */}
+          {isMobileDevice && (
+            <TouchableOpacity 
+              style={styles.sidebarItem}
+              onPress={() => {
+                setSidebarVisible(false);
+                setTimeout(() => router.push('/map'), 300);
+              }}
+            >
+              <Text style={styles.sidebarItemIcon}>🗺️</Text>
+              <Text style={styles.sidebarItemText}>地圖</Text>
+            </TouchableOpacity>
+          )}
+          
+          {/* 清除快取 */}
           <TouchableOpacity 
             style={styles.sidebarItem}
             onPress={async () => {
@@ -1005,6 +1078,29 @@ export default function StopScreen() {
       {/* Service Worker 註冊 */}
       <ServiceWorkerRegister />
 
+      {/* 通知設定 Modal */}
+      <Modal
+        visible={notificationModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setNotificationModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.notificationModalContainer}>
+            <View style={styles.notificationModalHeader}>
+              <Text style={styles.notificationModalTitle}>乘車時間通知</Text>
+              <TouchableOpacity
+                onPress={() => setNotificationModalVisible(false)}
+                style={styles.notificationModalClose}
+              >
+                <Text style={styles.notificationModalCloseText}>×</Text>
+              </TouchableOpacity>
+            </View>
+            <NotificationSettings />
+          </View>
+        </View>
+      </Modal>
+
       {/* 長按選單 Modal */}
       <Modal
         visible={menuVisible}
@@ -1066,7 +1162,11 @@ export default function StopScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#152021', paddingTop: 28 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#152021', 
+    paddingTop: Platform.OS === 'ios' ? 50 : 28 
+  },
   pagerContainer: {
     flex: 1,
   },
@@ -1270,7 +1370,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 28,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#2b3435',
   },
@@ -1327,6 +1428,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  notificationModalContainer: {
+    backgroundColor: '#1f2627',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+  },
+  notificationModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2b3435',
+  },
+  notificationModalTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  notificationModalClose: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationModalCloseText: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '300',
   },
   menuContainer: {
     backgroundColor: '#1f2627',

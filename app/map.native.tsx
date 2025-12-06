@@ -687,7 +687,7 @@ const styles = StyleSheet.create({
   hint: { color: '#888', marginTop: 8 },
   controlRow: {
     position: 'absolute',
-    top: 16,
+    top: Platform.OS === 'ios' ? 40 : 16,
     right: 12,
     left: 12,
     flexDirection: 'row',
@@ -704,6 +704,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop: Platform.OS === 'ios' ? 40 : 0,
   },
   modalHeader: {
     backgroundColor: '#fff',

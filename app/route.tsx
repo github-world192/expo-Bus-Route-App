@@ -342,9 +342,9 @@ export default function RouteScreen() {
   // 返回
   const back = () => {
     if (router.canGoBack()) {
-      router.back();
+      setTimeout(() => router.back(), 100);
     } else {
-      router.push('/');
+      setTimeout(() => router.push('/'), 100);
     }
   };
 
@@ -623,6 +623,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop: Platform.OS === 'ios' ? 50 : 0,
   },
   header: {
     flexDirection: 'row',
