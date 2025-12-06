@@ -14,6 +14,7 @@ import { BusPlannerService } from '../components/busPlanner';
 
 interface UIArrival {
   route: string;
+  direction?: string;
   estimatedTime: string;
   key: string;
 }
@@ -66,6 +67,7 @@ export default function StopDetailScreen() {
         .sort((a, b) => a.rawTime - b.rawTime)
         .map((bus, idx) => ({
           route: bus.route,
+          direction: bus.direction,
           estimatedTime: bus.timeText,
           key: `${bus.rid}-${idx}`
         }));
@@ -114,7 +116,12 @@ export default function StopDetailScreen() {
 
     return (
       <View style={styles.row}>
-        <Text style={styles.route}>{item.route}</Text>
+        <View style={styles.routeInfo}>
+          <Text style={styles.route}>{item.route}</Text>
+          {item.direction && (
+            <Text style={styles.direction}>{item.direction}</Text>
+          )}
+        </View>
         <View style={[styles.badge, { backgroundColor: badgeColor }]}>
           <Text style={styles.badgeText}>{timeText}</Text>
         </View>
@@ -194,7 +201,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#263133',
   },
+  routeInfo: {
+    flexDirection: 'column',
+    flex: 1,
+  },
   route: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  direction: { 
+    color: '#aaa', 
+    fontSize: 12, 
+    marginTop: 3,
+  },
   badge: {
     borderRadius: 18,
     minWidth: 68,

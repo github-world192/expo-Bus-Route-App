@@ -249,7 +249,7 @@ export class BusPlannerService {
     if (!html) return [];
 
     const $ = cheerio.load(html);
-    const routeMap: Record<string, { route: string; rid: string }> = {};
+    const routeMap: Record<string, { route: string; rid: string; direction: string }> = {};
 
     $('tr').each((_, row) => {
         const $row = $(row);
@@ -261,6 +261,10 @@ export class BusPlannerService {
         const rid = UrlHelper.getParam(href, 'rid');
         const routeName = link.text().trim();
         
+        // 提取方向資訊（去程/返程）
+        const directionCell = $row.find('td').eq(2); // 第三個 td 是方向
+        const direction = directionCell.text().trim() || '未知';
+        
         // FIX: 更精確地尋找 tte ID，模擬 Python 的 find behavior
         let dynId = null;
         const dynIdRaw = $row.find('td[id^="tte"]').attr('id');
@@ -269,7 +273,7 @@ export class BusPlannerService {
         }
 
         if (dynId && rid) {
-            routeMap[dynId] = { route: routeName, rid };
+            routeMap[dynId] = { route: routeName, rid, direction };
         }
     });
 
@@ -284,7 +288,7 @@ export class BusPlannerService {
             const jTimeCode = vals[7];
 
             if (routeMap[jDynId]) {
-                const { route, rid } = routeMap[jDynId];
+                const { route, rid, direction } = routeMap[jDynId];
                 delete routeMap[jDynId]; 
                 
                 const timeText = TimeParser.formatStatusCode(jTimeCode);
@@ -292,6 +296,7 @@ export class BusPlannerService {
                     route,
                     rid,
                     sid,
+                    direction,
                     timeText: timeText,
                     rawTime: TimeParser.parseTextToSeconds(timeText)
                 });
@@ -305,6 +310,7 @@ export class BusPlannerService {
             route: info.route,
             rid: info.rid,
             sid,
+            direction: info.direction,
             timeText: "更新中",
             rawTime: CONFIG.TIME_NOT_DEPARTED
         });
