@@ -347,8 +347,8 @@ export default function RouteScreen() {
       >
         <View style={styles.routeCardHeader}>
           <View style={styles.routeCardTitleRow}>
-            <Text style={styles.routeCardNumber}>{item.route_name}</Text>
-            <Text style={styles.routeCardDirection}>{item.direction_text}</Text>
+            <Text style={styles.routeCardNumber}>{item.routeName}</Text>
+            <Text style={styles.routeCardDirection}>{item.directionText}</Text>
           </View>
           {isSelected && (
             <Text style={styles.routeCardCheck}>✓</Text>
@@ -356,8 +356,8 @@ export default function RouteScreen() {
         </View>
         
         <View style={styles.routeCardInfo}>
-          <Text style={styles.routeCardTime}>⏱ {item.arrival_time_text}</Text>
-          <Text style={styles.routeCardStops}>🚏 途經 {item.stop_count} 站</Text>
+          <Text style={styles.routeCardTime}>⏱ {item.arrivalTimeText}</Text>
+          <Text style={styles.routeCardStops}>🚏 途經 {item.stopCount} 站</Text>
         </View>
 
         {isSelected && (
@@ -365,16 +365,16 @@ export default function RouteScreen() {
             <View style={styles.routePathContainer}>
               <Text style={styles.routePathTitle}>途經站牌：</Text>
               <View style={styles.routePathList}>
-                {item.path_stops.map((stop, stopIndex) => (
+                {item.pathStops.map((stop, stopIndex) => (
                   <View key={`${stop.sid}-${stopIndex}`} style={styles.routePathItem}>
                     <View style={[
                       styles.routePathDot,
                       stopIndex === 0 && styles.routePathDotStart,
-                      stopIndex === item.path_stops.length - 1 && styles.routePathDotEnd
+                      stopIndex === item.pathStops.length - 1 && styles.routePathDotEnd
                     ]} />
                     <Text style={[
                       styles.routePathStopName,
-                      (stopIndex === 0 || stopIndex === item.path_stops.length - 1) && styles.routePathStopNameBold
+                      (stopIndex === 0 || stopIndex === item.pathStops.length - 1) && styles.routePathStopNameBold
                     ]}>
                       {stop.name}
                     </Text>

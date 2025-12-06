@@ -133,7 +133,7 @@ export default function MapNative() {
     if (routeInfo.length === 0) return [];
     
     return routeInfo.map((route, index) => {
-      const coordinates = route.path_stops
+      const coordinates = route.pathStops
         .filter(stop => stop.geo)
         .map(stop => ({
           latitude: stop.geo!.lat,
@@ -145,7 +145,7 @@ export default function MapNative() {
         index,
         coordinates,
         isValid: coordinates.length >= 2,
-        routeKey: `route-${route.route_name}-${route.direction_text}-${index}`
+        routeKey: `route-${route.routeName}-${route.directionText}-${index}`
       };
     }).filter(r => r.isValid);
   }, [routeInfo]); // 移除 showRoute 依賴，只依賴 routeInfo
@@ -179,7 +179,7 @@ export default function MapNative() {
         const routes = await plannerRef.current.plan('師大分部', '師大');
         console.log('找到路線數量:', routes.length);
         if (routes.length > 0) {
-          console.log('第一條路線:', routes[0].route_name, routes[0].direction_text);
+          console.log('第一條路線:', routes[0].routeName, routes[0].directionText);
           setRouteInfo(routes);
         }
       } catch (error) {
@@ -282,7 +282,7 @@ export default function MapNative() {
     }
     
     const route = routeInfo[routeIndex];
-    const coordinates = route.path_stops
+    const coordinates = route.pathStops
       .filter(stop => stop.geo)
       .map(stop => ({
         latitude: stop.geo!.lat,
@@ -315,7 +315,7 @@ export default function MapNative() {
       longitudeDelta: Math.max(lonDelta, 0.01),
     };
     
-    console.log('fitRouteToMap: 調整視角到路線', routeIndex, route.route_name);
+    console.log('fitRouteToMap: 調整視角到路線', routeIndex, route.routeName);
     
     // 使用動畫過渡到新視角
     if (typeof mapRef.current.animateToRegion === 'function') {
@@ -444,7 +444,7 @@ export default function MapNative() {
                   tappable={true}
                   onPress={() => {
                     if (!isAnimatingRef.current) {
-                      console.log('切換到路線:', index, route.route_name);
+                      console.log('切換到路線:', index, route.routeName);
                       setSelectedRouteIndex(index);
                       setRenderKey(prev => prev + 1); // 強制重新渲染
                       requestAnimationFrame(() => {
@@ -482,7 +482,7 @@ export default function MapNative() {
                   />
                   
                   {/* 選中路線的站牌標記 */}
-                  {route.path_stops.filter(stop => stop.geo).map((stop, stopIndex) => {
+                  {route.pathStops.filter(stop => stop.geo).map((stop, stopIndex) => {
                     const markerKey = `route-stop-${routeKey}-${stop.name}-${stopIndex}`;
                     return (
                       <Marker
@@ -493,7 +493,7 @@ export default function MapNative() {
                         }}
                         pinColor={
                           stopIndex === 0 ? "green" :
-                          stopIndex === route.path_stops.length - 1 ? "red" :
+                          stopIndex === route.pathStops.length - 1 ? "red" :
                           "orange"
                         }
                       >
@@ -504,7 +504,7 @@ export default function MapNative() {
                             </View>
                             <Text style={styles.calloutSubtitle}>
                               {stopIndex === 0 ? "起點" : 
-                               stopIndex === route.path_stops.length - 1 ? "終點" :
+                               stopIndex === route.pathStops.length - 1 ? "終點" :
                                `第 ${stopIndex + 1} 站`}
                             </Text>
                           </View>
@@ -551,7 +551,7 @@ export default function MapNative() {
           <Text style={styles.infoText}>半徑：{Math.round(radiusMeters)} m</Text>
           <Text style={styles.infoText}>顯示 {visibleStops.length}/{nearbyStops.length} 個站牌</Text>
           {showRoute && routeInfo.length > 0 && (
-            <Text style={styles.infoText}>路線: {routeInfo[selectedRouteIndex].route_name} ({routeInfo[selectedRouteIndex].direction_text})</Text>
+            <Text style={styles.infoText}>路線: {routeInfo[selectedRouteIndex].routeName} ({routeInfo[selectedRouteIndex].directionText})</Text>
           )}
         </View>
       </View>
@@ -603,14 +603,14 @@ export default function MapNative() {
                 >
                   <View style={styles.routeMenuItemContent}>
                     <View style={styles.routeMenuItemHeader}>
-                      <Text style={styles.routeMenuItemTitle}>{item.route_name}</Text>
-                      <Text style={styles.routeMenuItemDirection}>{item.direction_text}</Text>
+                      <Text style={styles.routeMenuItemTitle}>{item.routeName}</Text>
+                      <Text style={styles.routeMenuItemDirection}>{item.directionText}</Text>
                     </View>
                     <Text style={styles.routeMenuItemDetail}>
-                      途經 {item.stop_count} 站 · 約 {item.arrival_time_text}
+                      途經 {item.stopCount} 站 · 約 {item.arrivalTimeText}
                     </Text>
                     <Text style={styles.routeMenuItemStops} numberOfLines={1}>
-                      {item.path_stops[0]?.name} → {item.path_stops[item.path_stops.length - 1]?.name}
+                      {item.pathStops[0]?.name} → {item.pathStops[item.pathStops.length - 1]?.name}
                     </Text>
                   </View>
                   {index === selectedRouteIndex && (
