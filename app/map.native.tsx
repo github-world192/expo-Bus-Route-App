@@ -611,7 +611,7 @@ export default function MapNative() {
                       <Text style={styles.routeMenuItemDirection}>{item.directionText || ''}</Text>
                     </View>
                     <Text style={styles.routeMenuItemDetail}>
-                      途經 {item.stopCount || 0} 站 · 約 {item.arrivalTimeText || '未知'}
+                      途經 {item.stopCount || 0} 站 · {item.estimatedDuration || 0} 分鐘 · {item.arrivalTimeText || '未知'}
                     </Text>
                     <Text style={styles.routeMenuItemStops} numberOfLines={1}>
                       {(item.pathStops && item.pathStops[0]?.name) || '未知'} → {(item.pathStops && item.pathStops[item.pathStops.length - 1]?.name) || '未知'}

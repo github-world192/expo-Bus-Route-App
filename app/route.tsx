@@ -430,7 +430,7 @@ export default function RouteScreen() {
         
         <View style={styles.routeCardInfo}>
           <Text style={styles.routeCardTime}>⏱ {item.arrivalTimeText}</Text>
-          <Text style={styles.routeCardStops}>🚏 途經 {item.stopCount} 站</Text>
+          <Text style={styles.routeCardStops}>🚏 途經{item.stopCount}站 · 約{item.estimatedDuration}分鐘</Text>
         </View>
 
         {isSelected && (

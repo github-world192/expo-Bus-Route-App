@@ -37,6 +37,7 @@ export interface BusInfo {
   rawTime: number;
   directionText: string;
   stopCount: number;
+  estimatedDuration: number; // 預估搭乘時間（分鐘）
   startGeo?: GeoLocation;
   endGeo?: GeoLocation;
   pathStops: StopInfo[];
@@ -62,6 +63,7 @@ const CONFIG = {
   TIME_NOT_DEPARTED: 99999,
   TIME_ARRIVING: 0,
   TIME_UNKNOWN: 88888,
+  AVG_TIME_PER_STOP: 2.5, // 平均每站間隔時間（分鐘）
 };
 
 enum BusStatus {
@@ -181,6 +183,20 @@ export class BusPlannerService {
 
   public getAllStopNames(): string[] {
     return Object.keys(this.db.by_name);
+  }
+
+  /**
+   * 計算預估搭乘時間
+   * @param stopCount 站數（不含起點）
+   * @returns 預估時間（分鐘）
+   */
+  private calculateEstimatedDuration(stopCount: number): number {
+    if (stopCount <= 0) return 0;
+    // 基本計算：站數 × 平均站間時間
+    // 加上一些緩衝時間（首站等待 + 末站下車）
+    const travelTime = stopCount * CONFIG.AVG_TIME_PER_STOP;
+    const bufferTime = 1; // 緩衝時間（分鐘）
+    return Math.ceil(travelTime + bufferTime);
   }
 
   public findNearestStop(userLat: number, userLon: number): string | null {
@@ -366,7 +382,8 @@ export class BusPlannerService {
             return {
                 ...busData,
                 arrivalTimeText: arrival,
-                rawTime: raw
+                rawTime: raw,
+                estimatedDuration: busData.estimatedDuration || 0
             };
         });
     });
@@ -448,6 +465,8 @@ export class BusPlannerService {
 
             const startGeo = enhancedPath.length > 0 ? enhancedPath[0].geo : this.getGeoBySid(cand.sid);
             const endGeo = enhancedPath.length > 0 ? enhancedPath[enhancedPath.length - 1].geo : undefined;
+            const stopCount = enhancedPath.length - 1;
+            const estimatedDuration = this.calculateEstimatedDuration(stopCount);
 
             finalBuses.push({
                 routeName: cand.route,
@@ -456,7 +475,8 @@ export class BusPlannerService {
                 arrivalTimeText: cand.timeText,
                 rawTime: cand.rawTime,
                 directionText: direction,
-                stopCount: enhancedPath.length - 1,
+                stopCount: stopCount,
+                estimatedDuration: estimatedDuration,
                 startGeo: startGeo,
                 endGeo: endGeo,
                 pathStops: enhancedPath
