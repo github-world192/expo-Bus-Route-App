@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   Modal,
   Platform,
@@ -55,6 +56,29 @@ export default function StopScreen() {
   // 長按選單狀態
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
   const [selectedRoute, setSelectedRoute] = useState<FavoriteRoute | null>(null);
+
+  // 側欄狀態
+  const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
+  const sidebarAnimation = useRef(new Animated.Value(0)).current;
+
+  // 側欄動畫效果
+  useEffect(() => {
+    Animated.timing(sidebarAnimation, {
+      toValue: sidebarVisible ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [sidebarVisible]);
+
+  const sidebarWidth = sidebarAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '60%'],
+  });
+
+  const mainContentTranslate = sidebarAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 250],
+  });
 
   // 在應用啟動時請求位置權限
   useEffect(() => {
@@ -354,8 +378,63 @@ export default function StopScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 搜尋框與路線規劃按鈕 */}
+      {/* 側欄 */}
+      <Animated.View
+        style={[
+          styles.sidebarContainer,
+          {
+            width: sidebarWidth,
+            transform: [{ translateX: sidebarAnimation.interpolate({
+              inputRange: [0, 1],
+              outputRange: [-300, 0],
+            })}],
+          },
+        ]}
+      >
+        <View style={styles.sidebarHeader}>
+          <View>
+            <Text style={styles.sidebarTitle}>Stop togo</Text>
+            <Text style={styles.sidebarSubtitle}>選單</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setSidebarVisible(false)}
+            style={styles.sidebarCloseButton}
+          >
+            <Text style={styles.sidebarCloseText}>×</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView style={styles.sidebarContent}>
+          <TouchableOpacity style={styles.sidebarItem}>
+            <Text style={styles.sidebarItemIcon}>🏠</Text>
+            <Text style={styles.sidebarItemText}>首頁</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.sidebarItem}>
+            <Text style={styles.sidebarItemIcon}>📍</Text>
+            <Text style={styles.sidebarItemText}>附近站牌</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.sidebarItem}>
+            <Text style={styles.sidebarItemIcon}>🔔</Text>
+            <Text style={styles.sidebarItemText}>乘車時間通知</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </Animated.View>
+
+      {/* 主頁面內容 */}
+      <Animated.View
+        style={[
+          styles.mainContent,
+          { transform: [{ translateX: mainContentTranslate }] },
+        ]}
+      >
+      {/* 搜尋框 */}
       <View style={styles.topBar}>
+        <TouchableOpacity 
+          style={styles.menuButton}
+          onPress={() => setSidebarVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.menuButtonText}>☰</Text>
+        </TouchableOpacity>
         <View style={styles.searchBox}>
           <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/search')}>
             <View style={{ pointerEvents: 'none' }}>
@@ -369,51 +448,60 @@ export default function StopScreen() {
             </View>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-          style={styles.routeButton}
-          onPress={() => router.push('/route')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.routeButtonText}>🗺️ 路線規劃</Text>
-        </TouchableOpacity>
       </View>
 
-      {/* 常用路線快捷按鈕 */}
-      {favoriteRoutes.length > 0 && (
-        <View style={styles.quickRouteContainer}>
-          <Text style={styles.quickRouteTitle}>常用路線</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.quickRouteScrollContent}
-          >
-            {favoriteRoutes.slice(0, 5).map((route) => (
-              <TouchableOpacity
-                key={route.id}
-                style={styles.quickRouteButton}
-                onPress={() => {
-                  router.push(`/route?from=${encodeURIComponent(route.fromStop)}&to=${encodeURIComponent(route.toStop)}`);
-                  favoriteRoutesService.recordUsage(route.fromStop, route.toStop);
-                }}
-                onLongPress={() => handleLongPress(route)}
-                delayLongPress={Platform.OS === 'web' ? 300 : 500}
-                activeOpacity={0.7}
-              >
-                {route.pinned && <Text style={styles.pinIcon}>📌</Text>}
-                {route.displayName ? (
-                  <Text style={styles.quickRouteDisplayName}>{route.displayName}</Text>
-                ) : (
-                  <>
-                    <Text style={styles.quickRouteFrom}>{route.fromStop}</Text>
-                    <Text style={styles.quickRouteArrow}>→</Text>
-                    <Text style={styles.quickRouteTo}>{route.toStop}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+      {/* 常用路線快捷按鈕或路線規劃 */}
+      <View style={styles.quickRouteContainer}>
+        <View style={styles.quickRouteTitleRow}>
+          <Text style={styles.quickRouteTitle}>
+            {favoriteRoutes.length > 0 ? '常用路線' : '路線規劃'}
+          </Text>
         </View>
-      )}
+        <View style={styles.quickRouteRow}>
+          {favoriteRoutes.length > 0 ? (
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.quickRouteScrollContent}
+              style={styles.quickRouteScrollView}
+            >
+              {favoriteRoutes.slice(0, 5).map((route) => (
+                <TouchableOpacity
+                  key={route.id}
+                  style={styles.quickRouteButton}
+                  onPress={() => {
+                    router.push(`/route?from=${encodeURIComponent(route.fromStop)}&to=${encodeURIComponent(route.toStop)}`);
+                    favoriteRoutesService.recordUsage(route.fromStop, route.toStop);
+                  }}
+                  onLongPress={() => handleLongPress(route)}
+                  delayLongPress={Platform.OS === 'web' ? 300 : 500}
+                  activeOpacity={0.7}
+                >
+                  {route.pinned && <Text style={styles.pinIcon}>📌</Text>}
+                  {route.displayName ? (
+                    <Text style={styles.quickRouteDisplayName}>{route.displayName}</Text>
+                  ) : (
+                    <>
+                      <Text style={styles.quickRouteFrom}>{route.fromStop}</Text>
+                      <Text style={styles.quickRouteArrow}>→</Text>
+                      <Text style={styles.quickRouteTo}>{route.toStop}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.quickRouteScrollView} />
+          )}
+          <TouchableOpacity 
+            style={styles.addRouteButtonInline}
+            onPress={() => router.push('/route')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.addRouteButtonText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* 通知設定 */}
       {/* 移到 FlatList 的 ListHeaderComponent */}
@@ -465,6 +553,16 @@ export default function StopScreen() {
       <View style={styles.footer}>
         <Text style={styles.updateText}>更新時間：{lastUpdate || '—'}</Text>
       </View>
+      </Animated.View>
+
+      {/* 側欄遮罩 */}
+      {sidebarVisible && (
+        <TouchableOpacity
+          style={styles.sidebarBackdrop}
+          activeOpacity={1}
+          onPress={() => setSidebarVisible(false)}
+        />
+      )}
 
       {/* PWA 安裝提示 */}
       <InstallPWA />
@@ -539,42 +637,66 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 8,
-    gap: 8,
+    gap: 4,
   },
-  searchBox: { flex: 1 },
-  searchInput: {
-    height: 46,
-    borderRadius: 24,
-    backgroundColor: '#3a4243',
-    paddingHorizontal: 16,
-    color: '#fff',
-    fontSize: 16,
-  },
-  routeButton: {
-    backgroundColor: '#6F73F8',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 24,
+  menuButton: {
+    width: 40,
     height: 46,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  routeButtonText: {
+  menuButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '400',
+  },
+  searchBox: { flex: 1 },
+  searchInput: {
+    height: 46,
+    borderRadius: 10,
+    backgroundColor: '#3a4243',
+    paddingHorizontal: 16,
+    color: '#fff',
+    fontSize: 16,
   },
   quickRouteContainer: {
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#2b3435',
   },
+  quickRouteTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 6,
+  },
   quickRouteTitle: {
     color: '#888',
     fontSize: 12,
     fontWeight: '600',
-    marginBottom: 6,
-    paddingHorizontal: 20,
+  },
+  quickRouteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  quickRouteScrollView: {
+    flex: 1,
+  },
+  addRouteButtonInline: {
+    width: 30,
+    height: 30,
+    borderRadius: 18,
+    backgroundColor: '#6F73F8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 20,
+  },
+  addRouteButtonText: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '500',
+    lineHeight: 28,
   },
   quickRouteScrollContent: {
     paddingHorizontal: 20,
@@ -662,7 +784,91 @@ const styles = StyleSheet.create({
   hintText: { color: '#6d746f', marginTop: 18 },
   footer: { position: 'absolute', bottom: 18, left: 0, right: 0, alignItems: 'center' },
   updateText: { color: '#6f7a78', fontSize: 12 },
-  // 選單樣式
+  // 側欄樣式
+  sidebarContainer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    backgroundColor: '#1f2627',
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  mainContent: {
+    flex: 1,
+    backgroundColor: '#141c1c',
+  },
+  sidebarBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    zIndex: 999,
+  },
+  sidebarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2b3435',
+  },
+  sidebarTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  sidebarSubtitle: {
+    color: '#9aa6a6',
+    fontSize: 14,
+    marginTop: 2,
+  },
+  sidebarCloseButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sidebarCloseText: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '300',
+  },
+  sidebarContent: {
+    flex: 1,
+    padding: 20,
+  },
+  sidebarItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  sidebarItemIcon: {
+    fontSize: 24,
+    marginRight: 16,
+  },
+  sidebarItemText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  sidebarPlaceholder: {
+    color: '#9aa6a6',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 40,
+  },
+  // 長按選單樣式
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
