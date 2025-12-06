@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -37,7 +38,7 @@ export default function StopScreen() {
   const plannerRef = useRef(new BusPlannerService());
   const [serviceReady, setServiceReady] = useState(false);
 
-  const [selectedStop, setSelectedStop] = useState<string>(name || '捷運公館站');
+  const [selectedStop, setSelectedStop] = useState<string>(name || '');
   const [arrivals, setArrivals] = useState<UIArrival[]>([]);
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -71,26 +72,82 @@ export default function StopScreen() {
     })();
   }, []);
 
-  // 初始化 Service
+  // 初始化 Service 並加載最近站牌
   useEffect(() => {
     const initService = async () => {
       await plannerRef.current.initialize();
       setServiceReady(true);
+
+      // 如果 URL 參數有站牌名，優先使用
+      if (name && typeof name === 'string') {
+        setSelectedStop(name);
+        await saveRecentStop(name);
+        return;
+      }
+
+      // 嘗試加載最近使用的站牌
+      try {
+        const recentStop = await AsyncStorage.getItem('@recent_stop');
+        if (recentStop) {
+          console.log('使用最近站牌:', recentStop);
+          setSelectedStop(recentStop);
+          return;
+        }
+      } catch (error) {
+        console.error('加載最近站牌失敗:', error);
+      }
+
+      // 嘗試使用地理位置找最近站牌
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status === 'granted') {
+          console.log('定位權限已授予，正在定位...');
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          
+          const nearestStop = plannerRef.current.findNearestStop(
+            location.coords.latitude,
+            location.coords.longitude
+          );
+          
+          if (nearestStop) {
+            console.log('找到最近站牌:', nearestStop);
+            setSelectedStop(nearestStop);
+            await saveRecentStop(nearestStop);
+            return;
+          }
+        } else {
+          console.log('定位權限未授予，使用默認站牌');
+        }
+      } catch (error) {
+        console.error('無法取得地理位置:', error);
+      }
+
+      // 如果以上都失敗或沒有定位權限，使用默認站牌
+      console.log('使用默認站牌: 捷運公館站');
+      setSelectedStop('捷運公館站');
+      await saveRecentStop('捷運公館站');
     };
     initService();
   }, []);
 
-  // 載入參數站名
-  useEffect(() => {
-    if (name && typeof name === 'string') {
-      setSelectedStop(name);
+  // 保存最近使用的站牌
+  const saveRecentStop = async (stopName: string) => {
+    try {
+      await AsyncStorage.setItem('@recent_stop', stopName);
+    } catch (error) {
+      console.error('保存最近站牌失敗:', error);
     }
-  }, [name]);
+  };
+
   // 監聽站名或 Service 準備好後開始抓資料
   useEffect(() => {
-    if (serviceReady) {
+    if (serviceReady && selectedStop) {
       fetchBusData(selectedStop);
       loadFavoriteRoutes();
+      // 保存最近站牌
+      saveRecentStop(selectedStop);
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = setInterval(() => fetchBusData(selectedStop), 30000);
     }

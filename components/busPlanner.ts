@@ -179,6 +179,44 @@ export class BusPlannerService {
     return representatives;
   }
 
+  public getAllStopNames(): string[] {
+    return Object.keys(this.db.by_name);
+  }
+
+  public findNearestStop(userLat: number, userLon: number): string | null {
+    const stopNames = this.getAllStopNames();
+    let nearestStop: string | null = null;
+    let minDistance = Infinity;
+
+    for (const stopName of stopNames) {
+      const sids = this.getRepresentativeSids(stopName);
+      if (sids.length === 0) continue;
+
+      const geo = this.getGeoBySid(sids[0]);
+      if (!geo) continue;
+
+      const distance = this.calculateDistance(userLat, userLon, geo.lat, geo.lon);
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestStop = stopName;
+      }
+    }
+
+    return nearestStop;
+  }
+
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // 地球半徑（公里）
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
   // --- Logic ---
 
   public async fetchBusesAtSid(sid: string): Promise<any[]> {
