@@ -27,8 +27,8 @@ const metaTags = `
   <link rel="shortcut icon" href="/assets/icon.png">
   
   <!-- Theme Color -->
-  <meta name="theme-color" content="#6F73F8">
-  <meta name="msapplication-TileColor" content="#6F73F8">
+  <meta name="theme-color" content="#152021">
+  <meta name="msapplication-TileColor" content="#152021">
   <meta name="msapplication-TileImage" content="/assets/icon.png">
 `;
 

@@ -26,7 +26,7 @@ const PagerView = React.forwardRef(({
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const newPage = Math.round(contentOffsetX / screenWidth);
     
-    if (newPage !== currentPage) {
+    if (newPage !== currentPage && newPage >= 0) {
       setCurrentPage(newPage);
       if (onPageSelected) {
         onPageSelected({ nativeEvent: { position: newPage } });
@@ -40,6 +40,7 @@ const PagerView = React.forwardRef(({
       horizontal
       pagingEnabled
       showsHorizontalScrollIndicator={false}
+      onScroll={handleScroll}
       onMomentumScrollEnd={handleScroll}
       scrollEventThrottle={16}
       decelerationRate="fast"

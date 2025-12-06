@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -197,6 +197,15 @@ export default function StopScreen() {
       loadFavoriteRoutes();
     }
   }, [serviceReady]);
+
+  // 當頁面重新聚焦時，重新載入常用路線
+  useFocusEffect(
+    useCallback(() => {
+      if (serviceReady) {
+        loadFavoriteRoutes();
+      }
+    }, [serviceReady])
+  );
 
   // 保存最近使用的站牌
   const saveRecentStop = async (stopName: string) => {
