@@ -46,14 +46,17 @@ const PagerView = React.forwardRef(({
       decelerationRate="fast"
       snapToInterval={Dimensions.get('window').width}
       snapToAlignment="center"
-      style={[style, { cursor: 'grab', userSelect: 'none' }]}
-      contentContainerStyle={{ userSelect: 'none' }}
+      style={[style, { cursor: 'default' }]}
+      contentContainerStyle={{ flexGrow: 1 }}
       {...props}
     >
       {React.Children.map(children, (child, index) => (
         <View 
           key={index} 
-          style={{ width: Dimensions.get('window').width }}
+          style={{ 
+            width: Dimensions.get('window').width,
+            height: '100%',
+          }}
         >
           {child}
         </View>

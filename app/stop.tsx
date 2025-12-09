@@ -49,7 +49,7 @@ export default function StopDetailScreen() {
     initService();
   }, []);
 
-  const fetchBusData = async () => {
+  const fetchBusData = async (isAutoRefresh = false) => {
     try {
       if (!serviceReady) return;
       
@@ -64,49 +64,84 @@ export default function StopDetailScreen() {
       const results = await plannerRef.current.fetchBusesAtSid(sids[0]);
       const allBuses = results.flat().sort((a, b) => a.rawTime - b.rawTime);
 
-      // 先立即顯示路線名稱和時間，方向欄位暫時為空
-      const initialArrivals: UIArrival[] = allBuses.map((bus, idx) => ({
-        route: bus.route,
-        direction: '', // 先不顯示方向
-        estimatedTime: bus.timeText,
-        key: `${bus.rid}-${idx}`
-      }));
-
-      setArrivals(initialArrivals);
-      setLastUpdate(new Date().toLocaleTimeString());
-
-      // 背景異步獲取每個公車路線的終點站資訊
-      allBuses.forEach(async (bus, idx) => {
-        try {
-          // 獲取路線結構來取得終點站
-          const routeStructure = await plannerRef.current.getRouteStructure(bus.rid);
+      // 使用函數式更新來獲取最新的 arrivals 狀態
+      setArrivals(prev => {
+        if (isAutoRefresh && prev.length > 0) {
           
-          // 根據方向決定使用 goStops 或 backStops
-          const isGoDirection = bus.direction.includes('去') || bus.direction.includes('往');
-          const stops = isGoDirection ? routeStructure.goStops : routeStructure.backStops;
-          
-          // 取最後一個站點作為終點站
-          let destinationStop = bus.direction; // 預設
-          if (stops && stops.length > 0) {
-            destinationStop = `往 ${stops[stops.length - 1].name}`;
-          }
+          // 自動更新模式：只更新時間，保留現有的方向資訊
+          const existingMap = new Map<string, UIArrival>();
+          prev.forEach(item => {
+            existingMap.set(item.key, item);
+          });
 
-          // 更新該筆資料的方向資訊
-          setArrivals(prev => {
-            const updated = [...prev];
-            const targetIndex = updated.findIndex(item => item.key === `${bus.rid}-${idx}`);
-            if (targetIndex !== -1) {
-              updated[targetIndex] = {
-                ...updated[targetIndex],
-                direction: destinationStop
+          const updated = allBuses.map((bus) => {
+            const busKey = `${bus.rid}-${bus.route}-${bus.direction}`;
+            const existing = existingMap.get(busKey);
+            
+            if (existing) {
+              return {
+                ...existing,
+                estimatedTime: bus.timeText,
+              };
+            } else {
+              return {
+                route: bus.route,
+                direction: '',
+                estimatedTime: bus.timeText,
+                key: busKey,
               };
             }
-            return updated;
           });
-        } catch (err) {
-          console.warn(`無法獲取路線 ${bus.route} (${bus.rid}) 的終點站:`, err);
+
+          return updated;
+        } else {
+          // 初始載入模式：先顯示路線名稱和時間，方向欄位暫時為空
+          return allBuses.map((bus) => ({
+            route: bus.route,
+            direction: '',
+            estimatedTime: bus.timeText,
+            key: `${bus.rid}-${bus.route}-${bus.direction}`
+          }));
         }
       });
+
+      setLastUpdate(new Date().toLocaleTimeString());
+
+      // 初始載入時，背景載入終點站資訊
+      if (!isAutoRefresh) {
+        allBuses.forEach(async (bus) => {
+          try {
+            // 獲取路線結構來取得終點站
+            const routeStructure = await plannerRef.current.getRouteStructure(bus.rid);
+            
+            // 根據方向決定使用 goStops 或 backStops
+            const isGoDirection = bus.direction.includes('去') || bus.direction.includes('往');
+            const stops = isGoDirection ? routeStructure.goStops : routeStructure.backStops;
+            
+            // 取最後一個站點作為終點站
+            let destinationStop = bus.direction; // 預設
+            if (stops && stops.length > 0) {
+              destinationStop = `往 ${stops[stops.length - 1].name}`;
+            }
+
+            // 更新該筆資料的方向資訊
+            setArrivals(prev => {
+              const updated = [...prev];
+              const busKey = `${bus.rid}-${bus.route}-${bus.direction}`;
+              const targetIndex = updated.findIndex(item => item.key === busKey);
+              if (targetIndex !== -1) {
+                updated[targetIndex] = {
+                  ...updated[targetIndex],
+                  direction: destinationStop
+                };
+              }
+              return updated;
+            });
+          } catch (err) {
+            console.warn(`無法獲取路線 ${bus.route} (${bus.rid}) 的終點站:`, err);
+          }
+        });
+      }
 
     } catch (error) {
       console.error('🚨 Failed to fetch bus data:', error);
@@ -118,8 +153,10 @@ export default function StopDetailScreen() {
 
   useEffect(() => {
     if (serviceReady) {
-      fetchBusData();
-      intervalRef.current = setInterval(fetchBusData, 30000);
+      fetchBusData(false); // 初始載入
+      intervalRef.current = setInterval(() => {
+        fetchBusData(true);
+      }, 30000); // 自動更新傳 true
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -138,7 +175,7 @@ export default function StopDetailScreen() {
     
     setLastRefreshTime(now);
     setRefreshing(true);
-    fetchBusData();
+    fetchBusData(false); // 手動刷新重新載入所有資料
   };
 
   const renderBusItem = ({ item }: { item: UIArrival }) => {
