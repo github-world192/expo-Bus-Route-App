@@ -12,7 +12,7 @@ import {
 
 import stopsRaw from '../databases/stops.json';
 
-type StopEntry = { name: string; sid: string; lat: number; lon: number; distance: number };
+type StopEntry = { name: string; slid: string; lat: number; lon: number; distance: number };
 const DEFAULT_RADIUS_METERS = 800;
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -39,10 +39,10 @@ export default function Map() {
     const raw: any = stopsRaw;
     Object.entries(raw).forEach(([name, obj]: any) => {
       if (!obj || typeof obj !== 'object') return;
-      Object.entries(obj).forEach(([sid, coords]: any) => {
+      Object.entries(obj).forEach(([slid, coords]: any) => {
         const lat = Number(coords.lat);
         const lon = Number(coords.lon);
-        if (!Number.isNaN(lat) && !Number.isNaN(lon)) out.push({ name, sid, lat, lon, distance: 0 });
+        if (!Number.isNaN(lat) && !Number.isNaN(lon)) out.push({ name, slid, lat, lon, distance: 0 });
       });
     });
     return out;
@@ -105,8 +105,8 @@ export default function Map() {
     }
   };
 
-  const navigateToStop = (stopName: string) => {
-    router.push({ pathname: '/stop', params: { name: stopName } });
+  const navigateToStop = (stopName: string, stopSlid: string) => {
+    router.push({ pathname: '/stop', params: { name: stopName, slid: stopSlid } });
   };
 
   if (permissionStatus === 'denied') {
@@ -161,16 +161,17 @@ export default function Map() {
 
       <FlatList
         data={nearbyStops}
-        keyExtractor={(item, index) => `${item.sid}-${index}`}
+        keyExtractor={(item, index) => `${item.slid}-${index}`}
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.stopItem}
-            onPress={() => navigateToStop(item.name)}
+            // item.sid 的值實際上是 SLID，所以直接傳入
+            onPress={() => navigateToStop(item.name, item.slid)}
             activeOpacity={0.7}
           >
             <View style={styles.stopInfo}>
               <Text style={styles.stopName}>{item.name}</Text>
-              <Text style={styles.stopSid}>站牌 ID: {item.sid}</Text>
+              <Text style={styles.stopslid}>站牌 ID: {item.slid}</Text>
             </View>
             <View style={styles.distanceContainer}>
               <Text style={styles.distanceText}>{Math.round(item.distance)}m</Text>
@@ -272,7 +273,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 4,
   },
-  stopSid: {
+  stopslid: {
     fontSize: 13,
     color: '#999',
   },

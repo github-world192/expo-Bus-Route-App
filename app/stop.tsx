@@ -20,7 +20,9 @@ interface UIArrival {
 
 export default function StopDetailScreen() {
   const router = useRouter();
-  const { name } = useLocalSearchParams<{ name?: string }>();
+  // [修改] 接收 slid 參數
+  const { name, slid } = useLocalSearchParams<{ name?: string; slid?: string }>();
+  
   const stopName = name || '捷運公館站';
 
   const [arrivals, setArrivals] = useState<UIArrival[]>([]);
@@ -36,35 +38,31 @@ export default function StopDetailScreen() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const initService = async () => {
-      await plannerRef.current.initialize();
+      // 即使新版 Service 在 constructor 載入資料，保留此結構以便未來擴充
       setServiceReady(true);
-    };
-    initService();
-  }, []);
+    }, []);
 
   const fetchBusData = async () => {
     try {
       if (!serviceReady) return;
       
-      const sids = plannerRef.current.getRepresentativeSids(stopName);
-      if (sids.length === 0) {
-        setArrivals([]);
-        setLastUpdate('無法識別站牌名稱');
-        setLoading(false);
-        return;
+      let results: any[] = [];
+
+      // [修改] 優先使用 SLID 查詢
+      if (slid) {
+        console.log(`正在查詢 SLID: ${slid}`);
+        // 呼叫 Service 的新方法
+        results = await plannerRef.current.getArrivalsBySlid(slid, stopName);
+      } else {
+        console.log(`正在查詢站名: ${stopName}`);
+        results = await plannerRef.current.getStopArrivals(stopName);
       }
 
-      const results = await plannerRef.current.fetchBusesAtSid(sids[0]);
-      console.log(sids[0]);
-      const allBuses = results.flat();
-
-      const uiArrivals: UIArrival[] = allBuses
-        .sort((a, b) => a.raw_time - b.raw_time)
-        .map((bus, idx) => ({
-          route: bus.route,
-          estimatedTime: bus.time_text,
-          key: `${bus.rid}-${idx}`
+      // 轉換為 UI 所需格式
+      const uiArrivals: UIArrival[] = results.map((bus, idx) => ({
+          route: bus.route || bus.route_name || '未知',
+          estimatedTime: bus.time_text || bus.arrivalTimeText || '更新中',
+          key: `${bus.rid}-${idx}` // 注意：若有重複資料可考慮加 random 或更詳細 key
         }));
 
       setArrivals(uiArrivals);
@@ -86,7 +84,7 @@ export default function StopDetailScreen() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [stopName, serviceReady]);
+  }, [stopName, slid, serviceReady]);
 
   const onRefresh = () => {
     setRefreshing(true);

@@ -8,7 +8,7 @@ import type { BusInfo } from '../components/busPlanner';
 import { BusPlannerService } from '../components/busPlanner';
 import stopsRaw from '../databases/stops.json';
 
-type StopEntry = { name: string; sid: string; lat: number; lon: number; distance?: number };
+type StopEntry = { name: string; slid: string; lat: number; lon: number; distance?: number };
 const DEFAULT_RADIUS_METERS = 800;
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -47,10 +47,10 @@ export default function MapNative() {
     const raw: any = stopsRaw;
     Object.entries(raw).forEach(([name, obj]: any) => {
       if (!obj || typeof obj !== 'object') return;
-      Object.entries(obj).forEach(([sid, coords]: any) => {
+      Object.entries(obj).forEach(([slid, coords]: any) => {
         const lat = Number(coords.lat);
         const lon = Number(coords.lon);
-        if (!Number.isNaN(lat) && !Number.isNaN(lon)) out.push({ name, sid, lat, lon });
+        if (!Number.isNaN(lat) && !Number.isNaN(lon)) out.push({ name, slid, lat, lon });
       });
     });
     return out;
@@ -172,8 +172,9 @@ export default function MapNative() {
   useEffect(() => {
     (async () => {
       try {
-        await plannerRef.current.initialize();
-        console.log('BusPlannerService 初始化完成');
+        // [修正] 新版 BusPlannerService 在建構時已完成資料載入，無需呼叫 initialize
+        // await plannerRef.current.initialize();
+        console.log('BusPlannerService 準備就緒');
         
         // 測試：查詢「師大分部」到「師大」的路線
         const routes = await plannerRef.current.plan('師大分部', '師大');
@@ -364,9 +365,13 @@ export default function MapNative() {
     }
   };
 
-  const navigateToStop = (stopName: string) => {
+  const navigateToStop = (stopName: string, stopSlid?: string) => {
     setShowListModal(false);
-    router.push({ pathname: '/stop', params: { name: stopName } });
+    // 優先使用傳入的 SLID，若無則不傳 (避免 undefined 變成字串)
+    const params: any = { name: stopName };
+    if (stopSlid) params.slid = stopSlid;
+    
+    router.push({ pathname: '/stop', params });
   };
 
   if (permissionStatus === 'denied') {
@@ -403,10 +408,11 @@ export default function MapNative() {
         {/* 只在未顯示路線時顯示附近站牌 */}
         {!showRoute && visibleStops.map((s) => (
           <Marker 
-            key={`${s.sid}-${s.lat}-${s.lon}`} 
+            key={`${s.slid}-${s.lat}-${s.lon}`} 
             coordinate={{ latitude: s.lat, longitude: s.lon }}
           >
-            <Callout onPress={() => navigateToStop(s.name)}>
+            {/* [修正] 傳入 s.slid */}
+            <Callout onPress={() => navigateToStop(s.name, s.slid)}>
               <View style={styles.calloutContainer}>
                 <View style={styles.calloutTitleRow}>
                   <Text style={styles.calloutTitle}>{s.name}</Text>
@@ -497,7 +503,8 @@ export default function MapNative() {
                           "orange"
                         }
                       >
-                        <Callout onPress={() => navigateToStop(stop.name)}>
+                        {/* [修正] 傳入 stop.slid */}
+                        <Callout onPress={() => navigateToStop(stop.name, stop.slid)}>
                           <View style={styles.calloutContainer}>
                             <View style={styles.calloutTitleRow}>
                               <Text style={styles.calloutTitle}>{stop.name}</Text>
@@ -639,16 +646,17 @@ export default function MapNative() {
 
           <FlatList
             data={uniqueNearbyStops}
-            keyExtractor={(item, index) => `${item.sid}-${index}`}
+            keyExtractor={(item, index) => `${item.slid}-${index}`}
             renderItem={({ item }) => (
               <TouchableOpacity 
                 style={styles.stopItem}
-                onPress={() => navigateToStop(item.name)}
+                // [修正] 傳入 item.slid
+                onPress={() => navigateToStop(item.name, item.slid)}
                 activeOpacity={0.7}
               >
                 <View style={styles.stopInfo}>
                   <Text style={styles.stopName}>{item.name}</Text>
-                  <Text style={styles.stopSid}>站牌 ID: {item.sid}</Text>
+                  <Text style={styles.stopslid}>站牌 ID: {item.slid}</Text>
                 </View>
                 <View style={styles.distanceContainer}>
                   <Text style={styles.distanceText}>{Math.round(item.distance || 0)}m</Text>
@@ -662,6 +670,7 @@ export default function MapNative() {
             }
             contentContainerStyle={uniqueNearbyStops.length === 0 ? styles.emptyList : undefined}
           />
+            
 
           <TouchableOpacity 
             onPress={() => setShowListModal(false)} 
@@ -738,7 +747,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 4,
   },
-  stopSid: {
+  stopslid: {
     fontSize: 13,
     color: '#999',
   },

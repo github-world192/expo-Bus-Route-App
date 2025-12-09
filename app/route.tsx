@@ -56,8 +56,6 @@ export default function RouteScreen() {
   useEffect(() => {
     (async () => {
       try {
-        await plannerRef.current.initialize();
-        console.log('BusPlannerService 初始化完成');
         
         // 如果有傳入起點和終點參數，自動填入並搜尋
         if (from && to) {

@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,25 +12,28 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-// 假設 BusPlannerService 放在 services 資料夾，請依實際位置調整
+// 請確認路徑正確指向您存放新版 BusPlannerService.ts 的位置
 import { BusPlannerService } from '../components/busPlanner';
 import InstallPWA from '../components/InstallPWA';
 import NotificationSettings from '../components/NotificationSettings';
 import ServiceWorkerRegister from '../components/ServiceWorkerRegister';
 
-// 定義 UI 用的介面 (配合新 API 的回傳結構進行適配)
+// 定義 UI 用的介面
 interface UIArrival {
   route: string;
   estimatedTime: string;
   key: string;
+  rawTime: number; // 用於排序或邏輯判斷
 }
 
 export default function StopScreen() {
   const router = useRouter();
   const { name } = useLocalSearchParams<{ name?: string }>();
 
-  // 使用新版 Service
+  // 使用 useRef 保持 Service 實例
   const plannerRef = useRef(new BusPlannerService());
+  // 若 BusPlannerService 的 constructor 是同步載入 JSON，這裡其實可以直接設為 true
+  // 但為了保險起見 (或未來改為非同步)，保留 ready 狀態
   const [serviceReady, setServiceReady] = useState(false);
 
   const [selectedStop, setSelectedStop] = useState<string>(name || '捷運公館站');
@@ -38,106 +41,105 @@ export default function StopScreen() {
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 在應用啟動時請求位置權限
+  // 1. 初始化 Service
+  useEffect(() => {
+    // 即使新版 Service 在 constructor 載入資料，保留此結構以便未來擴充
+    setServiceReady(true);
+  }, []);
+
+  // 2. 請求位置權限 (維持原樣)
   useEffect(() => {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          console.log('位置權限已授予');
-        } else {
+        if (status !== 'granted') {
           console.log('位置權限被拒絕');
         }
       } catch (error) {
-        console.error('請求位置權限時發生錯誤:', error);
+        console.error('請求位置權限錯誤:', error);
       }
     })();
   }, []);
 
-  // 初始化 Service
-  useEffect(() => {
-    const initService = async () => {
-      await plannerRef.current.initialize();
-      setServiceReady(true);
-    };
-    initService();
-  }, []);
-
-  // 載入參數站名
+  // 3. 處理路由參數變更
   useEffect(() => {
     if (name && typeof name === 'string') {
       setSelectedStop(name);
     }
   }, [name]);
-  // 監聽站名或 Service 準備好後開始抓資料
-  useEffect(() => {
-    if (serviceReady) {
-      fetchBusData(selectedStop);
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      intervalRef.current = setInterval(() => fetchBusData(selectedStop), 30000);
+
+  // 4. 核心抓取邏輯 (適配新版 API)
+  const fetchBusData = useCallback(async (stopName = selectedStop) => {
+    if (!stopName || !serviceReady) return;
+    
+    // 如果不是下拉刷新，則顯示 Loading (避免自動更新時畫面閃爍)
+    if (!refreshing) {
+        // 只有第一次載入或切換站點時才顯示全屏 Loading
+        if (arrivals.length === 0) setLoading(true);
     }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [selectedStop, serviceReady]);
 
-  // 抓資料核心邏輯 (使用新 API)
-  const fetchBusData = async (stopName = selectedStop) => {
     try {
-      if (!stopName || !serviceReady) return;
-      setLoading(prev => prev && !refreshing);
+      console.log(`正在更新站牌: ${stopName}`);
+      
+      // ★ 呼叫新加入的 getStopArrivals 方法
+      const results = await plannerRef.current.getStopArrivals(stopName);
 
-      // 1. 取得該站名的所有代表性 SID
-      const sids = plannerRef.current.getRepresentativeSids(stopName);
-      
-      if (sids.length === 0) {
-        console.warn(`查無站牌 ID: ${stopName}`);
-        setArrivals([]);
-        setLastUpdate(new Date().toLocaleTimeString());
-        return;
-      }
-
-      // 2. 平行抓取所有 SID 的公車資料
-      console.log('Fetching data for SIDs:', sids[0]);
-      const results = await plannerRef.current.fetchBusesAtSid(sids[0]);
-      
-      // 3. 合併並轉換資料
-      const allBuses = results.flat();
-      
-      // 轉換為 UI 格式並排序 (依據 raw_time，即到站秒數)
-      const uiArrivals: UIArrival[] = allBuses
-        .sort((a, b) => a.raw_time - b.raw_time)
-        .map((bus, idx) => ({
-          route: bus.route,
-          estimatedTime: bus.time_text,
-          key: `${bus.rid}-${idx}`, // 確保 key 唯一
+      if (results.length === 0) {
+        // 如果原本有資料但這次抓不到 (例如網路錯誤)，保持舊資料或清空視需求而定
+        // 這裡選擇清空並顯示提示
+        if (loading) setArrivals([]); 
+      } else {
+        // 轉換資料格式
+        const uiArrivals: UIArrival[] = results.map((bus, idx) => ({
+          route: bus.route || bus.route_name || '未知', // 相容不同命名
+          estimatedTime: bus.time_text || bus.arrivalTimeText,
+          rawTime: bus.raw_time ?? bus.rawTime,
+          key: `${bus.rid}-${bus.sid}-${idx}`, // 確保 Key 唯一
         }));
-
-      setArrivals(uiArrivals);
-      setLastUpdate(new Date().toLocaleTimeString());
-
+        
+        setArrivals(uiArrivals);
+        setLastUpdate(new Date().toLocaleTimeString());
+      }
     } catch (e) {
-      console.error('fetchBusData error', e);
+      console.error('fetchBusData error:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [selectedStop, serviceReady, refreshing, arrivals.length]);
+
+  // 5. 設定自動更新 Timer
+  useEffect(() => {
+    if (serviceReady) {
+      fetchBusData(); // 立即執行一次
+      
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(() => {
+        // 自動更新時不觸發 loading 狀態
+        fetchBusData();
+      }, 30000);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [selectedStop, serviceReady]); // 移除 fetchBusData 相依以避免迴圈，或使用 useCallback
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchBusData(selectedStop);
   };
 
-  // 狀態徽章
+  // 狀態徽章樣式 (維持原樣)
   const renderBadge = (text: string) => {
     const t = (text || '').toString();
     let style = styles.badgeGray;
+    
     if (t.includes('將到') || t.includes('進站') || t === '0') style = styles.badgeRed;
     else if (t.includes('分')) style = styles.badgeBlue;
-    else if (t.includes('未發') || t.includes('末班') || t.includes('未營運')) style = styles.badgeGray;
+    else if (t.includes('未發') || t.includes('末班') || t.includes('未營運') || t.includes('更新中')) style = styles.badgeGray;
     
     return (
       <View style={[styles.badgeBase, style]}>
@@ -147,19 +149,21 @@ export default function StopScreen() {
   };
 
   const renderItem = ({ item }: { item: UIArrival }) => (
-    <TouchableOpacity>
+    <TouchableOpacity activeOpacity={0.7}>
       <View style={styles.row}>
         <View style={{ flex: 1 }}>
           <Text style={styles.route}>{item.route}</Text>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>{renderBadge(item.estimatedTime)}</View>
+        <View style={{ alignItems: 'flex-end' }}>
+          {renderBadge(item.estimatedTime)}
+        </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      {/* 搜尋框與路線規劃按鈕 */}
+      {/* 搜尋框與按鈕區 */}
       <View style={styles.topBar}>
         <View style={styles.searchBox}>
           <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/search')}>
@@ -169,7 +173,7 @@ export default function StopScreen() {
                 placeholderTextColor="#bdbdbd"
                 style={styles.searchInput}
                 editable={false}
-                value=""
+                value="" // 搜尋框保持空白，僅作按鈕用途
               />
             </View>
           </TouchableOpacity>
@@ -183,7 +187,7 @@ export default function StopScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 常用路線快捷按鈕 */}
+      {/* 快速路線區 */}
       <View style={styles.quickRouteContainer}>
         <Text style={styles.quickRouteTitle}>快速路線</Text>
         <TouchableOpacity
@@ -197,12 +201,9 @@ export default function StopScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 通知設定 */}
-      {/* 移到 FlatList 的 ListHeaderComponent */}
-
-      {/* 站牌標題與刷新按鈕 */}
+      {/* 站牌資訊列 */}
       <View style={styles.directionBar}>
-        <Text style={styles.directionBarText}>{selectedStop}</Text>
+        <Text style={styles.directionBarText} numberOfLines={1}>{selectedStop}</Text>
         {Platform.OS === 'web' && (
           <TouchableOpacity
             onPress={onRefresh}
@@ -210,17 +211,17 @@ export default function StopScreen() {
             style={styles.refreshButton}
           >
             <Text style={styles.refreshButtonText}>
-              {refreshing ? '更新中...' : '刷新'}
+              {refreshing ? '...' : '刷新'}
             </Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* 公車列表 */}
-      {loading ? (
+      {/* 列表內容 */}
+      {loading && !refreshing ? (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" />
-          <Text style={{ color: '#999', marginTop: 8 }}>載入中...</Text>
+          <ActivityIndicator size="large" color="#6F73F8" />
+          <Text style={{ color: '#999', marginTop: 8 }}>正在查詢公車動態...</Text>
         </View>
       ) : (
         <FlatList
@@ -230,28 +231,33 @@ export default function StopScreen() {
           ListHeaderComponent={<NotificationSettings />}
           refreshControl={
             Platform.OS !== 'web' ? (
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl 
+                refreshing={refreshing} 
+                onRefresh={onRefresh} 
+                tintColor="#fff"
+              />
             ) : undefined
           }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyText}>目前無公車資訊</Text>
-              <Text style={styles.hintText}>或查無此站牌資料</Text>
+              <Text style={styles.hintText}>
+                {serviceReady ? "請確認站名是否正確或網路狀態" : "系統初始化中..."}
+              </Text>
             </View>
           }
           contentContainerStyle={{ paddingBottom: 120 }}
         />
       )}
 
-      {/* 更新時間 */}
+      {/* 底部資訊 */}
       <View style={styles.footer}>
-        <Text style={styles.updateText}>更新時間：{lastUpdate || '—'}</Text>
+        <Text style={styles.updateText}>
+          最後更新：{lastUpdate || '—'}
+        </Text>
       </View>
 
-      {/* PWA 安裝提示 */}
       <InstallPWA />
-      
-      {/* Service Worker 註冊 */}
       <ServiceWorkerRegister />
     </View>
   );
@@ -336,12 +342,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  directionBarText: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  directionBarText: { color: '#fff', fontSize: 22, fontWeight: '700', flex: 1 },
   refreshButton: {
     backgroundColor: '#6F73F8',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
+    marginLeft: 8,
   },
   refreshButtonText: {
     color: '#fff',
@@ -369,7 +376,7 @@ const styles = StyleSheet.create({
   badgeRed: { backgroundColor: '#E74C3C' },
   badgeBlue: { backgroundColor: '#6F73F8' },
   badgeGray: { backgroundColor: '#7f8686' },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loading: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 200 },
   empty: { marginTop: 40, alignItems: 'center' },
   emptyText: { color: '#9aa6a6', fontSize: 18, fontWeight: '700' },
   hintText: { color: '#6d746f', marginTop: 18 },
