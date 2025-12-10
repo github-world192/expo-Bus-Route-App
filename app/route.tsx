@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,6 +15,7 @@ import {
 
 import type { BusInfo } from '../components/busPlanner';
 import { BusPlannerService } from '../components/busPlanner';
+import { favoriteRoutesService } from '../components/favoriteRoutes';
 import stopMapRaw from '../databases/stop_id_map.json';
 
 interface StopMap {
@@ -44,18 +45,28 @@ export default function RouteScreen() {
   const [selectedRouteIndex, setSelectedRouteIndex] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [hasSearched, setHasSearched] = useState<boolean>(false);
+  const [isPlanning, setIsPlanning] = useState<boolean>(false); // 防止重複規劃
   
   // 自動更新狀態
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
   const updateIntervalRef = useRef<any>(null);
   
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  // 更新冷卻時間（毫秒）
+  const UPDATE_COOLDOWN = 3000; // 3 秒
+  
+  // 常用路線狀態
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  
+  const debounceRef = useRef<any>(null);
   const allStops = Object.keys(stopData.by_name);
 
   // 初始化 BusPlannerService 並處理 URL 參數
   useEffect(() => {
     (async () => {
       try {
+        await plannerRef.current.initialize();
+        console.log('BusPlannerService 初始化完成');
         
         // 如果有傳入起點和終點參數，自動填入並搜尋
         if (from && to) {
@@ -69,6 +80,7 @@ export default function RouteScreen() {
           
           // 延遲一下確保狀態更新完成
           setTimeout(async () => {
+            setIsPlanning(true);
             setLoading(true);
             setHasSearched(true);
             
@@ -84,6 +96,7 @@ export default function RouteScreen() {
               setRouteInfo([]);
             } finally {
               setLoading(false);
+              setIsPlanning(false);
             }
           }, 100);
         }
@@ -110,10 +123,11 @@ export default function RouteScreen() {
 
   // 規劃路線
   const planRoute = async () => {
-    if (!fromStop || !toStop) {
+    if (!fromStop || !toStop || isPlanning) {
       return;
     }
 
+    setIsPlanning(true);
     setLoading(true);
     setHasSearched(true);
     
@@ -133,14 +147,25 @@ export default function RouteScreen() {
       setRouteInfo([]);
     } finally {
       setLoading(false);
+      setIsPlanning(false);
     }
   };
 
   // 更新路線動態資訊
   const updateRouteInfo = async () => {
-    if (!fromStop || !toStop || routeInfo.length === 0 || isUpdating) return;
+    if (!fromStop || !toStop || routeInfo.length === 0) return;
+    
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastUpdateTime;
+    
+    // 如果距離上次更新少於冷卻時間，則忽略（自動更新除外）
+    if (isUpdating || (timeSinceLastUpdate < UPDATE_COOLDOWN && lastUpdateTime !== 0)) {
+      console.log(`請稍候 ${Math.ceil((UPDATE_COOLDOWN - timeSinceLastUpdate) / 1000)} 秒後再更新`);
+      return;
+    }
     
     try {
+      setLastUpdateTime(now);
       setIsUpdating(true);
       console.log('更新路線動態...');
       
@@ -183,6 +208,22 @@ export default function RouteScreen() {
     };
   }, [hasSearched, routeInfo.length, fromStop, toStop]);
 
+  // 檢查常用路線狀態
+  useEffect(() => {
+    if (hasSearched && fromStop && toStop) {
+      checkFavoriteStatus();
+    }
+  }, [hasSearched, fromStop, toStop]);
+
+  // 當頁面獲得焦點時重新檢查常用狀態（例如從首頁返回）
+  useFocusEffect(
+    React.useCallback(() => {
+      if (hasSearched && fromStop && toStop) {
+        checkFavoriteStatus();
+      }
+    }, [hasSearched, fromStop, toStop])
+  );
+
   // 選擇站牌
   const selectStop = (stopName: string) => {
     if (searchMode === 'from') {
@@ -214,11 +255,12 @@ export default function RouteScreen() {
     setToStopDisplay(tempDisplay);
     
     // 如果兩個站牌都有填寫，使用交換後的值立即重新規劃
-    if (willSwap) {
+    if (willSwap && !isPlanning) {
       // 使用 React 的批次更新後執行
       setTimeout(async () => {
-        if (!newFromStop || !newToStop) return;
+        if (!newFromStop || !newToStop || isPlanning) return;
         
+        setIsPlanning(true);
         setLoading(true);
         setHasSearched(true);
         
@@ -234,6 +276,7 @@ export default function RouteScreen() {
           setRouteInfo([]);
         } finally {
           setLoading(false);
+          setIsPlanning(false);
         }
       }, 200);
     }
@@ -248,14 +291,60 @@ export default function RouteScreen() {
     setRouteInfo([]);
     setHasSearched(false);
     setSelectedRouteIndex(0);
+    setIsFavorite(false);
+  };
+
+  // 檢查是否已加入常用
+  const checkFavoriteStatus = async () => {
+    if (fromStop && toStop) {
+      const isFav = await favoriteRoutesService.isFavorite(fromStop, toStop);
+      setIsFavorite(isFav);
+    }
+  };
+
+  // 切換常用路線
+  const toggleFavorite = async () => {
+    if (!fromStop || !toStop) return;
+
+    if (isFavorite) {
+      // 移除常用
+      const result = await favoriteRoutesService.removeRoute(fromStop, toStop);
+      if (result.success) {
+        setIsFavorite(false);
+        console.log('已移除常用路線');
+      }
+    } else {
+      // 加入常用
+      const result = await favoriteRoutesService.addRoute(fromStop, toStop);
+      if (result.success) {
+        setIsFavorite(true);
+        console.log('已加入常用路線');
+        
+        // 立即預載公車路線資訊以加快未來存取速度
+        try {
+          console.log('預載公車路線資訊...');
+          const plans = await plannerRef.current.plan(fromStop, toStop);
+          if (plans.length > 0) {
+            const routeNames = [...new Set(plans.map(bus => bus.routeName))];
+            await favoriteRoutesService.updateRouteCacheNames(fromStop, toStop, routeNames);
+            console.log('已預載路線快取:', routeNames.length, '條路線');
+          }
+        } catch (error) {
+          console.error('預載路線快取失敗:', error);
+          // 不影響加入常用路線的流程，只是預載失敗
+        }
+      } else {
+        console.log('加入失敗:', result.message);
+      }
+    }
   };
 
   // 返回
   const back = () => {
     if (router.canGoBack()) {
-      router.back();
+      setTimeout(() => router.back(), 100);
     } else {
-      router.push('/');
+      setTimeout(() => router.push('/'), 100);
     }
   };
 
@@ -355,7 +444,7 @@ export default function RouteScreen() {
         
         <View style={styles.routeCardInfo}>
           <Text style={styles.routeCardTime}>⏱ {item.arrivalTimeText}</Text>
-          <Text style={styles.routeCardStops}>🚏 途經 {item.stopCount} 站</Text>
+          <Text style={styles.routeCardStops}>🚏 途經{item.stopCount}站 · 約{item.estimatedDuration}分鐘</Text>
         </View>
 
         {isSelected && (
@@ -443,9 +532,9 @@ export default function RouteScreen() {
 
         <View style={styles.actionButtonsRow}>
           <TouchableOpacity
-            style={[styles.planButton, (!fromStop || !toStop) && styles.planButtonDisabled]}
+            style={[styles.planButton, (!fromStop || !toStop || isPlanning) && styles.planButtonDisabled]}
             onPress={planRoute}
-            disabled={!fromStop || !toStop || loading}
+            disabled={!fromStop || !toStop || loading || isPlanning}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
@@ -479,17 +568,26 @@ export default function RouteScreen() {
                 <Text style={styles.resultsTitle}>
                   找到 {routeInfo.length} 條路線
                 </Text>
-                <TouchableOpacity
-                  onPress={updateRouteInfo}
-                  disabled={isUpdating}
-                  style={styles.refreshButton}
-                >
-                  {isUpdating ? (
-                    <ActivityIndicator size="small" color="#6F73F8" />
-                  ) : (
-                    <Text style={styles.refreshButtonText}>↻ 更新</Text>
-                  )}
-                </TouchableOpacity>
+                <View style={styles.headerActions}>
+                  <TouchableOpacity
+                    onPress={toggleFavorite}
+                    style={styles.favoriteButton}
+                  >
+                    <Text style={styles.favoriteIcon}>
+                      {isFavorite ? '⭐' : '☆'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={updateRouteInfo}
+                    style={styles.refreshButton}
+                  >
+                    {isUpdating ? (
+                      <ActivityIndicator size="small" color="#6F73F8" />
+                    ) : (
+                      <Text style={styles.refreshButtonText}>↻ 更新</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
               
               <FlatList
@@ -525,6 +623,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop: Platform.OS === 'ios' ? 50 : 0,
   },
   header: {
     flexDirection: 'row',
@@ -682,6 +781,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  favoriteButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  favoriteIcon: {
+    fontSize: 20,
+    color: '#FFD700',
+  },
   refreshButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -747,6 +859,11 @@ const styles = StyleSheet.create({
   routeCardStops: {
     fontSize: 13,
     color: '#666',
+  },
+  routeCardDuration: {
+    fontSize: 13,
+    color: '#4CAF50',
+    fontWeight: '600',
   },
   routeCardDetail: {
     marginTop: 16,

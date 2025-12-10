@@ -1,11 +1,11 @@
 {
   "name": "台北公車即時資訊",
-  "short_name": "台北公車",
+  "short_name": "Stop togo",
   "description": "查詢台北市公車即時到站資訊與路線規劃",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#152021",
-  "theme_color": "#6F73F8",
+  "theme_color": "#152021",
   "orientation": "portrait",
   "scope": "/",
   "icons": [

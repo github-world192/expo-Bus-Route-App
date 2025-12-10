@@ -1,101 +1,48 @@
-import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-import stopsRaw from '../databases/stops.json';
+import {
+  formatDistance,
+  getNearbyStopsWithLocation,
+  type StopEntry,
+} from '../components/locationService';
 
-type StopEntry = { name: string; slid: string; lat: number; lon: number; distance: number };
 const DEFAULT_RADIUS_METERS = 800;
-
-function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const toRad = (v: number) => (v * Math.PI) / 180;
-  const R = 6371000;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
 
 export default function Map() {
   const router = useRouter();
-  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [nearbyStops, setNearbyStops] = useState<StopEntry[]>([]);
   const [permissionStatus, setPermissionStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [radiusMeters] = useState<number>(DEFAULT_RADIUS_METERS);
 
-  const stopsList: StopEntry[] = useMemo(() => {
-    const out: StopEntry[] = [];
-    const raw: any = stopsRaw;
-    Object.entries(raw).forEach(([name, obj]: any) => {
-      if (!obj || typeof obj !== 'object') return;
-      Object.entries(obj).forEach(([slid, coords]: any) => {
-        const lat = Number(coords.lat);
-        const lon = Number(coords.lon);
-        if (!Number.isNaN(lat) && !Number.isNaN(lon)) out.push({ name, slid, lat, lon, distance: 0 });
-      });
-    });
-    return out;
-  }, []);
-
-  const nearbyStops = useMemo(() => {
-    if (!userLocation) return [] as StopEntry[];
-    
-    // 計算所有站牌的距離
-    const stopsWithDistance = stopsList
-      .map((s) => {
-        const d = haversineMeters(userLocation.lat, userLocation.lon, s.lat, s.lon);
-        return { ...s, distance: d };
-      })
-      .filter((x) => x.distance <= radiusMeters)
-      .sort((a, b) => a.distance - b.distance);
-    
-    // 去重：只保留每個站名最近的那個站牌
-    const seenNames = new Set<string>();
-    const uniqueStops: StopEntry[] = [];
-    
-    for (const stop of stopsWithDistance) {
-      if (!seenNames.has(stop.name)) {
-        seenNames.add(stop.name);
-        uniqueStops.push(stop);
-      }
-    }
-    
-    // 限制數量
-    return uniqueStops.slice(0, 50);
-  }, [stopsList, userLocation, radiusMeters]);
-
   useEffect(() => {
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        setPermissionStatus(status);
-        if (status !== 'granted') {
-          setLoading(false);
-          return;
+        const result = await getNearbyStopsWithLocation(radiusMeters, 50);
+        
+        if (result.success) {
+          setNearbyStops(result.stops);
+          setPermissionStatus('granted');
+        } else {
+          setPermissionStatus(result.error === '位置權限被拒絕' ? 'denied' : 'error');
         }
-
-        const loc = await Location.getCurrentPositionAsync({ 
-          accuracy: Location.Accuracy.Balanced 
-        });
-        setUserLocation({ lat: loc.coords.latitude, lon: loc.coords.longitude });
-        setLoading(false);
       } catch (e) {
         console.warn('Location error', e);
+        setPermissionStatus('error');
+      } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [radiusMeters]);
 
   const onCancel = () => {
     if (router.canGoBack()) {
@@ -105,11 +52,11 @@ export default function Map() {
     }
   };
 
-  const navigateToStop = (stopName: string, stopSlid: string) => {
-    router.push({ pathname: '/stop', params: { name: stopName, slid: stopSlid } });
+  const navigateToStop = (stopName: string) => {
+    router.push({ pathname: '/stop', params: { name: stopName } });
   };
 
-  if (permissionStatus === 'denied') {
+  if (loading) {
     return (
       <View style={styles.container}>
         <View style={styles.messageContainer}>
@@ -136,12 +83,14 @@ export default function Map() {
     );
   }
 
-  if (!userLocation) {
+  if (permissionStatus === 'denied') {
     return (
       <View style={styles.container}>
         <View style={styles.messageContainer}>
-          <Text style={styles.title}>❌ 無法取得位置</Text>
-          <Text style={styles.message}>請確認已開啟定位服務</Text>
+          <Text style={styles.title}>📍 需要位置權限</Text>
+          <Text style={styles.message}>
+            請在系統設定中允許定位，以查看附近站牌
+          </Text>
           <TouchableOpacity onPress={onCancel} style={styles.backButton} activeOpacity={0.7}>
             <Text style={styles.backButtonText}>返回</Text>
           </TouchableOpacity>
@@ -161,20 +110,19 @@ export default function Map() {
 
       <FlatList
         data={nearbyStops}
-        keyExtractor={(item, index) => `${item.slid}-${index}`}
+        keyExtractor={(item, index) => `${item.sid}-${index}`}
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.stopItem}
-            // item.sid 的值實際上是 SLID，所以直接傳入
-            onPress={() => navigateToStop(item.name, item.slid)}
+            onPress={() => navigateToStop(item.name)}
             activeOpacity={0.7}
           >
             <View style={styles.stopInfo}>
               <Text style={styles.stopName}>{item.name}</Text>
-              <Text style={styles.stopslid}>站牌 ID: {item.slid}</Text>
+              <Text style={styles.stopSid}>站牌 ID: {item.sid}</Text>
             </View>
             <View style={styles.distanceContainer}>
-              <Text style={styles.distanceText}>{Math.round(item.distance)}m</Text>
+              <Text style={styles.distanceText}>{formatDistance(item.distance)}</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -273,7 +221,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 4,
   },
-  stopslid: {
+  stopSid: {
     fontSize: 13,
     color: '#999',
   },

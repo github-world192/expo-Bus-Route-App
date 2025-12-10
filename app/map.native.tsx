@@ -8,7 +8,7 @@ import type { BusInfo } from '../components/busPlanner';
 import { BusPlannerService } from '../components/busPlanner';
 import stopsRaw from '../databases/stops.json';
 
-type StopEntry = { name: string; slid: string; lat: number; lon: number; distance?: number };
+type StopEntry = { name: string; sid: string; lat: number; lon: number; distance?: number };
 const DEFAULT_RADIUS_METERS = 800;
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -47,10 +47,10 @@ export default function MapNative() {
     const raw: any = stopsRaw;
     Object.entries(raw).forEach(([name, obj]: any) => {
       if (!obj || typeof obj !== 'object') return;
-      Object.entries(obj).forEach(([slid, coords]: any) => {
+      Object.entries(obj).forEach(([sid, coords]: any) => {
         const lat = Number(coords.lat);
         const lon = Number(coords.lon);
-        if (!Number.isNaN(lat) && !Number.isNaN(lon)) out.push({ name, slid, lat, lon });
+        if (!Number.isNaN(lat) && !Number.isNaN(lon)) out.push({ name, sid, lat, lon });
       });
     });
     return out;
@@ -133,7 +133,9 @@ export default function MapNative() {
     if (routeInfo.length === 0) return [];
     
     return routeInfo.map((route, index) => {
-      const coordinates = route.pathStops
+      // 添加安全檢查，確保 pathStops 存在且為陣列
+      const pathStops = route.pathStops || [];
+      const coordinates = pathStops
         .filter(stop => stop.geo)
         .map(stop => ({
           latitude: stop.geo!.lat,
@@ -145,7 +147,7 @@ export default function MapNative() {
         index,
         coordinates,
         isValid: coordinates.length >= 2,
-        routeKey: `route-${route.routeName}-${route.directionText}-${index}`
+        routeKey: `route-${route.routeName || 'unknown'}-${route.directionText || 'unknown'}-${index}`
       };
     }).filter(r => r.isValid);
   }, [routeInfo]); // 移除 showRoute 依賴，只依賴 routeInfo
@@ -172,9 +174,8 @@ export default function MapNative() {
   useEffect(() => {
     (async () => {
       try {
-        // [修正] 新版 BusPlannerService 在建構時已完成資料載入，無需呼叫 initialize
-        // await plannerRef.current.initialize();
-        console.log('BusPlannerService 準備就緒');
+        await plannerRef.current.initialize();
+        console.log('BusPlannerService 初始化完成');
         
         // 測試：查詢「師大分部」到「師大」的路線
         const routes = await plannerRef.current.plan('師大分部', '師大');
@@ -283,7 +284,8 @@ export default function MapNative() {
     }
     
     const route = routeInfo[routeIndex];
-    const coordinates = route.pathStops
+    const pathStops = route.pathStops || [];
+    const coordinates = pathStops
       .filter(stop => stop.geo)
       .map(stop => ({
         latitude: stop.geo!.lat,
@@ -365,13 +367,9 @@ export default function MapNative() {
     }
   };
 
-  const navigateToStop = (stopName: string, stopSlid?: string) => {
+  const navigateToStop = (stopName: string) => {
     setShowListModal(false);
-    // 優先使用傳入的 SLID，若無則不傳 (避免 undefined 變成字串)
-    const params: any = { name: stopName };
-    if (stopSlid) params.slid = stopSlid;
-    
-    router.push({ pathname: '/stop', params });
+    router.push({ pathname: '/stop', params: { name: stopName } });
   };
 
   if (permissionStatus === 'denied') {
@@ -408,11 +406,10 @@ export default function MapNative() {
         {/* 只在未顯示路線時顯示附近站牌 */}
         {!showRoute && visibleStops.map((s) => (
           <Marker 
-            key={`${s.slid}-${s.lat}-${s.lon}`} 
+            key={`${s.sid}-${s.lat}-${s.lon}`} 
             coordinate={{ latitude: s.lat, longitude: s.lon }}
           >
-            {/* [修正] 傳入 s.slid */}
-            <Callout onPress={() => navigateToStop(s.name, s.slid)}>
+            <Callout onPress={() => navigateToStop(s.name)}>
               <View style={styles.calloutContainer}>
                 <View style={styles.calloutTitleRow}>
                   <Text style={styles.calloutTitle}>{s.name}</Text>
@@ -488,8 +485,9 @@ export default function MapNative() {
                   />
                   
                   {/* 選中路線的站牌標記 */}
-                  {route.pathStops.filter(stop => stop.geo).map((stop, stopIndex) => {
+                  {(route.pathStops || []).filter(stop => stop.geo).map((stop, stopIndex) => {
                     const markerKey = `route-stop-${routeKey}-${stop.name}-${stopIndex}`;
+                    const pathLength = route.pathStops?.length || 0;
                     return (
                       <Marker
                         key={markerKey}
@@ -499,19 +497,18 @@ export default function MapNative() {
                         }}
                         pinColor={
                           stopIndex === 0 ? "green" :
-                          stopIndex === route.pathStops.length - 1 ? "red" :
+                          stopIndex === pathLength - 1 ? "red" :
                           "orange"
                         }
                       >
-                        {/* [修正] 傳入 stop.slid */}
-                        <Callout onPress={() => navigateToStop(stop.name, stop.slid)}>
+                        <Callout onPress={() => navigateToStop(stop.name)}>
                           <View style={styles.calloutContainer}>
                             <View style={styles.calloutTitleRow}>
                               <Text style={styles.calloutTitle}>{stop.name}</Text>
                             </View>
                             <Text style={styles.calloutSubtitle}>
                               {stopIndex === 0 ? "起點" : 
-                               stopIndex === route.pathStops.length - 1 ? "終點" :
+                               stopIndex === pathLength - 1 ? "終點" :
                                `第 ${stopIndex + 1} 站`}
                             </Text>
                           </View>
@@ -558,7 +555,7 @@ export default function MapNative() {
           <Text style={styles.infoText}>半徑：{Math.round(radiusMeters)} m</Text>
           <Text style={styles.infoText}>顯示 {visibleStops.length}/{nearbyStops.length} 個站牌</Text>
           {showRoute && routeInfo.length > 0 && (
-            <Text style={styles.infoText}>路線: {routeInfo[selectedRouteIndex].routeName} ({routeInfo[selectedRouteIndex].directionText})</Text>
+            <Text style={styles.infoText}>路線: {routeInfo[selectedRouteIndex].routeName || '未知'} ({routeInfo[selectedRouteIndex].directionText || ''})</Text>
           )}
         </View>
       </View>
@@ -610,14 +607,14 @@ export default function MapNative() {
                 >
                   <View style={styles.routeMenuItemContent}>
                     <View style={styles.routeMenuItemHeader}>
-                      <Text style={styles.routeMenuItemTitle}>{item.routeName}</Text>
-                      <Text style={styles.routeMenuItemDirection}>{item.directionText}</Text>
+                      <Text style={styles.routeMenuItemTitle}>{item.routeName || '未知路線'}</Text>
+                      <Text style={styles.routeMenuItemDirection}>{item.directionText || ''}</Text>
                     </View>
                     <Text style={styles.routeMenuItemDetail}>
-                      途經 {item.stopCount} 站 · 約 {item.arrivalTimeText}
+                      途經 {item.stopCount || 0} 站 · {item.estimatedDuration || 0} 分鐘 · {item.arrivalTimeText || '未知'}
                     </Text>
                     <Text style={styles.routeMenuItemStops} numberOfLines={1}>
-                      {item.pathStops[0]?.name} → {item.pathStops[item.pathStops.length - 1]?.name}
+                      {(item.pathStops && item.pathStops[0]?.name) || '未知'} → {(item.pathStops && item.pathStops[item.pathStops.length - 1]?.name) || '未知'}
                     </Text>
                   </View>
                   {index === selectedRouteIndex && (
@@ -646,17 +643,16 @@ export default function MapNative() {
 
           <FlatList
             data={uniqueNearbyStops}
-            keyExtractor={(item, index) => `${item.slid}-${index}`}
+            keyExtractor={(item, index) => `${item.sid}-${index}`}
             renderItem={({ item }) => (
               <TouchableOpacity 
                 style={styles.stopItem}
-                // [修正] 傳入 item.slid
-                onPress={() => navigateToStop(item.name, item.slid)}
+                onPress={() => navigateToStop(item.name)}
                 activeOpacity={0.7}
               >
                 <View style={styles.stopInfo}>
                   <Text style={styles.stopName}>{item.name}</Text>
-                  <Text style={styles.stopslid}>站牌 ID: {item.slid}</Text>
+                  <Text style={styles.stopSid}>站牌 ID: {item.sid}</Text>
                 </View>
                 <View style={styles.distanceContainer}>
                   <Text style={styles.distanceText}>{Math.round(item.distance || 0)}m</Text>
@@ -670,7 +666,6 @@ export default function MapNative() {
             }
             contentContainerStyle={uniqueNearbyStops.length === 0 ? styles.emptyList : undefined}
           />
-            
 
           <TouchableOpacity 
             onPress={() => setShowListModal(false)} 
@@ -692,7 +687,7 @@ const styles = StyleSheet.create({
   hint: { color: '#888', marginTop: 8 },
   controlRow: {
     position: 'absolute',
-    top: 16,
+    top: Platform.OS === 'ios' ? 40 : 16,
     right: 12,
     left: 12,
     flexDirection: 'row',
@@ -709,6 +704,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop: Platform.OS === 'ios' ? 40 : 0,
   },
   modalHeader: {
     backgroundColor: '#fff',
@@ -747,7 +743,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 4,
   },
-  stopslid: {
+  stopSid: {
     fontSize: 13,
     color: '#999',
   },

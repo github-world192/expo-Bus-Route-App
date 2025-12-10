@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -14,6 +15,7 @@ import { BusPlannerService } from '../components/busPlanner';
 
 interface UIArrival {
   route: string;
+  direction?: string;
   estimatedTime: string;
   key: string;
 }
@@ -29,20 +31,24 @@ export default function StopDetailScreen() {
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
+  
+  // 刷新冷卻時間（毫秒）
+  const REFRESH_COOLDOWN = 3000; // 3 秒
   
   // 注意：因為 fetchBusesAtSid 不回傳方向，暫時移除 Tabs 的過濾功能
   // const [selectedTab, setSelectedTab] = useState<'去' | '回'>('去');
   
   const plannerRef = useRef(new BusPlannerService());
   const [serviceReady, setServiceReady] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<any>(null);
 
   useEffect(() => {
       // 即使新版 Service 在 constructor 載入資料，保留此結構以便未來擴充
       setServiceReady(true);
     }, []);
 
-  const fetchBusData = async () => {
+  const fetchBusData = async (isAutoRefresh = false) => {
     try {
       if (!serviceReady) return;
       
@@ -58,15 +64,84 @@ export default function StopDetailScreen() {
         results = await plannerRef.current.getStopArrivals(stopName);
       }
 
-      // 轉換為 UI 所需格式
-      const uiArrivals: UIArrival[] = results.map((bus, idx) => ({
-          route: bus.route || bus.route_name || '未知',
-          estimatedTime: bus.time_text || bus.arrivalTimeText || '更新中',
-          key: `${bus.rid}-${idx}` // 注意：若有重複資料可考慮加 random 或更詳細 key
-        }));
+      // 轉換為 UI 所需格式，支持自動更新模式
+      setArrivals(prev => {
+        if (isAutoRefresh && prev.length > 0) {
+          // 自動更新模式：只更新時間，保留現有的方向資訊
+          const existingMap = new Map<string, UIArrival>();
+          prev.forEach(item => {
+            existingMap.set(item.key, item);
+          });
 
-      setArrivals(uiArrivals);
+          const updated = results.map((bus, idx) => {
+            const busKey = `${bus.rid}-${idx}`;
+            const existing = existingMap.get(busKey);
+            
+            if (existing) {
+              return {
+                ...existing,
+                estimatedTime: bus.time_text || bus.arrivalTimeText || '更新中',
+              };
+            } else {
+              return {
+                route: bus.route || bus.route_name || '未知',
+                direction: '',
+                estimatedTime: bus.time_text || bus.arrivalTimeText || '更新中',
+                key: busKey,
+              };
+            }
+          });
+
+          return updated;
+        } else {
+          // 初始載入模式：先顯示路線名稱和時間，方向欄位暫時為空
+          return results.map((bus, idx) => ({
+            route: bus.route || bus.route_name || '未知',
+            direction: '',
+            estimatedTime: bus.time_text || bus.arrivalTimeText || '更新中',
+            key: `${bus.rid}-${idx}`
+          }));
+        }
+      });
+
       setLastUpdate(new Date().toLocaleTimeString());
+
+      // 初始載入時，背景載入終點站資訊
+      if (!isAutoRefresh) {
+        results.forEach(async (bus) => {
+          try {
+            // 獲取路線結構來取得終點站
+            const routeStructure = await plannerRef.current.getRouteStructure(bus.rid);
+            
+            // 根據方向決定使用 goStops 或 backStops
+            const isGoDirection = bus.direction.includes('去') || bus.direction.includes('往');
+            const stops = isGoDirection ? routeStructure.goStops : routeStructure.backStops;
+            
+            // 取最後一個站點作為終點站
+            let destinationStop = bus.direction; // 預設
+            if (stops && stops.length > 0) {
+              destinationStop = `往 ${stops[stops.length - 1].name}`;
+            }
+
+            // 更新該筆資料的方向資訊
+            setArrivals(prev => {
+              const updated = [...prev];
+              const busRoute = bus.route || bus.route_name || '未知';
+              const busKey = `${bus.rid}-${busRoute}`;
+              const targetIndex = updated.findIndex(item => item.key === busKey || item.key.startsWith(`${bus.rid}-`));
+              if (targetIndex !== -1) {
+                updated[targetIndex] = {
+                  ...updated[targetIndex],
+                  direction: destinationStop
+                };
+              }
+              return updated;
+            });
+          } catch (err) {
+            console.warn(`無法獲取路線 ${bus.route} (${bus.rid}) 的終點站:`, err);
+          }
+        });
+      }
 
     } catch (error) {
       console.error('🚨 Failed to fetch bus data:', error);
@@ -78,8 +153,10 @@ export default function StopDetailScreen() {
 
   useEffect(() => {
     if (serviceReady) {
-      fetchBusData();
-      intervalRef.current = setInterval(fetchBusData, 30000);
+      fetchBusData(false); // 初始載入
+      intervalRef.current = setInterval(() => {
+        fetchBusData(true);
+      }, 30000); // 自動更新傳 true
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -87,8 +164,18 @@ export default function StopDetailScreen() {
   }, [stopName, slid, serviceReady]);
 
   const onRefresh = () => {
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTime;
+    
+    // 如果距離上次刷新少於冷卻時間，則忽略
+    if (timeSinceLastRefresh < REFRESH_COOLDOWN) {
+      console.log(`請稍候 ${Math.ceil((REFRESH_COOLDOWN - timeSinceLastRefresh) / 1000)} 秒後再刷新`);
+      return;
+    }
+    
+    setLastRefreshTime(now);
     setRefreshing(true);
-    fetchBusData();
+    fetchBusData(false); // 手動刷新重新載入所有資料
   };
 
   const renderBusItem = ({ item }: { item: UIArrival }) => {
@@ -99,7 +186,12 @@ export default function StopDetailScreen() {
 
     return (
       <View style={styles.row}>
-        <Text style={styles.route}>{item.route}</Text>
+        <View style={styles.routeInfo}>
+          <Text style={styles.route}>{item.route}</Text>
+          {item.direction && (
+            <Text style={styles.direction}>{item.direction}</Text>
+          )}
+        </View>
         <View style={[styles.badge, { backgroundColor: badgeColor }]}>
           <Text style={styles.badgeText}>{timeText}</Text>
         </View>
@@ -111,7 +203,7 @@ export default function StopDetailScreen() {
     <View style={styles.container}>
       {/* 上方標題 */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => setTimeout(() => router.back(), 100)}>
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{stopName}</Text>
@@ -152,15 +244,19 @@ export default function StopDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#152021', paddingTop: 48 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#152021', 
+    paddingTop: Platform.OS === 'ios' ? 50 : 28 
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     marginBottom: 10,
   },
-  backArrow: { color: '#fff', fontSize: 26, marginRight: 10 },
-  title: { color: '#fff', fontSize: 24, fontWeight: '700' },
+  backArrow: { color: '#fff', fontSize: 30, marginRight: 10 },
+  title: { color: '#fff', fontSize: 28, fontWeight: '700' },
 
   subHeader: {
     paddingHorizontal: 20,
@@ -168,7 +264,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#2b3435',
     borderBottomWidth: 1,
   },
-  subHeaderText: { color: '#aaa', fontSize: 14 },
+  subHeaderText: { color: '#aaa', fontSize: 16 },
 
   row: {
     flexDirection: 'row',
@@ -179,7 +275,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#263133',
   },
-  route: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  routeInfo: {
+    flexDirection: 'column',
+    flex: 1,
+  },
+  route: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  direction: { 
+    color: '#aaa', 
+    fontSize: 14, 
+    marginTop: 3,
+  },
   badge: {
     borderRadius: 18,
     minWidth: 68,
@@ -188,9 +293,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
   },
-  badgeText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  badgeText: { color: '#fff', fontWeight: '700', fontSize: 17 },
 
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   empty: { marginTop: 40, alignItems: 'center' },
-  emptyText: { color: '#9aa6a6', fontSize: 18, fontWeight: '700' },
+  emptyText: { color: '#9aa6a6', fontSize: 20, fontWeight: '700' },
 });
