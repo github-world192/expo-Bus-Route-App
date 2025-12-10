@@ -1,18 +1,18 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 import {
-  formatDistance,
-  getNearbyStopsWithLocation,
-  type StopEntry,
+    formatDistance,
+    getNearbyStopsWithLocation,
+    type StopEntry,
 } from '../components/locationService';
 
 const DEFAULT_RADIUS_METERS = 800;
