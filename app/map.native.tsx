@@ -174,7 +174,7 @@ export default function MapNative() {
   useEffect(() => {
     (async () => {
       try {
-        await plannerRef.current.initialize();
+        // 新版 BusPlannerService 不需要 initialize，constructor 已同步載入資料
         console.log('BusPlannerService 初始化完成');
         
         // 測試：查詢「師大分部」到「師大」的路線

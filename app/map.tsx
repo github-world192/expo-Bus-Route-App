@@ -1,18 +1,18 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 import {
-  formatDistance,
-  getNearbyStopsWithLocation,
-  type StopEntry,
+    formatDistance,
+    getNearbyStopsWithLocation,
+    type StopEntry,
 } from '../components/locationService';
 
 const DEFAULT_RADIUS_METERS = 800;
@@ -110,7 +110,7 @@ export default function Map() {
 
       <FlatList
         data={nearbyStops}
-        keyExtractor={(item, index) => `${item.sid}-${index}`}
+        keyExtractor={(item, index) => `${item.slid}-${index}`}
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.stopItem}
@@ -119,7 +119,7 @@ export default function Map() {
           >
             <View style={styles.stopInfo}>
               <Text style={styles.stopName}>{item.name}</Text>
-              <Text style={styles.stopSid}>站牌 ID: {item.sid}</Text>
+              <Text style={styles.stopSlid}>站牌位置 ID: {item.slid}</Text>
             </View>
             <View style={styles.distanceContainer}>
               <Text style={styles.distanceText}>{formatDistance(item.distance)}</Text>
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 4,
   },
-  stopSid: {
+  stopSlid: {
     fontSize: 13,
     color: '#999',
   },

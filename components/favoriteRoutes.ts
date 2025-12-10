@@ -16,6 +16,7 @@ export interface FavoriteRoute {
   useCount: number;              // 使用次數
   pinned: boolean;               // 是否置頂
   cachedRouteNames?: string[];   // 快取的可用公車路線（用於快速顯示）
+  cachedRouteInfo?: Array<{routeName: string, rid: string, direction: string}>; // 完整路線資訊（含 RID 和方向）
   cacheUpdatedAt?: number;       // 快取更新時間
 }
 
@@ -418,6 +419,39 @@ export class FavoriteRoutesService {
       return saved;
     } catch (error) {
       console.error('更新路線快取錯誤:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 更新路線的完整資訊快取（包含 RID 和方向）
+   */
+  async updateRouteCacheInfo(
+    fromStop: string,
+    toStop: string,
+    routeInfo: Array<{routeName: string, rid: string, direction: string}>
+  ): Promise<boolean> {
+    try {
+      const data = await this.loadData();
+      const id = this.generateRouteId(fromStop, toStop);
+      const routeIndex = data.routes.findIndex(route => route.id === id);
+
+      if (routeIndex === -1) {
+        console.warn('路線不存在，無法更新快取');
+        return false;
+      }
+
+      data.routes[routeIndex].cachedRouteInfo = routeInfo;
+      data.routes[routeIndex].cachedRouteNames = routeInfo.map(info => info.routeName);
+      data.routes[routeIndex].cacheUpdatedAt = Date.now();
+      
+      const saved = await this.saveData(data);
+      if (saved) {
+        console.log('已更新路線完整資訊快取:', fromStop, '→', toStop, '路線數:', routeInfo.length);
+      }
+      return saved;
+    } catch (error) {
+      console.error('更新路線完整資訊快取錯誤:', error);
       return false;
     }
   }

@@ -3,20 +3,20 @@ import * as Location from 'expo-location';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  FlatList,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    FlatList,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import PagerView from 'react-native-pager-view';
 // 假設 BusPlannerService 放在 services 資料夾，請依實際位置調整
@@ -29,6 +29,7 @@ import ServiceWorkerRegister from '../components/ServiceWorkerRegister';
 // 定義 UI 用的介面 (配合新 API 的回傳結構進行適配)
 interface UIArrival {
   route: string;
+  direction?: string; // 加入方向資訊（選填，因為有些情況可能沒有）
   estimatedTime: string;
   key: string;
 }
@@ -134,7 +135,7 @@ export default function StopScreen() {
   // 初始化 Service 並加載最近站牌
   useEffect(() => {
     const initService = async () => {
-      await plannerRef.current.initialize();
+      // 新版 BusPlannerService 不需要 initialize，constructor 已同步載入資料
       setServiceReady(true);
 
       // 如果 URL 參數有站牌名，優先使用
@@ -207,6 +208,18 @@ export default function StopScreen() {
     }, [serviceReady])
   );
 
+  // 監聽 displayMode 和 favoriteRoutes 變化，確保切換到 favorite 模式時按鈕狀態同步
+  const prevDisplayModeRef = useRef<'favorite' | 'nearby' | 'default'>(displayMode);
+  useEffect(() => {
+    // 只有當 displayMode 從非 favorite 切換到 favorite 時才同步按鈕高亮
+    if (displayMode === 'favorite' && prevDisplayModeRef.current !== 'favorite' && 
+        favoriteRoutes.length > 0) {
+      // 只同步按鈕滾動位置，不改變 PagerView 的當前頁
+      scrollRouteButtonToCenter(selectedRouteIndex);
+    }
+    prevDisplayModeRef.current = displayMode;
+  }, [displayMode]);
+
   // 保存最近使用的站牌
   const saveRecentStop = async (stopName: string) => {
     try {
@@ -248,12 +261,14 @@ export default function StopScreen() {
         return;
       }
 
-      // 2. 平行抓取所有 SID 的公車資料
-      console.log('Fetching data for SIDs:', sids[0]);
-      const results = await plannerRef.current.fetchBusesAtSid(sids[0]);
+      // 2. 平行抓取所有 SID 的公車資料（包含所有方向）
+      console.log('Fetching data for SIDs:', sids);
+      const allResults = await Promise.all(
+        sids.map(sid => plannerRef.current.fetchBusesAtSid(sid))
+      );
       
       // 3. 合併並轉換資料
-      const allBuses = results.flat();
+      const allBuses = allResults.flat().flat();
       
       // 轉換為 UI 格式並排序 (依據 rawTime，即到站秒數)
       const uiArrivals: UIArrival[] = allBuses
@@ -322,7 +337,13 @@ export default function StopScreen() {
       
       // 如果有常用路線，立即顯示快取資料
       if (routes.length > 0) {
-        setSelectedRouteIndex(0);
+        // 只在索引無效時才重置為 0，否則保持當前選中的路線
+        setSelectedRouteIndex(prevIndex => {
+          if (prevIndex >= 0 && prevIndex < routes.length) {
+            return prevIndex; // 保持當前選中
+          }
+          return 0; // 無效索引時重置為第一個
+        });
         setDisplayMode('favorite');
         
         // 立即顯示快取的路線名稱（快速載入）
@@ -342,16 +363,26 @@ export default function StopScreen() {
         });
         
         setAllFavoriteArrivals(cachedArrivals);
-        setFavoriteRouteArrivals(cachedArrivals[0]);
+        
+        // 使用當前選中的索引來設定顯示的路線
+        setSelectedRouteIndex(prevIndex => {
+          const validIndex = (prevIndex >= 0 && prevIndex < routes.length) ? prevIndex : 0;
+          setFavoriteRouteArrivals(cachedArrivals[validIndex] || cachedArrivals[0]);
+          return validIndex;
+        });
         
         // 在背景載入實際動態資料
         loadAllFavoriteRoutesArrivals(routes, false);
         
         // 啟動定時刷新常用路線動態（30秒）
         if (favoriteIntervalRef.current) clearInterval(favoriteIntervalRef.current);
-        favoriteIntervalRef.current = setInterval(() => {
-          console.log('自動刷新常用路線動態...');
-          loadAllFavoriteRoutesArrivals(routes, true); // 自動更新傳 true
+        favoriteIntervalRef.current = setInterval(async () => {
+          console.log('🔄 自動刷新常用路線動態...');
+          // 重新獲取最新的路線列表以避免使用閉包中的舊資料
+          const currentRoutes = await favoriteRoutesService.getAllRoutes(true);
+          if (currentRoutes.length > 0) {
+            loadAllFavoriteRoutesArrivals(currentRoutes, true); // 自動更新傳 true
+          }
         }, 30000);
       } else {
         // 沒有常用路線，顯示預設站牌
@@ -370,62 +401,40 @@ export default function StopScreen() {
   const loadAllFavoriteRoutesArrivals = async (routes: FavoriteRoute[], isAutoRefresh = false) => {
     try {
       if (isAutoRefresh) {
+        console.log('🔄 [自動更新] 開始更新', routes.length, '條路線');
         // 先獲取所有新資料
         const allNewArrivals: UIArrival[][] = [];
         for (let i = 0; i < routes.length; i++) {
           const newArrivals = await fetchSingleRouteArrivals(routes[i], i, true);
           allNewArrivals[i] = newArrivals;
+          console.log(`🔄 [自動更新] 路線 ${i + 1}/${routes.length}:`, routes[i].fromStop, '→', routes[i].toStop, '- 獲得', newArrivals.length, '筆資料');
         }
         
-        // 使用函數式更新來合併資料
+        // 直接使用新資料替換舊資料（不合併）
         setAllFavoriteArrivals(prevAll => {
-          const tempArrivals: UIArrival[][] = [...prevAll];
+          const tempArrivals: UIArrival[][] = [...allNewArrivals];
+          console.log('🔄 [自動更新] 完整替換資料，共', tempArrivals.length, '條路線');
           
-          // 處理每個路線
+          // 記錄每條路線的資料數量變化
           routes.forEach((route, i) => {
-            const newArrivals = allNewArrivals[i];
-            
-            // 建立新資料的快速查找表
-            const newDataMap = new Map(
-              newArrivals.map(item => [item.key, item.estimatedTime])
-            );
-            
-            // 只更新現有項目的時間
-            if (tempArrivals[i] && tempArrivals[i].length > 0) {
-              tempArrivals[i] = tempArrivals[i].map(existingItem => {
-                const newTime = newDataMap.get(existingItem.key);
-                if (newTime !== undefined) {
-                  return {
-                    ...existingItem,
-                    estimatedTime: newTime,
-                  };
-                }
-                return existingItem;
-              });
-              
-              // 處理新增的公車
-              newArrivals.forEach(newItem => {
-                const exists = tempArrivals[i].some(item => item.key === newItem.key);
-                if (!exists) {
-                  tempArrivals[i].push(newItem);
-                }
-              });
-            } else {
-              tempArrivals[i] = newArrivals;
-            }
+            const oldCount = prevAll[i]?.length || 0;
+            const newCount = tempArrivals[i]?.length || 0;
+            console.log(`🔄 [路線 ${i + 1}] ${route.fromStop} → ${route.toStop}: ${oldCount} 筆 → ${newCount} 筆`);
           });
           
+          console.log('🔄 [自動更新] 資料替換完成');
           return tempArrivals;
         });
         
-        // 更新當前顯示的路線
+        // 更新當前顯示的路線（使用最新的 state）
         setFavoriteRouteArrivals(prev => {
+          // 從最新的 allFavoriteArrivals 中獲取當前索引的資料
           const updated = allNewArrivals[selectedRouteIndex] || prev;
-          return prev.map(existingItem => {
-            const newItem = updated.find(item => item.key === existingItem.key);
-            return newItem ? { ...existingItem, estimatedTime: newItem.estimatedTime } : existingItem;
-          });
+          console.log(`🔄 [自動更新] 更新當前顯示路線 (索引: ${selectedRouteIndex}), 資料數: ${prev.length} → ${updated.length}`);
+          return updated;
         });
+        
+        console.log('✅ [自動更新] 完成所有更新');
       } else {
         console.log('🆕 [Index] 初始載入模式 - 完整載入所有路線');
         const tempArrivals: UIArrival[][] = routes.map(route => {
@@ -478,11 +487,12 @@ export default function StopScreen() {
         return [];
       }
 
-      // 步驟 2: 規劃路徑以取得可用路線名稱（只在初始載入時執行）
-      let routeNames: string[] = [];
+      // 步驟 2: 規劃路徑並直接使用結果（不需要再抓取起點站所有公車）
+      let plans: any[] = [];
       
       if (!isAutoRefresh) {
-        const plans = await plannerRef.current.plan(
+        // 初始載入：呼叫 plan() 取得完整路線資訊
+        plans = await plannerRef.current.plan(
           route.fromStop,
           route.toStop
         );
@@ -492,60 +502,61 @@ export default function StopScreen() {
           return [];
         }
 
-        // 取得所有可用的公車路線名稱
-        routeNames = [...new Set(plans.map(bus => bus.routeName))];
-        console.log('Route names:', routeNames);
+        // 儲存路線資訊到快取
+        let validRouteInfo = plans.map(bus => ({
+          routeName: bus.routeName,
+          rid: bus.rid,
+          direction: '' // 暫時不使用方向資訊
+        }));
+        
+        // 去重（同路線同 RID 只保留一個）
+        const uniqueRouteMap = new Map<string, {routeName: string, rid: string, direction: string}>();
+        validRouteInfo.forEach(info => {
+          const key = `${info.routeName}-${info.rid}`;
+          if (!uniqueRouteMap.has(key)) {
+            uniqueRouteMap.set(key, info);
+          }
+        });
+        validRouteInfo = Array.from(uniqueRouteMap.values());
+        
+        console.log('Valid routes with RID:', validRouteInfo.length);
 
-        // 更新快取（如果路線有變化或是第一次加載）
-        if (!route.cachedRouteNames || 
-            JSON.stringify(route.cachedRouteNames.sort()) !== JSON.stringify(routeNames.sort())) {
-          console.log('更新路線快取...');
-          await favoriteRoutesService.updateRouteCacheNames(
+        // 更新完整路線資訊快取（包含 RID）
+        if (!route.cachedRouteInfo || 
+            JSON.stringify(route.cachedRouteInfo) !== JSON.stringify(validRouteInfo)) {
+          console.log('更新路線完整資訊快取...');
+          await favoriteRoutesService.updateRouteCacheInfo(
             route.fromStop,
             route.toStop,
-            routeNames
+            validRouteInfo
           );
         }
       } else {
-        // 自動更新時使用快取的路線名稱
-        routeNames = route.cachedRouteNames || [];
+        // 自動更新：使用快取的路線資訊，但重新呼叫 plan() 取得最新動態
+        if (route.cachedRouteInfo && route.cachedRouteInfo.length > 0) {
+          console.log('使用快取的路線資訊，重新查詢動態...');
+          plans = await plannerRef.current.plan(
+            route.fromStop,
+            route.toStop
+          );
+        } else {
+          console.log('沒有快取，跳過自動更新');
+          return [];
+        }
       }
 
-      // 步驟 3: 抽取起點站的即時公車資料
-      const results = await plannerRef.current.fetchBusesAtSid(fromSids[0]);
-      console.log('Fetching data for SIDs:', fromSids[0]);
-      const allBuses = results.flat();
-      console.log('All buses at', route.fromStop, ':', allBuses.length, 'buses');
-      
-      // 找出起點站有的公車且在路線中
-      const matchingBuses = allBuses.filter(bus => 
-        routeNames.includes(bus.route)
-      );
-
-      console.log('Matching buses:', matchingBuses.length);
-
-      // 轉換為 UI 格式（使用穩定的 key，加入 rawTime 避免同路線不同班次衝突）
-      const favoriteArrivals: UIArrival[] = matchingBuses.map((bus) => ({
-        route: bus.route,
-        estimatedTime: bus.timeText,
-        key: `fav-${route.id}-${bus.rid}-${bus.route}-${bus.rawTime}`,
+      // 轉換 plan() 的結果為 UI 格式
+      const favoriteArrivals: UIArrival[] = plans.map((bus) => ({
+        route: bus.routeName,
+        direction: bus.directionText || '', // 使用 plan() 提供的方向資訊
+        estimatedTime: bus.arrivalTimeText || '更新中',
+        key: `fav-${route.id}-${bus.rid}-${bus.routeName}-${bus.rawTime || 0}`,
       }));
-
-      // 如果沒有匹配的公車，顯示所有可用路線但標註為無資料
-      if (favoriteArrivals.length === 0 && routeNames.length > 0) {
-        routeNames.forEach((routeName) => {
-          favoriteArrivals.push({
-            route: routeName,
-            estimatedTime: '無資料',
-            key: `fav-nodata-${route.id}-${routeName}`,
-          });
-        });
-      }
 
       // 依照到站時間排序
       favoriteArrivals.sort((a, b) => {
-        const timeA = a.estimatedTime;
-        const timeB = b.estimatedTime;
+        const timeA = a.estimatedTime || '';
+        const timeB = b.estimatedTime || '';
         if (timeA.includes('分') && !timeB.includes('分')) return -1;
         if (!timeA.includes('分') && timeB.includes('分')) return 1;
         return 0;
@@ -660,10 +671,10 @@ export default function StopScreen() {
         });
       }
 
-      // 依照到站時間排序
+      // 依照到站時間排序（確保 estimatedTime 存在）
       favoriteArrivals.sort((a, b) => {
-        const timeA = a.estimatedTime;
-        const timeB = b.estimatedTime;
+        const timeA = a.estimatedTime || '';
+        const timeB = b.estimatedTime || '';
         if (timeA.includes('分') && !timeB.includes('分')) return -1;
         if (!timeA.includes('分') && timeB.includes('分')) return 1;
         return 0;
@@ -808,6 +819,11 @@ export default function StopScreen() {
       <View style={styles.row}>
         <View style={{ flex: 1 }}>
           <Text style={styles.route}>{item.route}</Text>
+          {item.direction && (
+            <Text style={[styles.directionText, { fontSize: 12, color: '#666', marginTop: 2 }]}>
+              {item.direction}
+            </Text>
+          )}
         </View>
         <View style={{ alignItems: 'flex-end' }}>{renderBadge(item.estimatedTime)}</View>
       </View>
@@ -1358,7 +1374,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   quickRouteArrow: {
-    color: '#6F73F8',
+    color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1391,13 +1407,14 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    paddingHorizontal: 25,
     paddingVertical: 18,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#263133',
   },
   route: { color: '#ffffff', fontSize: 20, fontWeight: '700' },
+  directionText: { color: '#888', fontSize: 12, marginTop: 2 },
   badgeBase: {
     minWidth: 68,
     paddingVertical: 8,

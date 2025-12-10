@@ -1,23 +1,25 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Platform,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Platform,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 // 引入新版 Service
 import { BusPlannerService } from '../components/busPlanner';
+import { sortRoutes } from '../utils/routeSorter';
 
 interface UIArrival {
   route: string;
   direction?: string;
   estimatedTime: string;
   key: string;
+  rawTime?: number; // 原始到站秒數，用於排序
 }
 
 export default function StopDetailScreen() {
@@ -43,7 +45,7 @@ export default function StopDetailScreen() {
 
   useEffect(() => {
     const initService = async () => {
-      await plannerRef.current.initialize();
+      // 新版 BusPlannerService 不需要 initialize，constructor 已同步載入資料
       setServiceReady(true);
     };
     initService();
@@ -61,85 +63,176 @@ export default function StopDetailScreen() {
         return;
       }
 
-      const results = await plannerRef.current.fetchBusesAtSid(sids[0]);
-      const allBuses = results.flat().sort((a, b) => a.rawTime - b.rawTime);
+      // 抓取所有 SID 的公車資料（包含所有方向）
+      const allResults = await Promise.all(
+        sids.map(sid => plannerRef.current.fetchBusesAtSid(sid))
+      );
+      const allBuses = allResults.flat().flat();
+      
+      // 去重：使用 Map 以 rid+route+rawTime 為 key（不含 direction，因為同一 RID 同一時間不應有不同方向）
+      const uniqueBusesMap = new Map();
+      allBuses.forEach(bus => {
+        const uniqueKey = `${bus.rid}-${bus.route}-${bus.rawTime}`;
+        const existing = uniqueBusesMap.get(uniqueKey);
+        
+        // 如果已存在，優先保留有明確方向資訊的（非"去程"/"返程"的）
+        if (!existing) {
+          uniqueBusesMap.set(uniqueKey, bus);
+        } else if (existing.direction && (existing.direction === '去程' || existing.direction === '返程') &&
+                   bus.direction && bus.direction !== '去程' && bus.direction !== '返程') {
+          // 新的有更詳細的方向資訊，替換舊的
+          uniqueBusesMap.set(uniqueKey, bus);
+        }
+      });
+      const uniqueBuses = Array.from(uniqueBusesMap.values());
 
       // 使用函數式更新來獲取最新的 arrivals 狀態
       setArrivals(prev => {
         if (isAutoRefresh && prev.length > 0) {
           
-          // 自動更新模式：只更新時間，保留現有的方向資訊
-          const existingMap = new Map<string, UIArrival>();
+          // 自動更新模式：完全替換資料，保留方向資訊
+          // 建立 rid+route 到舊資料的映射（不含 direction，因為去重後不會有重複的 rid-route-time）
+          const existingDataMap = new Map<string, string>();
           prev.forEach(item => {
-            existingMap.set(item.key, item);
-          });
-
-          const updated = allBuses.map((bus) => {
-            const busKey = `${bus.rid}-${bus.route}-${bus.direction}`;
-            const existing = existingMap.get(busKey);
-            
-            if (existing) {
-              return {
-                ...existing,
-                estimatedTime: bus.timeText,
-              };
-            } else {
-              return {
-                route: bus.route,
-                direction: '',
-                estimatedTime: bus.timeText,
-                key: busKey,
-              };
+            // 從 key 中提取 rid, route
+            const parts = item.key.split('-');
+            if (parts.length >= 2) {
+              const lookupKey = `${parts[0]}-${parts[1]}`; // rid-route
+              // 保存已載入的方向資訊（可能是終點站或去程/返程）
+              if (item.direction) {
+                existingDataMap.set(lookupKey, item.direction);
+              }
             }
           });
 
-          return updated;
+          // 用新資料建立陣列，保留已載入的方向資訊
+          const updated = uniqueBuses.map((bus, index) => {
+            const lookupKey = `${bus.rid}-${bus.route}`;
+            const savedDirection = existingDataMap.get(lookupKey);
+            
+            return {
+              route: bus.route,
+              direction: savedDirection || bus.direction || '', // 保留已載入的方向
+              estimatedTime: bus.timeText,
+              key: `${bus.rid}-${bus.route}-${bus.rawTime}-${index}`,
+              rawTime: bus.rawTime,
+            };
+          });
+
+          // 使用統一的排序邏輯
+          return updated.sort(sortRoutes);
         } else {
           // 初始載入模式：先顯示路線名稱和時間，方向欄位暫時為空
-          return allBuses.map((bus) => ({
+          // 注意：新版 BusPlanner 使用 time_text (下劃線格式) 和 direction 欄位
+          const initialData = uniqueBuses.map((bus, index) => ({
             route: bus.route,
-            direction: '',
-            estimatedTime: bus.timeText,
-            key: `${bus.rid}-${bus.route}-${bus.direction}`
+            direction: bus.direction || '', // 新版已包含方向資訊
+            estimatedTime: bus.time_text || bus.timeText || '更新中', // 相容新舊格式
+            key: `${bus.rid}-${bus.route}-${bus.direction || ''}-${bus.rawTime}-${index}`, // 加入 index 確保唯一
+            rawTime: bus.rawTime, // 保留原始時間用於排序
           }));
+          
+          // 使用統一的排序邏輯
+          return initialData.sort(sortRoutes);
         }
       });
 
       setLastUpdate(new Date().toLocaleTimeString());
 
-      // 初始載入時，背景載入終點站資訊
+      // 初始載入時，立即設定終點站資訊（不使用背景更新）
       if (!isAutoRefresh) {
-        allBuses.forEach(async (bus) => {
-          try {
-            // 獲取路線結構來取得終點站
-            const routeStructure = await plannerRef.current.getRouteStructure(bus.rid);
+        // 先批次獲取所有需要的路線結構
+        const ridSet = new Set(uniqueBuses.map(bus => bus.rid));
+        const routeStructures = new Map();
+        
+        for (const rid of ridSet) {
+          const structure = plannerRef.current.getRouteStructure(rid);
+          if (structure) {
+            routeStructures.set(rid, structure);
+          }
+        }
+        
+        // 同步更新所有公車的終點站資訊，並進一步去重相同路線和終點站的項目
+        setArrivals(prev => {
+          const withDirections = prev.map((item, idx) => {
+            // 從 uniqueBuses 找到對應的公車資訊
+            const bus = uniqueBuses[idx];
+            if (!bus) return item;
             
-            // 根據方向決定使用 goStops 或 backStops
-            const isGoDirection = bus.direction.includes('去') || bus.direction.includes('往');
-            const stops = isGoDirection ? routeStructure.goStops : routeStructure.backStops;
+            const structure = routeStructures.get(bus.rid);
+            if (!structure) return item;
+            
+            // getRouteStructure 回傳的結構中，goStops 和 backStops 只有一個會有資料
+            // 取有資料的那個
+            const stops = structure.goStops?.length > 0 ? structure.goStops : structure.backStops;
             
             // 取最後一個站點作為終點站
-            let destinationStop = bus.direction; // 預設
             if (stops && stops.length > 0) {
-              destinationStop = `往 ${stops[stops.length - 1].name}`;
-            }
-
-            // 更新該筆資料的方向資訊
-            setArrivals(prev => {
-              const updated = [...prev];
-              const busKey = `${bus.rid}-${bus.route}-${bus.direction}`;
-              const targetIndex = updated.findIndex(item => item.key === busKey);
-              if (targetIndex !== -1) {
-                updated[targetIndex] = {
-                  ...updated[targetIndex],
-                  direction: destinationStop
-                };
+              const endStation = stops[stops.length - 1].name;
+              
+              // 調試：顯示羅斯福路幹線的詳細資訊
+              if (bus.route.includes('羅斯福路幹線')) {
+                console.log(`🔍 [羅斯福路幹線] RID: ${bus.rid}, 原始方向: ${bus.direction}, 終點站: ${endStation}, 時間: ${bus.timeText}`);
               }
-              return updated;
-            });
-          } catch (err) {
-            console.warn(`無法獲取路線 ${bus.route} (${bus.rid}) 的終點站:`, err);
-          }
+              
+              return {
+                ...item,
+                direction: `往 ${endStation}`
+              };
+            }
+            
+            return item;
+          });
+          
+          // 檢查是否有同一路線指向相同終點站的情況
+          const routeEndStationCount = new Map<string, Set<string>>();
+          withDirections.forEach(item => {
+            const key = `${item.route}-${item.direction}`;
+            if (!routeEndStationCount.has(item.route)) {
+              routeEndStationCount.set(item.route, new Set());
+            }
+            routeEndStationCount.get(item.route)!.add(item.direction);
+          });
+          
+          // 如果某路線有多個項目指向同一終點站，改用原始方向區分
+          const needsOriginalDirection = new Set<string>();
+          routeEndStationCount.forEach((directions, route) => {
+            if (directions.size === 1) {
+              // 檢查這個路線-終點站組合是否有多個項目
+              const count = withDirections.filter(item => 
+                item.route === route && item.direction === Array.from(directions)[0]
+              ).length;
+              if (count > 1) {
+                needsOriginalDirection.add(route);
+                console.log(`⚠️ [${route}] 發現多個公車指向相同終點站，將使用原始方向標示`);
+              }
+            }
+          });
+          
+          // 重新處理需要使用原始方向的路線
+          const finalWithDirections = withDirections.map((item, idx) => {
+            const bus = uniqueBuses[idx];
+            if (bus && needsOriginalDirection.has(item.route)) {
+              // 使用原始方向（去程/返程）而非終點站
+              return {
+                ...item,
+                direction: bus.direction || item.direction
+              };
+            }
+            return item;
+          });
+          
+          // 最終去重：用 route-direction-rawTime 確保不重複
+          const finalDeduped = new Map<string, UIArrival>();
+          finalWithDirections.forEach(item => {
+            const dedupKey = `${item.route}-${item.direction}-${item.rawTime}`;
+            if (!finalDeduped.has(dedupKey)) {
+              finalDeduped.set(dedupKey, item);
+            }
+          });
+          
+          // 轉換回陣列並使用統一的排序邏輯
+          return Array.from(finalDeduped.values()).sort(sortRoutes);
         });
       }
 

@@ -1,16 +1,16 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Keyboard,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    FlatList,
+    Keyboard,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 import type { BusInfo } from '../components/busPlanner';
@@ -65,7 +65,7 @@ export default function RouteScreen() {
   useEffect(() => {
     (async () => {
       try {
-        await plannerRef.current.initialize();
+        // 新版 BusPlannerService 不需要 initialize，constructor 已同步載入資料
         console.log('BusPlannerService 初始化完成');
         
         // 如果有傳入起點和終點參數，自動填入並搜尋

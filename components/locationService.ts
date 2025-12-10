@@ -8,7 +8,7 @@ import stopsRaw from '../databases/stops.json';
 
 export interface StopEntry {
   name: string;
-  sid: string;
+  slid: string; // 物理站牌 ID (Stop Location ID)
   lat: number;
   lon: number;
   distance: number;
@@ -68,24 +68,24 @@ export function loadAllStops(): StopEntry[] {
   const firstKey = Object.keys(raw)[0];
   const firstValue = raw[firstKey];
   
-  // 如果第一層有 name 屬性，代表是新格式 { sid: { name, lat, lon } }
+  // 如果第一層有 name 屬性，代表是新格式 { slid: { name, lat, lon } }
   if (firstValue?.name && firstValue?.lat !== undefined) {
-    Object.entries(raw).forEach(([sid, data]: any) => {
+    Object.entries(raw).forEach(([slid, data]: any) => {
       const lat = Number(data.lat);
       const lon = Number(data.lon);
       if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
-        out.push({ name: data.name, sid, lat, lon, distance: 0 });
+        out.push({ name: data.name, slid, lat, lon, distance: 0 });
       }
     });
   } else {
-    // 舊格式 { name: { sid: { lat, lon } } }
+    // 舊格式 { name: { slid: { lat, lon } } } (stops.json 實際儲存的是 SLID)
     Object.entries(raw).forEach(([name, obj]: any) => {
       if (!obj || typeof obj !== 'object') return;
-      Object.entries(obj).forEach(([sid, coords]: any) => {
+      Object.entries(obj).forEach(([slid, coords]: any) => {
         const lat = Number(coords.lat);
         const lon = Number(coords.lon);
         if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
-          out.push({ name, sid, lat, lon, distance: 0 });
+          out.push({ name, slid, lat, lon, distance: 0 });
         }
       });
     });
