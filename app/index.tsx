@@ -3,20 +3,20 @@ import * as Location from 'expo-location';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    FlatList,
-    Modal,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  FlatList,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import PagerView from 'react-native-pager-view';
 // 假設 BusPlannerService 放在 services 資料夾，請依實際位置調整
@@ -915,6 +915,18 @@ export default function StopScreen() {
           >
             <Text style={styles.sidebarItemIcon}>🔔</Text>
             <Text style={styles.sidebarItemText}>乘車時間通知</Text>
+          </TouchableOpacity>
+
+          {/* 最佳乘車時間 */}
+          <TouchableOpacity 
+            style={styles.sidebarItem}
+            onPress={() => {
+              setSidebarVisible(false);
+              setTimeout(() => router.push('/ride'), 300);
+            }}
+          >
+            <Text style={styles.sidebarItemIcon}>⏰</Text>
+            <Text style={styles.sidebarItemText}>最佳乘車時間</Text>
           </TouchableOpacity>
           
           {/* 地圖（僅手機顯示） */}
