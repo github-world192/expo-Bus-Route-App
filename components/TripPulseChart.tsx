@@ -59,9 +59,10 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
 
   // Helper: Logic for Color
   const getBarColor = (score: number, isLowConf: boolean) => {
-    if (score >= 3.0) return '#34C759'; // Green
-    if (score >= 1.0) return '#FFCC00'; // Yellow
-    return '#FF3B30'; // Red
+    // Using more vivid colors for better contrast in dark mode
+    if (score >= 3.0) return '#32E875'; // Brighter Green
+    if (score >= 1.0) return '#FFDD33'; // More Vivid Yellow
+    return '#FF3B30'; // Sharper Red
   };
 
   // Auto-Scroll Effect
@@ -148,32 +149,32 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
                 onPress={() => setSelectedMinute(point.minute === selectedMinute ? null : point.minute)}
               >
                 {/* Track Background [Fix 4] */}
-                <View style={styles.barTrack}>
-                  
-                  {/* The Colored Bar */}
-                  <View
-                    style={[
-                      styles.bar,
-                      {
-                        height: `${heightPercent}%`,
-                        backgroundColor: barColor,
-                        opacity: opacity,
-                        // Add border if selected
-                        borderWidth: isSelected ? 2 : 0,
-                        borderColor: '#000', // Strong contrast when selected
-                      }
-                    ]}
-                  />
+                  <View style={styles.barTrack}>
+                    
+                    {/* The Colored Bar */}
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: `${heightPercent}%`,
+                          backgroundColor: barColor,
+                          opacity: opacity,
+                          // Add border if selected
+                          borderWidth: isSelected ? 2 : 0,
+                          borderColor: '#fff', // White border for contrast in Dark Mode
+                        }
+                      ]}
+                    />
 
-                  {/* Now Indicator (Dot) - Sits on top of the bar [Fix 2] */}
-                  {isNow && (
-                    <View style={[
-                      styles.nowIndicator, 
-                      { bottom: `${heightPercent}%`, marginBottom: 4 } // Position right above bar
-                    ]} />
-                  )}
-                  
-                </View>
+                    {/* Now Indicator (Dot) - Sits on top of the bar [Fix 2] */}
+                    {isNow && (
+                      <View style={[
+                        styles.nowIndicator, 
+                        { bottom: `${heightPercent}%`, marginBottom: 4 } // Position right above bar
+                      ]} />
+                    )}
+                    
+                  </View>
 
                 {/* Label Area */}
                 <View style={styles.labelContainer}>
@@ -194,18 +195,14 @@ const styles = StyleSheet.create({
   card: {
     marginVertical: 12,
     marginHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 20, // More rounded [Fix 4]
+    backgroundColor: '#1f2627', // Dark Card Background
+    borderRadius: 20,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    // Removed shadows for cleaner flat dark UI
   },
   header: { marginBottom: 20 },
-  title: { fontSize: 20, fontWeight: '700', color: '#1C1C1E', letterSpacing: -0.5 },
-  subtitle: { fontSize: 13, color: '#8E8E93', marginTop: 4, fontWeight: '500' },
+  title: { fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, color: '#9aa6a6', marginTop: 4, fontWeight: '500' },
   
   chartContainer: {
     height: 120, 
@@ -217,23 +214,23 @@ const styles = StyleSheet.create({
   },
   
   columnContainer: {
-    width: 12, // Slightly wider touch area
+    width: 12, 
     height: '100%', 
     flexDirection: 'column',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginRight: 2, // Tiny gap
+    marginRight: 2, 
   },
   
   // Track area (the vertical lane)
   barTrack: {
     flex: 1, 
-    width: 6, // Visual bar width
-    backgroundColor: '#F2F2F7', // [Fix 4] Track background
+    width: 6, 
+    backgroundColor: '#2b3435', // Darker track background
     borderRadius: 3,
-    justifyContent: 'flex-end', // Align bars to bottom
+    justifyContent: 'flex-end', 
     alignItems: 'center',
-    overflow: 'visible', // Allow dot to pop out if needed
+    overflow: 'visible', 
   },
   
   bar: {
@@ -241,19 +238,14 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   
-  // [Fix 2] Red Dot
   nowIndicator: {
     position: 'absolute',
-    // Bottom is controlled dynamically in inline styles
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#FF453A',
     borderWidth: 1.5,
-    borderColor: '#fff', // White ring for contrast
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    borderColor: '#1f2627', // Ring matches card bg
     zIndex: 10,
   },
 
@@ -266,11 +258,11 @@ const styles = StyleSheet.create({
   },
   timeLabel: {
     fontSize: 10,
-    color: '#8E8E93',
+    color: '#6f7a78',
     fontWeight: '600',
     textAlign: 'center',
   },
 
-  loadingText: { textAlign: 'center', color: '#8E8E93', padding: 20 },
-  emptyText: { textAlign: 'center', color: '#8E8E93', padding: 20, fontStyle: 'italic' },
+  loadingText: { textAlign: 'center', color: '#9aa6a6', padding: 20 },
+  emptyText: { textAlign: 'center', color: '#9aa6a6', padding: 20, fontStyle: 'italic' },
 });
