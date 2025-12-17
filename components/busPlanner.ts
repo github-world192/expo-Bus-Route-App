@@ -6,6 +6,8 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as cheerio from 'cheerio';
+import { getRouteLogs, saveRouteLog, saveTripDefinition } from '../components/DatabaseService'; // 請確認路徑
+import { getLogicalDate, getVirtualMoD, runGreedyMagnet } from '../utils/BusPulseUtils'; // 請確認路徑
 
 // 假設這兩個 JSON 檔案位於專案結構中正確的位置
 // 若在 Expo 中，請確保這些檔案不會過大導致 Bundle 失敗，否則需改用 expo-file-system 下載
@@ -32,6 +34,7 @@ export interface BusInfo {
   sid: string; // 候車所在的站點 ID
   arrivalTimeText: string;
   rawTime: number; // 用於排序
+  arrivals: number[]; // [New] 所有即將到站的秒數列表 (用於統計)
   directionText: string;
   stopCount: number;
   estimatedDuration?: number; // 預估搭乘時間（分鐘）
@@ -470,7 +473,13 @@ export class BusPlannerService {
         if (cached) {
             const cachedBuses: BusInfo[] = JSON.parse(cached);
             console.log("命中快取，更新時間中...");
-            return await this.updateCachedBuses(cachedBuses);
+            const updated = await this.updateCachedBuses(cachedBuses);
+
+            this._recordTraffic(startName, endName, updated).catch(e => {
+                console.warn("[BusPlanner] Background ingestion (cache) failed:", e);
+            });
+
+            return updated;
         }
     } catch (e) { /* ignore */ }
 
@@ -527,10 +536,22 @@ export class BusPlannerService {
 
         // Find realtime data
         const busesAtStop = realtimeLookup[sInfo.slid] || [];
-        const matchBus = busesAtStop.find(b => b.rid === route.rid);
+        
+        // 1. 篩選出該路線 ID 的所有班次，並按時間排序
+        const routeBuses = busesAtStop
+            .filter(b => b.rid === route.rid)
+            .sort((a, b) => a.raw_time - b.raw_time);
+
+        const matchBus = routeBuses[0]; // 最近的一班
 
         const arrivalText = matchBus ? matchBus.time_text : "未發車";
         const rawTime = matchBus ? matchBus.raw_time : CONFIG.TIME_NOT_DEPARTED;
+        
+        // 2. 收集所有有效班次時間 (排除狀態碼)
+        const allArrivals = routeBuses
+            .map(b => b.raw_time)
+            .filter(t => (t >= 0 || t === CONFIG.TIME_NEAREST) && t < 10000)
+            .map(t => t === CONFIG.TIME_NEAREST ? 0 : t);
 
         // Build Path
         const pathSids = route.stops_sid.slice(startIdx, endIdx + 1);
@@ -550,6 +571,7 @@ export class BusPlannerService {
             sid: startSid,
             arrivalTimeText: arrivalText,
             rawTime: rawTime,
+            arrivals: allArrivals,
             directionText: route.direction === 0 ? "去程" : "返程",
             stopCount: pathStops.length - 1,
             estimatedDuration: Math.ceil((pathStops.length - 1) * 2 + 1), // 估算：每站2分鐘+緩衝1分鐘
@@ -565,8 +587,73 @@ export class BusPlannerService {
     // Cache without dynamic time
     AsyncStorage.setItem(cacheKey, JSON.stringify(finalBuses)).catch(() => {});
 
+    // [Auto-Ingest] 背景執行資料記錄，不阻擋 UI 回傳
+    this._recordTraffic(startName, endName, finalBuses).catch(e => {
+        console.warn("[BusPlanner] Background ingestion failed:", e);
+    });
+
     return finalBuses;
   }
+
+  /**
+   * 內部私有方法：負責將查詢到的即時資料轉換並儲存為歷史統計
+   */
+  private async _recordTraffic(startName: string, endName: string, buses: BusInfo[]) {
+      if (!buses.length) return;
+
+      const tripKey = `${startName}_${endName}`;
+      const now = Date.now();
+      const logicalDate = getLogicalDate(now); // 例如 "2023-10-27"
+      const currentMoD = getVirtualMoD(now);   // 例如 720 (中午12點)
+
+      // 1. 轉換格式 (BusInfo -> RouteInfo for Storage)
+      // 過濾出有效的路線資料
+      const apiRoutes = buses.map(p => {
+          const etaList = (p.arrivals || [])
+              .map(sec => Math.floor(sec / 60)); // 轉為分鐘
+
+          // Fallback: 若 arrivals 為空但 rawTime 有效 (包含 -1=將到站, 0=進站中)
+          // 若 rawTime 是 -1 (TIME_NEAREST)，視為 0 分鐘
+          if (etaList.length === 0 && (p.rawTime >= 0 || p.rawTime === CONFIG.TIME_NEAREST) && p.rawTime < 10000) {
+              etaList.push(p.rawTime === CONFIG.TIME_NEAREST ? 0 : Math.floor(p.rawTime / 60));
+          }
+
+          return {
+              routeId: p.rid,
+              stationId: p.sid,
+              etaList
+          };
+      }).filter(r => r.etaList.length > 0);
+
+      // Debug Log: 顯示過濾結果
+      if (apiRoutes.length === 0) {
+          console.log(`[BusPulse] Skipped ingestion for ${tripKey}: No active buses.`);
+          return;
+      }
+
+      // 2. 儲存旅程定義 (若有變更)
+      const routeMapping = apiRoutes.map(r => ({ rId: r.routeId, sId: r.stationId }));
+      
+      // [FIX] 務必使用物件格式包裹 included_routes，否則 useTripStats 讀取時會失敗
+      await saveTripDefinition(tripKey, routeMapping);
+
+      // 3. 執行磁鐵演算法並儲存 (並行處理)
+
+      // 3. 執行磁鐵演算法並儲存 (並行處理)
+      await Promise.all(apiRoutes.map(async (route) => {
+          // A. 讀取該路線今天的舊 Logs
+          const fullHistory = await getRouteLogs(route.routeId, route.stationId);
+          const todayArrivals = fullHistory[logicalDate] || [];
+
+          // B. 演算法去重與合併
+          const updatedArrivals = runGreedyMagnet(todayArrivals, route.etaList, currentMoD);
+
+          // C. 寫入
+          await saveRouteLog(route.routeId, route.stationId, logicalDate, updatedArrivals);
+      }));
+
+      console.log(`[BusPulse] Auto-recorded ${apiRoutes.length} routes for ${tripKey}`);
+}
 
   public async getArrivalsBySlid(slid: string, stopName: string): Promise<any[]> {
     console.log(`[BusPlanner] Using direct SLID: ${slid}`);

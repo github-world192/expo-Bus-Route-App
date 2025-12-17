@@ -1,15 +1,15 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Dimensions, ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { PulseDataPoint } from '../hooks/useTripStats';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const BAR_WIDTH = 6;
-const BAR_GAP = 4;
-const STEP_SIZE = BAR_WIDTH + BAR_GAP;
+const COL_WIDTH = 12;
+const COL_GAP = 2;
+const STEP_SIZE = COL_WIDTH + COL_GAP; // 14
+const SIDE_PADDING = (SCREEN_WIDTH - STEP_SIZE) / 2; // Padding to center the first item
+
 const MAX_BAR_HEIGHT = 80;
-const LABEL_HEIGHT = 20;
-const CHART_TOTAL_HEIGHT = MAX_BAR_HEIGHT + LABEL_HEIGHT + 10; // Extra buffer
 const CLAMP_SCORE = 4.0;
 
 interface TripPulseChartProps {
@@ -31,6 +31,8 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
 }) => {
   const stats = data;
   const scrollViewRef = useRef<ScrollView>(null);
+  const [selectedMinute, setSelectedMinute] = useState<number | null>(null);
+  const hasScrolledRef = useRef(false);
 
   // Calculate "Now" Index
   const currentBucketIndex = useMemo(() => {
@@ -39,13 +41,40 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
     return Math.floor(mod / 5);
   }, []);
 
+  // Helper: Format Time Range
+  const getLabelText = () => {
+    if (selectedMinute !== null) {
+      const h = Math.floor(selectedMinute / 60);
+      const m = selectedMinute % 60;
+      const endMin = selectedMinute + 5;
+      const endH = Math.floor(endMin / 60);
+      const endM = endMin % 60;
+      const fmt = (v: number) => v.toString().padStart(2, '0');
+      return `${fmt(h)}:${fmt(m)} ~ ${fmt(endH)}:${fmt(endM)}`;
+    }
+    return routeCount > 0 
+      ? `${routeCount} routes • ${totalDays} day history` 
+      : `${totalDays} day history`;
+  };
+
+  // Helper: Logic for Color
+  const getBarColor = (score: number, isLowConf: boolean) => {
+    if (score >= 3.0) return '#34C759'; // Green
+    if (score >= 1.0) return '#FFCC00'; // Yellow
+    return '#FF3B30'; // Red
+  };
+
   // Auto-Scroll Effect
   useEffect(() => {
-    if (!isLoading && stats && stats.length > 0 && scrollViewRef.current) {
-      const offset = (currentBucketIndex * STEP_SIZE) - (SCREEN_WIDTH / 2) + (STEP_SIZE / 2);
-      // Small delay to ensure layout is ready
+    if (!isLoading && stats && stats.length > 0 && scrollViewRef.current && !hasScrolledRef.current) {
+      // [Fix Centering Logic]
+      // With paddingHorizontal set to SIDE_PADDING, x=0 centers Index 0.
+      // Therefore, x = Index * STEP_SIZE centers Index N.
+      const offset = currentBucketIndex * STEP_SIZE;
+      
       setTimeout(() => {
-        scrollViewRef.current?.scrollTo({ x: Math.max(0, offset), animated: true });
+        scrollViewRef.current?.scrollTo({ x: offset, animated: true });
+        hasScrolledRef.current = true;
       }, 500);
     }
   }, [isLoading, stats, currentBucketIndex]);
@@ -70,8 +99,8 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.title}>{startName} ➔ {endName}</Text>
-        <Text style={styles.subtitle}>
-          {routeCount > 0 ? `${routeCount} routes • ` : ''}{totalDays} day history
+        <Text style={[styles.subtitle, selectedMinute !== null && { color: '#007AFF', fontWeight: '600' }]}>
+          {getLabelText()}
         </Text>
       </View>
 
@@ -82,36 +111,68 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           decelerationRate="fast"
-          snapToInterval={STEP_SIZE * 6} // Snap every 30 mins roughly
+          snapToInterval={STEP_SIZE * 6} 
         >
           {stats.map((point, index) => {
             const normalizedScore = Math.min(point.score, CLAMP_SCORE);
-            const heightPercent = (normalizedScore / CLAMP_SCORE) * 100;
+            
+            // Height represents Data Volume (Score)
+            // Even if 0 (Red), give it 15% height so it's visible as a "Red Bar"
+            const heightPercent = Math.max(15, (normalizedScore / CLAMP_SCORE) * 100);
             
             const isNow = index === currentBucketIndex;
-            // Only show labels on the hour (0, 60, 120...)
             const isHourMarker = (point.minute % 60) === 0;
             const hourLabel = Math.floor(point.minute / 60);
+            
+            // Interaction State
+            const isSelected = selectedMinute === point.minute;
+            const isAnySelected = selectedMinute !== null;
 
-            // Dynamic Styling
-            const barColor = isNow ? '#FF2D55' : point.isLowConfidence ? '#C7C7CC' : '#007AFF';
-            const barHeight = Math.max(6, heightPercent); // Ensure min height for visibility
+            // Visual Logic
+            const barColor = getBarColor(point.score, point.isLowConfidence);
+            
+            // Focus Effect: Dim others
+            let opacity = 1;
+            if (isAnySelected) {
+              opacity = isSelected ? 1 : 0.2; // Dim unselected more aggressively
+            } else {
+              // If low confidence, native dim
+              opacity = point.isLowConfidence ? 0.4 : 1;
+            }
 
             return (
-              <View key={point.minute} style={styles.columnContainer}>
-                {/* Bar Area */}
+              <TouchableOpacity 
+                key={point.minute} 
+                style={styles.columnContainer}
+                activeOpacity={0.8}
+                onPress={() => setSelectedMinute(point.minute === selectedMinute ? null : point.minute)}
+              >
+                {/* Track Background [Fix 4] */}
                 <View style={styles.barTrack}>
+                  
+                  {/* The Colored Bar */}
                   <View
                     style={[
                       styles.bar,
                       {
-                        height: `${barHeight}%`,
+                        height: `${heightPercent}%`,
                         backgroundColor: barColor,
-                        opacity: point.isLowConfidence && !isNow ? 0.6 : 1,
+                        opacity: opacity,
+                        // Add border if selected
+                        borderWidth: isSelected ? 2 : 0,
+                        borderColor: '#000', // Strong contrast when selected
                       }
                     ]}
                   />
-                  {isNow && <View style={styles.nowIndicator} />}
+
+                  {/* Now Indicator (Dot) - Sits on top of the bar [Fix 2] */}
+                  {isNow && (
+                    <View style={[
+                      styles.nowIndicator, 
+                      { bottom: `${heightPercent}%`, marginBottom: 4 } // Position right above bar
+                    ]} />
+                  )}
+                  
                 </View>
 
                 {/* Label Area */}
@@ -120,7 +181,7 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
                     <Text style={styles.timeLabel}>{hourLabel}</Text>
                   )}
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </ScrollView>
@@ -134,71 +195,79 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     marginHorizontal: 16,
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    // Shadow for iOS
+    borderRadius: 20, // More rounded [Fix 4]
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    // Shadow for Android
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  header: { marginBottom: 16 },
-  title: { fontSize: 17, fontWeight: '600', color: '#000' },
-  subtitle: { fontSize: 13, color: '#8E8E93', marginTop: 4 },
+  header: { marginBottom: 20 },
+  title: { fontSize: 20, fontWeight: '700', color: '#1C1C1E', letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, color: '#8E8E93', marginTop: 4, fontWeight: '500' },
   
   chartContainer: {
-    height: CHART_TOTAL_HEIGHT,
+    height: 120, 
     width: '100%',
   },
   scrollContent: {
-    paddingHorizontal: (SCREEN_WIDTH / 2) - STEP_SIZE, // Center start/end
+    paddingHorizontal: (Dimensions.get('window').width / 2) - 6,
     alignItems: 'flex-end',
   },
   
-  // Column Layout
   columnContainer: {
-    width: STEP_SIZE,
+    width: 12, // Slightly wider touch area
     height: '100%', 
     flexDirection: 'column',
     justifyContent: 'flex-end',
     alignItems: 'center',
+    marginRight: 2, // Tiny gap
   },
   
-  // Bar Area
+  // Track area (the vertical lane)
   barTrack: {
-    flex: 1, // Takes up remaining height above labels
-    width: '100%',
-    justifyContent: 'flex-end', // Bars grow from bottom
+    flex: 1, 
+    width: 6, // Visual bar width
+    backgroundColor: '#F2F2F7', // [Fix 4] Track background
+    borderRadius: 3,
+    justifyContent: 'flex-end', // Align bars to bottom
     alignItems: 'center',
-    paddingBottom: 4, // Gap between bar and label
+    overflow: 'visible', // Allow dot to pop out if needed
   },
+  
   bar: {
-    width: BAR_WIDTH,
-    borderRadius: BAR_WIDTH / 2,
-    minHeight: BAR_WIDTH, // Ensure a perfect circle at 0 score
+    width: '100%', 
+    borderRadius: 3,
   },
+  
+  // [Fix 2] Red Dot
   nowIndicator: {
     position: 'absolute',
-    top: -6, // Float above the bar
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#FF2D55',
+    // Bottom is controlled dynamically in inline styles
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF3B30',
+    borderWidth: 1.5,
+    borderColor: '#fff', // White ring for contrast
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    zIndex: 10,
   },
 
-  // Label Area
   labelContainer: {
-    height: LABEL_HEIGHT,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    width: 30, // Wider than STEP_SIZE to allow text overflow centering
+    width: 30, 
+    marginTop: 4,
   },
   timeLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#8E8E93',
-    fontWeight: '500',
+    fontWeight: '600',
     textAlign: 'center',
   },
 

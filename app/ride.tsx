@@ -1,94 +1,102 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
-import { Alert, Button, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, SafeAreaView, ScrollView, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { TripPulseChart } from '../components/TripPulseChart';
-import { useTripIngestion } from '../hooks/useTripIngestion';
 import { useTripStats } from '../hooks/useTripStats';
+// useTripIngestion 已不再需要
+import { BusPlannerService } from '../components/busPlanner';
 
-// --- MOCK DATA FOR DEMO PURPOSES ---
-const MOCK_API_RESPONSE = [
-  { 
-    routeId: '307', 
-    stationId: 'S1', 
-    // Simulating buses coming in 5, 20, 25 mins from now
-    etaList: [5, 20, 25, 40, 55] 
-  },
-  { 
-    routeId: '265', 
-    stationId: 'S2', 
-    // Simulating buses in 8, 22 mins
-    etaList: [8, 22, 50] 
-  }
-];
+// 建立 Singleton Service 實例
+const busPlanner = new BusPlannerService();
 
 export default function SearchResultScreen() {
-  const router = useRouter();
-  // 1. Get Params (e.g., from previous search input screen)
-  const { start = "Taipei Main", end = "Ximen" } = useLocalSearchParams<{ start: string, end: string }>();
-
-  // 2. Init Hooks
-  const { ingestTripData } = useTripIngestion();
+  const { start = "台電宿舍", end = "捷運淡水站" } = useLocalSearchParams<{ start: string, end: string }>();
+  const [viewMode, setViewMode] = useState<'weekday' | 'weekend'>('weekday');
   
-  // We grab refreshStats to manually reload the chart after we ingest new data
-  const { stats, metadata, loading, refreshStats } = useTripStats(start, end);
+  // 1. 讀取歷史統計資料
+  const { stats, metadata, loading: statsLoading, refreshStats } = useTripStats(start, end);
+  
+  // 狀態僅用於 UI 顯示，資料邏輯已封裝
+  const [isRefreshing, setRefreshing] = useState(false);
 
-  // 3. Handle Ingestion (Simulation of API Success)
-  const handleSimulateApiReturn = async () => {
-    console.log("Simulating API Return...");
-    
-    try {
-      // Write to SQLite
-      await ingestTripData(start, end, MOCK_API_RESPONSE);
-      
-      // Refresh the UI
-      await refreshStats();
-      
-      Alert.alert("Data Ingested", "已寫入模擬數據，圖表應更新。");
-    } catch (e: any) {
-      // <--- 3. 顯示明確錯誤，不再靜默失敗
-      Alert.alert("Error", "操作失敗: " + e.message);
-    }
-  };
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchData = async () => {
+      if (!start || !end) return;
+
+      try {
+        setRefreshing(true);
+        console.log(`[Ride] Fetching: ${start} -> ${end}`);
+
+        // Planner 現在會自動在背景處理 Ingestion
+        await busPlanner.plan(start, end);
+        
+        if (!isMounted) return;
+
+        // 雖然 Plan 完成了，但背景寫入可能還在跑。
+        // 我們延遲一下再刷新統計圖表，讓剛寫入的資料有機會被讀出來
+        setTimeout(() => {
+             refreshStats(); 
+        }, 1000); 
+
+      } catch (e) {
+        console.error("[Ride] Error:", e);
+      } finally {
+        if (isMounted) setRefreshing(false);
+      }
+    };
+
+    fetchData();
+
+    return () => { isMounted = false; };
+  }, [start, end, refreshStats]);
+
+  // 決定目前的顯示數據
+  const currentStats = stats[viewMode] || [];
+  const currentMetaDays = viewMode === 'weekday' ? metadata.daysWeekday : metadata.daysWeekend;
+  
+  // 只要正在攝入且尚未有資料，就顯示 Loading (若已有歷史資料則讓使用者先看)
+  const isGlobalLoading = statsLoading || (isRefreshing && currentStats.length === 0);
 
   return (
     <SafeAreaView style={styles.container}>
-      <Stack.Screen options={{ title: 'Trip Results' }} />
-      
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
         
-        {/* SECTION 1: The Pulse Chart */}
-        <Text style={styles.sectionTitle}>Historical Frequency</Text>
+        {/* Tab Switcher */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity 
+            style={[styles.tabButton, viewMode === 'weekday' && styles.tabActive]} 
+            onPress={() => setViewMode('weekday')}
+          >
+            <Text style={[styles.tabText, viewMode === 'weekday' && styles.tabTextActive]}>Weekday</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.tabButton, viewMode === 'weekend' && styles.tabActive]} 
+            onPress={() => setViewMode('weekend')}
+          >
+            <Text style={[styles.tabText, viewMode === 'weekend' && styles.tabTextActive]}>Weekend</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Real-time Status Indicator */}
+        {isRefreshing && !isGlobalLoading && (
+           <View style={styles.syncContainer}>
+             <ActivityIndicator size="small" color="#8E8E93" />
+             <Text style={styles.syncText}>Updating live traffic...</Text>
+           </View>
+        )}
+
+        {/* Chart Component */}
         <TripPulseChart 
           startName={start} 
           endName={end} 
-          totalDays={metadata.totalDays}
+          totalDays={currentMetaDays}
           routeCount={metadata.routeCount}
-          // 🔥 傳遞資料與讀取狀態
-          data={stats}
-          isLoading={loading}
+          data={currentStats}
+          isLoading={isGlobalLoading}
         />
-        
-        {/* SECTION 2: Action Area (Simulate API) */}
-        <View style={styles.debugCard}>
-          <Text style={styles.debugTitle}>Developer Tools</Text>
-          <Text style={styles.debugDesc}>
-            Since this is a partial context, click below to simulate receiving live API data for this trip. 
-            This will feed the SQLite DB and update the chart above.
-          </Text>
-          <Button 
-            title="Simulate Live API & Ingest" 
-            onPress={handleSimulateApiReturn} 
-          />
-        </View>
-
-        {/* SECTION 3: Raw Stats Debug */}
-        <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>Debug Info</Text>
-          <Text>Total Data Points: {stats.length}</Text>
-          <Text>Known Routes: {metadata.routeCount}</Text>
-          <Text>Observed Days: {metadata.totalDays}</Text>
-          <Text>Loading: {loading ? 'Yes' : 'No'}</Text>
-        </View>
 
       </ScrollView>
     </SafeAreaView>
@@ -96,48 +104,40 @@ export default function SearchResultScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: '#F2F2F7' },
+  scrollContainer: { paddingBottom: 40 },
+  
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#E5E5EA',
+    margin: 16,
+    borderRadius: 8,
+    padding: 2,
+    height: 36,
+  },
+  tabButton: {
     flex: 1,
-    backgroundColor: '#f2f2f7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 6,
   },
-  scrollContent: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 10,
-    color: '#000',
-  },
-  debugCard: {
-    marginTop: 20,
-    padding: 16,
+  tabActive: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e5ea',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 2,
   },
-  debugTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+  tabText: { fontSize: 13, fontWeight: '500', color: '#8E8E93' },
+  tabTextActive: { color: '#000', fontWeight: '600' },
+
+  syncContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
-    color: '#FF9500',
+    gap: 6
   },
-  debugDesc: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  statsCard: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: '#e5e5ea', // Darker gray for differentiation
-    borderRadius: 12,
-  },
-  statsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  }
+  syncText: { fontSize: 12, color: '#8E8E93' }
 });
