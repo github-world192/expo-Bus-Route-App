@@ -81,7 +81,7 @@ export default function SearchResultScreen() {
   const currentMetaDays = viewMode === 'weekday' ? metadata.daysWeekday : metadata.daysWeekend;
   
   // 只要正在攝入且尚未有資料，就顯示 Loading (若已有歷史資料則讓使用者先看)
-  const isGlobalLoading = statsLoading || (isRefreshing && currentStats.length === 0);
+  const isGlobalLoading = statsLoading || isRefreshing;
 
   return (
     <SafeAreaView style={styles.container}>

@@ -610,7 +610,11 @@ export class BusPlannerService {
       // 過濾出有效的路線資料
       const apiRoutes = buses.map(p => {
           const etaList = (p.arrivals || [])
-              .map(sec => Math.floor(sec / 60)); // 轉為分鐘
+              .map(sec => {
+                // [Fix] 強制將負數 (如 TIME_NEAREST = -1) 轉為 0，確保進站中/將到站被記錄
+                if (sec < 0) return 0; 
+                return Math.floor(sec / 60);
+              });
 
           // Fallback: 若 arrivals 為空但 rawTime 有效 (包含 -1=將到站, 0=進站中)
           // 若 rawTime 是 -1 (TIME_NEAREST)，視為 0 分鐘

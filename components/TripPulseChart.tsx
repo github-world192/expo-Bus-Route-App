@@ -34,12 +34,10 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
   const [selectedMinute, setSelectedMinute] = useState<number | null>(null);
   const hasScrolledRef = useRef(false);
 
-  // Calculate "Now" Index
-  const currentBucketIndex = useMemo(() => {
-    const now = new Date();
-    const mod = now.getHours() * 60 + now.getMinutes();
-    return Math.floor(mod / 5);
-  }, []);
+  // Calculate "Now" Index (Remove useMemo to ensure it's always fresh on render)
+  const now = new Date();
+  const mod = now.getHours() * 60 + now.getMinutes();
+  const currentBucketIndex = Math.floor(mod / 5);
 
   // Helper: Format Time Range
   const getLabelText = () => {
@@ -81,18 +79,19 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
   // Trigger scroll when loading finishes and we have data
   useEffect(() => {
     if (!isLoading && stats.length > 0) {
-      // Reset scroll flag if the route changed significantly (optional logic)
-      // For now, we trust onContentSizeChange to handle the initial scroll
+      // [Fix] When data changes (e.g. switching Weekday/Weekend), reset scroll flag
+      // and trigger scroll manually, because content width might not change.
+      hasScrolledRef.current = false;
+      performScroll();
     }
   }, [isLoading, stats]);
 
   // If loading AND no data, show full loading state.
   // If loading BUT we have data (refreshing), show chart with spinner overlay.
-  const showFullLoading = isLoading && (!stats || stats.length === 0);
-  
-  if (showFullLoading) {
+  if (isLoading) {
     return (
       <View style={styles.card}>
+        <ActivityIndicator size="small" color="#6F73F8" style={{ marginBottom: 12 }} />
         <Text style={styles.loadingText}>Analyzing Trip Pulse...</Text>
       </View>
     );
@@ -111,7 +110,6 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={styles.title}>{startName} ➔ {endName}</Text>
-          {isLoading && <ActivityIndicator size="small" color="#6F73F8" />}
         </View>
         <Text style={[styles.subtitle, selectedMinute !== null && { color: '#6F73F8', fontWeight: '600' }]}>
           {getLabelText()}
