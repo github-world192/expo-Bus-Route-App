@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { PulseDataPoint } from '../hooks/useTripStats';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -66,21 +66,31 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
   };
 
   // Auto-Scroll Effect
-  useEffect(() => {
-    if (!isLoading && stats && stats.length > 0 && scrollViewRef.current && !hasScrolledRef.current) {
-      // [Fix Centering Logic]
-      // With paddingHorizontal set to SIDE_PADDING, x=0 centers Index 0.
-      // Therefore, x = Index * STEP_SIZE centers Index N.
+  // Auto-Scroll Logic
+  const performScroll = () => {
+    if (stats && stats.length > 0 && scrollViewRef.current && !hasScrolledRef.current) {
       const offset = currentBucketIndex * STEP_SIZE;
-      
+      // Android needs a slight delay or relies on content size change
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({ x: offset, animated: true });
         hasScrolledRef.current = true;
-      }, 500);
+      }, 100);
     }
-  }, [isLoading, stats, currentBucketIndex]);
+  };
 
-  if (isLoading) {
+  // Trigger scroll when loading finishes and we have data
+  useEffect(() => {
+    if (!isLoading && stats.length > 0) {
+      // Reset scroll flag if the route changed significantly (optional logic)
+      // For now, we trust onContentSizeChange to handle the initial scroll
+    }
+  }, [isLoading, stats]);
+
+  // If loading AND no data, show full loading state.
+  // If loading BUT we have data (refreshing), show chart with spinner overlay.
+  const showFullLoading = isLoading && (!stats || stats.length === 0);
+  
+  if (showFullLoading) {
     return (
       <View style={styles.card}>
         <Text style={styles.loadingText}>Analyzing Trip Pulse...</Text>
@@ -99,8 +109,11 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>{startName} ➔ {endName}</Text>
-        <Text style={[styles.subtitle, selectedMinute !== null && { color: '#007AFF', fontWeight: '600' }]}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={styles.title}>{startName} ➔ {endName}</Text>
+          {isLoading && <ActivityIndicator size="small" color="#6F73F8" />}
+        </View>
+        <Text style={[styles.subtitle, selectedMinute !== null && { color: '#6F73F8', fontWeight: '600' }]}>
           {getLabelText()}
         </Text>
       </View>
@@ -112,7 +125,13 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           decelerationRate="fast"
-          snapToInterval={STEP_SIZE * 6} 
+          snapToInterval={STEP_SIZE * 6}
+          onContentSizeChange={(w, h) => {
+             // Reliable scroll trigger for Android
+             if (w > 0 && !hasScrolledRef.current) {
+                performScroll();
+             }
+          }}
         >
           {stats.map((point, index) => {
             const normalizedScore = Math.min(point.score, CLAMP_SCORE);

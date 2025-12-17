@@ -15,8 +15,8 @@ export default function SearchResultScreen() {
   
   // 管理當前選中的路線 (優先使用參數，否則使用預設值)
   const [currentRoute, setCurrentRoute] = useState({ 
-    start: params.start || "台電宿舍", 
-    end: params.end || "捷運淡水站" 
+    start: params.start || "師大分部", 
+    end: params.end || "師大" 
   });
   
   // 從 State 解構出 start 和 end 供後續 Hooks 使用
