@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, SafeAreaView, ScrollView, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, SafeAreaView, ScrollView, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { TripPulseChart } from '../components/TripPulseChart';
 import { useTripStats } from '../hooks/useTripStats';
@@ -165,14 +165,21 @@ export default function SearchResultScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#152021', paddingTop: 0 },
+  // [Fix] Restore status bar padding to prevent overlap (matching index.tsx)
+  container: { 
+    flex: 1, 
+    backgroundColor: '#152021', 
+    paddingTop: Platform.OS === 'ios' ? 50 : 28 
+  },
   scrollContainer: { paddingBottom: 40 },
   
   // Tab Switcher (Styled like iOS Segmented Control but Dark)
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#2b3435',
-    margin: 16,
+    marginHorizontal: 20, // [Fix] Align with other elements (was 16)
+    marginTop: 16,
+    marginBottom: 16,
     borderRadius: 8,
     padding: 2,
     height: 36,

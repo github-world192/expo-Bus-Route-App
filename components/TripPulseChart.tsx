@@ -167,10 +167,11 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
                 activeOpacity={0.8}
                 onPress={() => setSelectedMinute(point.minute === selectedMinute ? null : point.minute)}
               >
-                {/* Track Background [Fix 4] */}
-                  <View style={styles.barTrack}>
-                    
-                    {/* The Colored Bar */}
+                {/* Track Container */}
+                <View style={styles.barTrack}>
+                  
+                  {/* Visual Gray Track & Colored Bar */}
+                  <View style={styles.visualTrack}>
                     <View
                       style={[
                         styles.bar,
@@ -180,20 +181,21 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
                           opacity: opacity,
                           // Add border if selected
                           borderWidth: isSelected ? 2 : 0,
-                          borderColor: '#fff', // White border for contrast in Dark Mode
+                          borderColor: '#fff',
                         }
                       ]}
                     />
-
-                    {/* Now Indicator (Dot) - Sits on top of the bar [Fix 2] */}
-                    {isNow && (
-                      <View style={[
-                        styles.nowIndicator, 
-                        { bottom: `${heightPercent}%`, marginBottom: 4 } // Position right above bar
-                      ]} />
-                    )}
-                    
                   </View>
+
+                  {/* Now Indicator (Dot) - Outside visual track to avoid clipping */}
+                  {isNow && (
+                    <View style={[
+                      styles.nowIndicator, 
+                      { bottom: `${heightPercent}%`, marginBottom: 4 }
+                    ]} />
+                  )}
+                  
+                </View>
 
                 {/* Label Area */}
                 <View style={styles.labelContainer}>
@@ -213,11 +215,10 @@ export const TripPulseChart: React.FC<TripPulseChartProps> = ({
 const styles = StyleSheet.create({
   card: {
     marginVertical: 12,
-    marginHorizontal: 16,
-    backgroundColor: '#1f2627', // Dark Card Background
+    marginHorizontal: 20, // [Fix] Increased to align with main UI grid
+    backgroundColor: '#1f2627', 
     borderRadius: 20,
     padding: 20,
-    // Removed shadows for cleaner flat dark UI
   },
   header: { marginBottom: 20 },
   title: { fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.5 },
@@ -241,15 +242,22 @@ const styles = StyleSheet.create({
     marginRight: 2, 
   },
   
-  // Track area (the vertical lane)
+  // Track area (the vertical lane wrapper)
   barTrack: {
     flex: 1, 
-    width: 6, 
-    backgroundColor: '#2b3435', // Darker track background
-    borderRadius: 3,
+    width: '100%', // Allow full width so dot isn't clipped
     justifyContent: 'flex-end', 
     alignItems: 'center',
-    overflow: 'visible', 
+  },
+
+  // The actual gray track line
+  visualTrack: {
+    width: 6,
+    height: '100%',
+    backgroundColor: '#2b3435',
+    borderRadius: 3,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   
   bar: {
@@ -265,7 +273,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF453A',
     borderWidth: 1.5,
     borderColor: '#1f2627', // Ring matches card bg
-    zIndex: 10,
+    zIndex: 99,
+    elevation: 10, // Ensure it sits on top on Android
   },
 
   labelContainer: {
