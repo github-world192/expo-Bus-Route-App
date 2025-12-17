@@ -284,9 +284,13 @@ export default function StopScreen() {
         .map((bus) => ({
           route: bus.route,
           estimatedTime: bus.timeText,
-          rawTime: bus.rawTime ?? TIME_NOT_DEPARTED, // 確保 UI 物件也有值
-          key: `${bus.rid}-${bus.route}-${bus.direction || 'default'}`, 
+          rawTime: bus.rawTime ?? TIME_NOT_DEPARTED,
+          // [Fix] 使用 sid (站牌ID) 取代 idx。sid 能區分同站名但不同方位的站牌 (如循環線)
+          // 組合: RID + SID + 方向 + 時間
+          key: `${bus.rid}-${bus.sid}-${bus.direction || '0'}-${bus.rawTime ?? TIME_NOT_DEPARTED}`, 
         }));
+
+      setArrivals(uiArrivals);
 
       setArrivals(uiArrivals);
       setLastUpdate(new Date().toLocaleTimeString());
@@ -554,14 +558,13 @@ export default function StopScreen() {
         }
       }
 
-      // 轉換 plan() 的結果為 UI 格式
+      // 這確保了 UI 顯示的資料 = Trip Pulse 紀錄的資料
       const favoriteArrivals: UIArrival[] = plans.map((bus) => ({
         route: bus.routeName,
-        direction: bus.directionText || '', // 使用 plan() 提供的方向資訊
+        direction: bus.directionText || '', 
         estimatedTime: bus.arrivalTimeText || '更新中',
-        // [FIX] 若 rawTime 為 undefined，強制設為 99999 (未發車)，防止被視為 0 (進站中)
-        rawTime: (bus.rawTime !== undefined && bus.rawTime !== null) ? bus.rawTime : TIME_NOT_DEPARTED,
-        key: `fav-${route.id}-${bus.rid}-${bus.routeName}-${bus.rawTime || 0}`,
+        // [Fix] 使用 sid + rid + direction 作為唯一識別，移除 idx 以確保排序變動時 UI 穩定
+        key: `fav-${route.id}-${bus.rid}-${bus.sid}-${bus.directionText || ''}-${bus.rawTime}`,
       }));
 
       // [FIX] 依照原始秒數排序 (BusPlanner 邏輯)
@@ -645,8 +648,8 @@ export default function StopScreen() {
         route: bus.routeName,
         direction: bus.directionText || '', 
         estimatedTime: bus.arrivalTimeText || '更新中',
-        // 使用複合 Key 確保唯一性
-        key: `fav-${route.id}-${bus.rid}-${bus.routeName}-${bus.rawTime || 0}`,
+        // [Fix] 使用 sid + rid + direction 作為唯一識別，移除 idx 以確保排序變動時 UI 穩定
+        key: `fav-${route.id}-${bus.rid}-${bus.sid}-${bus.directionText || ''}-${bus.rawTime}`,
       }));
 
       // 排序: 將 "即將進站" (-1) 和 "X分" 放在前面，"未發車" 放後面
