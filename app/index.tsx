@@ -31,6 +31,7 @@ interface UIArrival {
   route: string;
   direction?: string; // 加入方向資訊（選填，因為有些情況可能沒有）
   estimatedTime: string;
+  rawTime?: number; // [Added] 用於精確排序，對齊 BusPlanner 邏輯
   key: string;
 }
 
@@ -80,6 +81,9 @@ export default function StopScreen() {
   
   // 檢測是否為手機裝置
   const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false);
+
+  // [Config] 定義排序常數 (對齊 BusPlanner)
+  const TIME_NOT_DEPARTED = 99999;
   
   useEffect(() => {
     // 檢測裝置類型
@@ -272,11 +276,16 @@ export default function StopScreen() {
       
       // 轉換為 UI 格式並排序 (依據 rawTime，即到站秒數)
       const uiArrivals: UIArrival[] = allBuses
-        .sort((a, b) => a.rawTime - b.rawTime)
+        .sort((a, b) => {
+           const tA = (a.rawTime !== undefined && a.rawTime !== null) ? a.rawTime : TIME_NOT_DEPARTED;
+           const tB = (b.rawTime !== undefined && b.rawTime !== null) ? b.rawTime : TIME_NOT_DEPARTED;
+           return tA - tB;
+        })
         .map((bus) => ({
           route: bus.route,
           estimatedTime: bus.timeText,
-          key: `${bus.rid}-${bus.route}-${bus.direction || 'default'}`, // 使用 rid+route+direction 區分
+          rawTime: bus.rawTime ?? TIME_NOT_DEPARTED, // 確保 UI 物件也有值
+          key: `${bus.rid}-${bus.route}-${bus.direction || 'default'}`, 
         }));
 
       setArrivals(uiArrivals);
@@ -550,16 +559,17 @@ export default function StopScreen() {
         route: bus.routeName,
         direction: bus.directionText || '', // 使用 plan() 提供的方向資訊
         estimatedTime: bus.arrivalTimeText || '更新中',
+        // [FIX] 若 rawTime 為 undefined，強制設為 99999 (未發車)，防止被視為 0 (進站中)
+        rawTime: (bus.rawTime !== undefined && bus.rawTime !== null) ? bus.rawTime : TIME_NOT_DEPARTED,
         key: `fav-${route.id}-${bus.rid}-${bus.routeName}-${bus.rawTime || 0}`,
       }));
 
-      // 依照到站時間排序
+      // [FIX] 依照原始秒數排序 (BusPlanner 邏輯)
+      // -1 (將到站) < 0 (進站中) < 180 (3分) < ... < 99999 (未發車)
       favoriteArrivals.sort((a, b) => {
-        const timeA = a.estimatedTime || '';
-        const timeB = b.estimatedTime || '';
-        if (timeA.includes('分') && !timeB.includes('分')) return -1;
-        if (!timeA.includes('分') && timeB.includes('分')) return 1;
-        return 0;
+        const tA = a.rawTime ?? TIME_NOT_DEPARTED;
+        const tB = b.rawTime ?? TIME_NOT_DEPARTED;
+        return tA - tB;
       });
 
       console.log('Total favorite arrivals:', favoriteArrivals.length);
