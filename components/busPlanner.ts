@@ -724,14 +724,37 @@ export class BusPlannerService {
     const updatedArrays = await this.batchProcess(tasks, async ({ slid, buses }) => {
         const repSid = buses[0].sid;
         const realtimes = await this.fetchRealtimeBySlid(slid, repSid);
-        const rtMap = new Map(realtimes.map(r => [r.rid, r]));
+        
+        // [Fix] 建立該 SLID 下所有路線的完整班次清單 (Map<RouteID, Array<RawTime>>)
+        // 這樣才能確保 _recordTraffic 能拿到未來的班次資料
+        const rtGroup = new Map<string, number[]>();
+        realtimes.forEach(r => {
+           if (!rtGroup.has(r.rid)) rtGroup.set(r.rid, []);
+           rtGroup.get(r.rid)?.push(r.raw_time);
+        });
+
+        // Helper: 找出該路線最近的一班車 (用於顯示 UI)
+        const getBestBus = (rid: string) => {
+            const valid = realtimes.filter(r => r.rid === rid).sort((a, b) => a.raw_time - b.raw_time);
+            return valid[0];
+        };
 
         return buses.map(b => {
-            const rt = rtMap.get(b.rid);
+            const rt = getBestBus(b.rid);
+            
+            // [Fix] 重新計算該路線的所有有效班次 (Arrivals)
+            const rawArrivals = rtGroup.get(b.rid) || [];
+            const processedArrivals = rawArrivals
+                .filter(t => (t >= 0 || t === CONFIG.TIME_NEAREST) && t < 10000)
+                .map(t => t === CONFIG.TIME_NEAREST ? 0 : t)
+                .sort((x, y) => x - y);
+
             return {
                 ...b,
                 arrivalTimeText: rt ? rt.time_text : "更新中",
-                rawTime: rt ? rt.raw_time : CONFIG.TIME_NOT_DEPARTED
+                rawTime: rt ? rt.raw_time : CONFIG.TIME_NOT_DEPARTED,
+                // [Fix] 關鍵修正：更新 arrivals 陣列，讓統計模組能讀到未來班次
+                arrivals: processedArrivals
             };
         });
     });
